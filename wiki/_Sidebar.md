@@ -9,6 +9,7 @@
 - [Simulador](Simulador.md)
 - [Conectar con Claude](Conectar-con-Claude.md)
 - [Instalación en la Pi](Instalacion-en-la-Pi.md)
+- [Wake word "oye BB-8"](Wake-word-oye-BB-8.md)
 
 **Construir**
 - [1 · Protoboard](Parte-1-Protoboard.md)

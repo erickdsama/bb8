@@ -15,6 +15,7 @@ Código: [`partes/4-agente-movimiento`](https://github.com/erickdsama/bb8/tree/m
 | `voz/salida.py` | Piper local o en la cabeza, y pitidos |
 | `voz/cara.py` | Gira la cabeza hacia quien habla (Parte 5) |
 | `requirements-voz.txt` | Dependencias del agente de voz |
+| `wakeword/` | Entrenamiento de la wake word "oye BB-8" (Colab o PC, no en la Pi) |
 
 ## Paso 1: el servidor MCP desde Claude Code o Desktop
 
@@ -59,7 +60,7 @@ las herramientas MCP → Piper.
 
 ## Ajustes
 
-- **Wake word:** "hey Jarvis" de fábrica. Para "oye BB-8" entrena tu modelo con el cuaderno de openWakeWord (genera voces sintéticas, ~1 h en Colab) y pon la ruta del `.onnx` en `BB8_WAKEWORD`.
+- **Wake word:** "hey Jarvis" de fábrica. Para "oye BB-8" entrena tu modelo con el cuaderno de `wakeword/` en Colab y copia `oye_bb8.onnx` a `voz/modelos/`: el agente lo usa solo. Ver [Wake word "oye BB-8"](Wake-word-oye-BB-8.md).
 - **Modelo:** `claude-opus-5-5` con esfuerzo `low` para que conteste rápido (`BB8_MODELO`, `BB8_ESFUERZO`). Lleva activado el respaldo del servidor: si un clasificador rechaza una petición, la API la reintenta con otro modelo.
 - **Voces desconocidas:** pueden platicar, pero `move`, `turn` y `look_at` se bloquean en el código, no solo en el prompt. Mientras no registres ninguna voz, obedece a todos. No es biometría segura.
 - **Whisper:** `small` tarda 2–4 s en una Pi 4; `BB8_WHISPER=base` es más rápido.
@@ -75,3 +76,4 @@ Para que arranque solo: servicios `bb8-mcp` y `bb8-voz`.
 - [ ] `python -m voz.agente "..."` responde y usa herramientas
 - [ ] Tu voz registrada; una voz desconocida no logra moverlo
 - [ ] "Oye Jarvis… ven acá" y se mueve
+- [ ] (Opcional) "Oye BB-8… ven acá" con tu modelo entrenado

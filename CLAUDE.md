@@ -16,7 +16,7 @@ La cabeza es una Pi Zero con `head.server` (:8080). Detalle: `wiki/Arquitectura.
 | `partes/1-protoboard/arduino/` | `pruebas/p1…p5`, `bb8_firmware/bb8_firmware.ino` | 1 |
 | `partes/2-base-melamina/` | solo README (montaje) | 2 |
 | `partes/3-base-andando/` | `bb8` (config, protocol, serial_link, motion, motion_api, gamepad), `calibrar` | 3 |
-| `partes/4-agente-movimiento/` | `bb8_mcp` (servidor MCP), `voz` (agente de voz) | 4 |
+| `partes/4-agente-movimiento/` | `bb8_mcp` (servidor MCP), `voz` (agente de voz), `wakeword/` (scripts para entrenar "oye BB-8", no es paquete) | 4 |
 | `partes/5-cabeza/` | `head` (servidor de la Pi Zero, backends real y simulado) | 5 |
 | `partes/6-esfera-baterias/` | `energia` (reposo y batería) | 6 |
 | `simulador/` | `dummy` (Arduino y cabeza simulados, `probar.py`), `lanzar_dummy.py` | — |

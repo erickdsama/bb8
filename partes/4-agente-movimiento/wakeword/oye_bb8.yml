@@ -1,0 +1,114 @@
+# Entrenamiento de la wake word "oye BB-8" con openWakeWord.
+#
+# Es el YAML de `openwakeword/train.py` más una sección `bb8:` que lee nuestro
+# generador de muestras en español (muestras.py). Las rutas relativas son relativas a la
+# carpeta de trabajo (--trabajo de entrenar.py); entrenar.py las vuelve absolutas.
+# Detalle: wiki/Wake-word-oye-BB-8.md
+
+model_name: "oye_bb8"            # sale como oye_bb8.onnx; el agente lo busca en voz/modelos/
+
+# Solo informativo: openWakeWord genera sus muestras con una voz inglesa; las nuestras las
+# hace muestras.py con las voces de Piper en español (sección bb8 de abajo).
+target_phrase:
+  - "oye bi bi eit"
+custom_negative_phrases: []
+
+# Muestras sintéticas. La receta recomienda 20 000 como mínimo; más es mejor.
+n_samples: 20000                 # positivas y negativas de entrenamiento (cada una)
+n_samples_val: 2000              # positivas y negativas de validación (cada una)
+tts_batch_size: 50               # no se usa (no generamos con train.py)
+augmentation_batch_size: 16
+augmentation_rounds: 1           # >1 reaprovecha cada muestra con otro ruido/eco
+
+piper_sample_generator_path: ""  # lo llena entrenar.py con un sustituto (no se usa)
+output_dir: "salida"
+
+# Eco de cuartos reales y ruido de fondo (los baja datos.py).
+rir_paths:
+  - "mit_rirs"
+background_paths:
+  - "fondo_16k"
+background_paths_duplication_rate:
+  - 1
+
+# Negativos genéricos ya convertidos a features de openWakeWord (~2000 h de ACAV100M)
+# y ~11 h de validación para medir falsas activaciones por hora.
+false_positive_validation_data_path: "validation_set_features.npy"
+feature_data_files:
+  "ACAV100M_sample": "openwakeword_features_ACAV100M_2000_hrs_16bit.npy"
+batch_n_per_class:
+  "ACAV100M_sample": 1024
+  "adversarial_negative": 50
+  "positive": 50
+
+model_type: "dnn"
+layer_size: 32
+steps: 50000
+max_negative_weight: 1500
+target_false_positives_per_hour: 0.2
+
+bb8:
+  # Voces de Piper (huggingface.co/rhasspy/piper-voices). "auto" = todas las de español
+  # (es_ES, es_MX, es_AR…); o una lista de nombres, p. ej. ["es_MX-ald-medium"].
+  voces: "auto"
+  # Variación por muestra, al azar dentro de cada rango.
+  length_scale: [0.75, 1.35]     # velocidad al hablar
+  noise_scale: [0.4, 1.0]        # entonación
+  noise_w: [0.4, 1.0]            # ritmo de los fonemas
+  tono: [0.88, 1.12]             # cambia tono y velocidad juntos: simula voces más agudas o graves
+  duracion_max_s: 2.5            # descarta lo que salga más largo (Piper a veces alucina)
+
+  # Cómo se escribe "oye BB-8" para que espeak lo pronuncie como se dice en México.
+  positivas:
+    - "oye bi bi eit"
+    - "oye bibi eit"
+    - "oye bibiéit"
+    - "oye, bi bi eit"
+    - "oye bí bi éit"
+    - "oie bi bi eit"
+    - "oye bibieit!"
+    - "oye bi bi eit?"
+
+  # Negativas difíciles: suenan parecido o empiezan igual. Sin ellas se dispara con
+  # cualquier "oye".
+  negativas:
+    - "oye"
+    - "oye bien"
+    - "oye bebé"
+    - "oye vi"
+    - "oye vivi"
+    - "oye bibi"
+    - "oye beatriz"
+    - "oye benito"
+    - "oye mira"
+    - "oye ven"
+    - "oye güey"
+    - "oye mamá"
+    - "oye papá"
+    - "oye oye"
+    - "oíste"
+    - "hoy veo"
+    - "hoy bebí"
+    - "hoy vi a ocho"
+    - "bi bi eit"
+    - "bibi"
+    - "eit"
+    - "ocho"
+    - "be be ocho"
+    - "oye, ¿qué hora es?"
+    - "oye, ¿ya comiste?"
+    - "oye, pásame eso"
+    - "ey, ¿qué onda?"
+    - "boy bi bi"
+    - "voy a ir"
+    - "todo bien"
+    - "la tele"
+    - "hey jarvis"
+    - "alexa"
+    - "oye siri"
+    - "ok google"
+    - "baby"
+    - "oye baby"
+    - "veinte"
+    - "bien bien"
+    - "oye beto"

@@ -11,6 +11,7 @@ voz/                    wake word → VAD → Whisper → Claude + MCP → Piper
 ├── agente.py           Claude con las herramientas MCP
 ├── salida.py           Piper local o en la cabeza, pitidos
 └── cara.py             girar hacia quien habla (Parte 5)
+wakeword/               entrenar la wake word "oye BB-8" (Colab o PC, no en la Pi)
 requirements-voz.txt
 ```
 
@@ -25,7 +26,9 @@ python -m voz.hablantes registrar Erick
 python -m voz                                         # el bucle completo
 ```
 
-**Lista cuando** "Oye Jarvis… ven acá" y se mueve.
+**Lista cuando** "Oye Jarvis… ven acá" y se mueve. Para "oye BB-8", entrena el modelo con
+[`wakeword/`](wakeword) y copia `oye_bb8.onnx` a `voz/modelos/`.
 
 Guías: [wiki/Parte-4-Agente-controla-el-movimiento.md](../../wiki/Parte-4-Agente-controla-el-movimiento.md) ·
-[wiki/Conectar-con-Claude.md](../../wiki/Conectar-con-Claude.md)
+[wiki/Conectar-con-Claude.md](../../wiki/Conectar-con-Claude.md) ·
+[wiki/Wake-word-oye-BB-8.md](../../wiki/Wake-word-oye-BB-8.md)

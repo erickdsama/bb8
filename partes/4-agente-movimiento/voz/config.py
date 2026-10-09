@@ -23,8 +23,12 @@ TASA = 16000
 BLOQUE = 1280                 # 80 ms, lo que espera openWakeWord
 MICROFONO = os.environ.get("BB8_MICROFONO") or None   # nombre o índice de sounddevice; None = el de por defecto
 # Modelo de wake word: un nombre de los preentrenados (hey_jarvis, alexa, hey_mycroft)
-# o la ruta a tu "oye_bb8.onnx" entrenado con el cuaderno de openWakeWord.
-WAKEWORD = os.environ.get("BB8_WAKEWORD", "hey_jarvis")
+# o la ruta a un .onnx. Sin BB8_WAKEWORD usa "oye BB-8" si ya copiaste el modelo
+# entrenado con partes/4-agente-movimiento/wakeword a voz/modelos/, y si no "hey Jarvis".
+WAKEWORD_PROPIA = AQUI / "modelos" / "oye_bb8.onnx"
+WAKEWORD_RESPALDO = "hey_jarvis"
+WAKEWORD = os.environ.get("BB8_WAKEWORD") or (
+    str(WAKEWORD_PROPIA) if WAKEWORD_PROPIA.exists() else WAKEWORD_RESPALDO)
 WAKEWORD_UMBRAL = float(os.environ.get("BB8_WAKEWORD_UMBRAL", "0.5"))
 VAD_UMBRAL = 0.5
 SILENCIO_FIN_S = 0.8          # deja de grabar tras 0.8 s de silencio

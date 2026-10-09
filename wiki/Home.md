@@ -28,6 +28,7 @@ obedezca al agente; hasta la Parte 6 todo va con fuente de pared de 12 V.
 
 - [Protocolo](Protocolo.md): serial Pi ↔ Arduino, HTTP del servicio de movimiento y de la cabeza, pinout.
 - [Instalación en la Pi](Instalacion-en-la-Pi.md): servicios systemd, `/etc/bb8.env` y todas las variables `BB8_*`.
+- [Wake word "oye BB-8"](Wake-word-oye-BB-8.md): entrenar el modelo propio en Colab y ponerlo en el robot.
 - [Materiales](Materiales.md): lo que ya se compró (pedido UNIT 377466) y lo que falta.
 - [Artefactos](Artefactos.md): documento técnico, diagramas, tracker de avance, mecánica y animación.
 - [Pendientes](Pendientes.md): lo que falta probar o construir.

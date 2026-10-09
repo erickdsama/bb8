@@ -13,19 +13,40 @@ from .audio import Microfono
 log = logging.getLogger("bb8.voz.escucha")
 
 
-def _cargar_wakeword(nombre: str):
+def _parece_ruta(nombre: str) -> bool:
+    return "/" in nombre or nombre.endswith((".onnx", ".tflite"))
+
+
+def _preentrenados(nombre: str) -> list[str]:
     import openwakeword
+
+    try:  # sin argumento, openWakeWord ≥ 0.5 solo lista los .tflite
+        rutas = openwakeword.get_pretrained_model_paths("onnx")
+    except TypeError:
+        rutas = openwakeword.get_pretrained_model_paths()
+    return [p for p in rutas if Path(p).name.startswith(nombre) and Path(p).exists()]
+
+
+def _cargar_wakeword(nombre: str):
     from openwakeword.model import Model
 
+    if _parece_ruta(nombre) and not Path(nombre).exists():
+        log.warning("No existe el modelo de wake word %s; uso %s", nombre, V.WAKEWORD_RESPALDO)
+        nombre = V.WAKEWORD_RESPALDO
     ruta = nombre
-    if not Path(nombre).exists():
-        candidatos = [p for p in openwakeword.get_pretrained_model_paths() if Path(p).name.startswith(nombre)]
+    if Path(nombre).exists():
+        try:  # un modelo propio necesita los de features (melspectrogram, embedding)
+            from openwakeword.utils import download_models
+            download_models([V.WAKEWORD_RESPALDO])
+        except Exception as e:  # 0.4 los trae dentro; sin red, quizá ya estén
+            log.debug("download_models: %s", e)
+    else:
+        candidatos = _preentrenados(nombre)
         if not candidatos:
             try:  # openWakeWord ≥ 0.5 descarga los modelos aparte
                 from openwakeword.utils import download_models
                 download_models([nombre])
-                candidatos = [p for p in openwakeword.get_pretrained_model_paths()
-                              if Path(p).name.startswith(nombre) and Path(p).exists()]
+                candidatos = _preentrenados(nombre)
             except Exception as e:
                 log.warning("No pude descargar %s: %s", nombre, e)
         if not candidatos:
