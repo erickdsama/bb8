@@ -33,6 +33,7 @@ pip install -e .
 python simulador/lanzar_dummy.py                    # webcam 0 como cámara de la cabeza
 python simulador/lanzar_dummy.py --camara sintetica # Claude ve la habitación simulada
 python simulador/lanzar_dummy.py --camara 1         # otra webcam
+python simulador/lanzar_dummy.py --camara ninguna   # cabeza sin cámara (take_photo falla, lo demás no)
 python simulador/lanzar_dummy.py --sin-sonido       # sin pitidos en el PC
 ```
 

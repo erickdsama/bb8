@@ -4,7 +4,7 @@ Servicios systemd e instaladores. Ambos instaladores esperan el repo en `/home/b
 
 | Archivo | Va en | Hace |
 | --- | --- | --- |
-| `instalar_pi.sh` | Pi principal | Usuario `bb8`, venv, dependencias, `pip install -e .`, voz de Piper, servicios |
+| `instalar_pi.sh` | Pi principal (Pi 3, OS de 64 bits) | Usuario `bb8`, venv, dependencias, `pip install -e .`, voz de Piper, zram y `gpu_mem=16` con 1 GB, servicios |
 | `instalar_zero.sh` | Pi Zero 2 W | picamera2, venv, Piper, servicio de la cabeza |
 | `bb8-motion.service` | Pi principal | `python -m bb8.motion_api --mando` (Parte 3) |
 | `bb8-mcp.service` | Pi principal | `python -m bb8_mcp` (Parte 4) |

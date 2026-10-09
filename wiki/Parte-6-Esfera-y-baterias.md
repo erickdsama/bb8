@@ -12,7 +12,7 @@ Código: [`partes/6-esfera-baterias`](https://github.com/erickdsama/bb8/tree/mai
 LiPo 3S 11.1 V 5.2 Ah (XT60) → fusible 5 A → interruptor rocker → L298N, buck de la Pi
 y buck del servo. La cabeza sigue con su power bank.
 
-- **Segundo buck para el servo.** Un LM2596 da ~2 A reales; una Pi 4 pide 1–1.5 A y un MG996R trabado 2.5 A. Usa uno para la Pi (con el condensador de 1000 µF) y otro solo para el servo. Si la Pi es una Pi 5, su buck debe ser de 5 A.
+- **Segundo buck para el servo.** Un LM2596 da ~2 A reales; la Pi 3 pide hasta ~1.2 A con Whisper en los 4 núcleos y un MG996R trabado 2.5 A. Usa uno para la Pi (con el condensador de 1000 µF, a 5.1 V) y otro solo para el servo.
 - **El Arduino come por VIN desde la batería** (después del interruptor), no solo por el USB de la Pi, para seguir vivo cuando corta la Pi.
 - Nunca bajar de 3.3 V por celda (~10 V); la alarma de voltaje (en el pedido) se pone a 3.5 V.
 - Divisor 10 kΩ / 4.7 kΩ de la batería a **A0** y `HAY_DIVISOR_BAT 1` en el firmware: así `?` reporta `V=` y el firmware rechaza `M` por debajo de 9.9 V.

@@ -6,7 +6,7 @@ El servidor MCP que le da a Claude las herramientas del robot y el agente de voz
 bb8_mcp/                servidor MCP bb8-motion (FastMCP, :8765/mcp)
 voz/                    wake word → VAD → Whisper → Claude + MCP → Piper
 ├── escucha.py          openWakeWord + Silero VAD
-├── stt.py              faster-whisper
+├── stt.py              faster-whisper local o API en la nube (BB8_STT)
 ├── hablantes.py        registro de voces (Resemblyzer, opcional)
 ├── agente.py           Claude con las herramientas MCP
 ├── salida.py           Piper local o en la cabeza, pitidos

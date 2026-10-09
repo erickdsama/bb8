@@ -5,7 +5,7 @@ El servidor HTTP de la cabeza, que corre en la Pi Zero 2 W.
 ```
 head/
 ├── server.py           API :8080 (/estado /foto /tof /ojo /hablar /cara /reposo)
-├── backends_real.py    picamera2, VL53L0X/L1X, NeoPixel en GPIO18, Piper (sin probar en hardware)
+├── backends_real.py    picamera2 (opcional), VL53L0X/L1X, NeoPixel en GPIO18, Piper (sin probar en hardware)
 ├── backends_sim.py     webcam del PC o vista sintética (la usa el simulador)
 ├── colors.py           colores y patrones del ojo
 └── sounds.py           pitidos

@@ -60,10 +60,11 @@ prueba**. Córrela después de tocar `bb8`, `bb8_mcp`, `head` o `dummy` (skill
 
 ## Hardware (para entender el código)
 
-Arduino Uno/Nano, un L298N (ENA D5, IN1 D7, IN2 D8, ENB D6, IN3 D11, IN4 D12),
+Arduino Uno, un L298N (ENA D5, IN1 D7, IN2 D8, ENB D6, IN3 D11, IN4 D12),
 encoders en D2/D4 y D3/D10, servo MG996R en D9, MPU6050 + VL53L0X por I2C (A4/A5),
 INT del MPU en A2, corte de la Pi en A3, divisor de batería en A0. Motores JGB37-520B
-12 V 319 RPM. Nada se ha probado aún en hardware real: todo se validó contra el dummy.
+12 V 319 RPM. Pi principal: Raspberry Pi 3 (1 GB, OS de 64 bits); cámara OV5647
+pendiente de compra (la cabeza arranca sin ella). Nada se ha probado aún en hardware real: todo se validó contra el dummy.
 
 ## MCP del robot
 

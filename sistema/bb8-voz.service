@@ -11,6 +11,9 @@ WorkingDirectory=/home/bb8/bb8
 EnvironmentFile=/etc/bb8.env
 ExecStartPre=/bin/sleep 3
 ExecStart=/home/bb8/bb8/.venv/bin/python -m voz
+# Con 1 GB (Pi 3), si falta memoria muere la voz y no el movimiento; systemd la reinicia.
+Nice=5
+OOMScoreAdjust=500
 Restart=always
 RestartSec=5
 

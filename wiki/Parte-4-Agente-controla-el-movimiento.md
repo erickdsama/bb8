@@ -62,8 +62,8 @@ las herramientas MCP → Piper.
 - **Wake word:** "hey Jarvis" de fábrica. Para "oye BB-8" entrena tu modelo con el cuaderno de openWakeWord (genera voces sintéticas, ~1 h en Colab) y pon la ruta del `.onnx` en `BB8_WAKEWORD`.
 - **Modelo:** `claude-opus-5-5` con esfuerzo `low` para que conteste rápido (`BB8_MODELO`, `BB8_ESFUERZO`). Lleva activado el respaldo del servidor: si un clasificador rechaza una petición, la API la reintenta con otro modelo.
 - **Voces desconocidas:** pueden platicar, pero `move`, `turn` y `look_at` se bloquean en el código, no solo en el prompt. Mientras no registres ninguna voz, obedece a todos. No es biometría segura.
-- **Whisper:** `small` tarda 2–4 s en una Pi 4; `BB8_WHISPER=base` es más rápido.
-- **Identificación de voz:** `resemblyzer` instala torch (~1 GB); descoméntalo en `requirements-voz.txt` si lo quieres.
+- **Transcripción:** en la Pi 3, Whisper `base` local tarda ~4–8 s por frase (estimado). Con `BB8_STT_API_KEY` (Groq) se transcribe en la nube en ~1 s. Comparación y memoria en [Instalación en la Pi](Instalacion-en-la-Pi.md#transcripción-local-o-en-la-nube).
+- **Identificación de voz:** `resemblyzer` instala torch (~1 GB de disco, ~350 MB de RAM). En la Pi 3 solo cabe con la transcripción en la nube; descoméntalo en `requirements-voz.txt` si lo quieres.
 - **Dormir:** "BB-8, a dormir" pasa al reposo (profundo si está habilitado, Parte 6).
 
 Todas las variables en [Instalación en la Pi](Instalacion-en-la-Pi.md#variables-de-entorno).

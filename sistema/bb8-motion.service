@@ -7,6 +7,9 @@ User=bb8
 WorkingDirectory=/home/bb8/bb8
 EnvironmentFile=-/etc/bb8.env
 ExecStart=/home/bb8/bb8/.venv/bin/python -m bb8.motion_api --mando
+# En la Pi 3 Whisper ocupa la CPU: el ciclo de 50 ms va primero y es lo último que mata el OOM.
+Nice=-5
+OOMScoreAdjust=-500
 Restart=always
 RestartSec=2
 
