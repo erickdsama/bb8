@@ -19,6 +19,7 @@ La cabeza es una Pi Zero con `head.server` (:8080). Detalle: `wiki/Arquitectura.
 | `partes/4-agente-movimiento/` | `bb8_mcp` (servidor MCP), `voz` (agente de voz) | 4 |
 | `partes/5-cabeza/` | `head` (servidor de la Pi Zero, backends real y simulado) | 5 |
 | `partes/6-esfera-baterias/` | `energia` (reposo y batería) | 6 |
+| `cad/` | OpenSCAD paramétrico: esfera, base, poste, cabeza; `exportar.sh` → `stl/`, `png/`, `plantillas/` | 2, 5, 6 |
 | `simulador/` | `dummy` (Arduino y cabeza simulados, `probar.py`), `lanzar_dummy.py` | — |
 | `sistema/` | systemd, `instalar_pi.sh`, `instalar_zero.sh`, `bb8.env.ejemplo` | — |
 | `wiki/` | documentación (fuente de verdad del protocolo: `wiki/Protocolo.md`) | — |
@@ -36,7 +37,11 @@ pip install -r requirements.txt && pip install -e .
 python simulador/lanzar_dummy.py --camara sintetica --sin-sonido   # dummy + servicio + MCP
 python -m dummy.probar                                             # prueba de punta a punta (17 checks)
 python -m compileall -q partes simulador                           # chequeo rápido de sintaxis
+bash cad/exportar.sh png                                           # renders del CAD (apt install openscad xvfb)
 ```
+
+CAD: todas las medidas viven en `cad/parametros.scad`; si cambias una, vuelve a correr
+`bash cad/exportar.sh` y sube los STL y PNG regenerados.
 
 No hay suite de pytest ni CI todavía: **`python -m dummy.probar` contra el dummy es la
 prueba**. Córrela después de tocar `bb8`, `bb8_mcp`, `head` o `dummy` (skill

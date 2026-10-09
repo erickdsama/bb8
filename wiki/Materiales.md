@@ -37,14 +37,14 @@ calienta, el respaldo es un BTS7960. El L298N tira ~2 V, así que el motor ve ~1
 | Cámara OV5647 + cable de 15 pines para Zero | 5 | El documento técnico la marca como comprada, pero no está en el pedido 377466: confirmar |
 | Power bank 18650 para la cabeza | 5 | |
 | Tarjeta de sonido USB o MAX98357 para la Zero | 5 | La Zero no trae salida de audio |
-| Cúpula 12–14 cm, 3 ruedecitas, 8 imanes neodimio N42 20 × 5 mm | 5 | |
+| 3 bolas de acero 1/2″, mica acrílica ahumada Ø 50 × 3 mm, 8 imanes neodimio N42 20 × 5 mm avellanados | 5 | La cúpula se imprime ([Diseño 3D](Diseno-3D.md#cabeza)). Imanes: 4 con la cara N avellanada (poste) y 4 con la S (cabeza) |
 | LiPo 3S 11.1 V 5200 mAh XT60 | 6 | 2.5–3 h de uso activo |
 | Cargador balanceador iMAX B6AC | 6 | Versión AC |
 | Interruptor rocker 10 A, portafusible + fusibles 5 A | 6 | |
 | Segundo LM2596 (solo para el servo) | 6 | Ver [Parte 6](Parte-6-Esfera-y-baterias.md) |
 | P-MOSFET de lado alto (AO3401 o módulo) + 100 kΩ | 6 | Reposo profundo; el IRF520 no sirve |
 | Resistencias 10 kΩ y 4.7 kΩ | 6 | Divisor de batería en A0 |
-| Filamento PLA 2–3 kg, pintura, primer, laca, lastre 200–400 g | 6 | |
+| Filamento PLA 2–3 kg, pintura, primer, laca, lastre 1–1.5 kg | 6 | Tornillería de las piezas impresas: [Diseño 3D](Diseno-3D.md#tornillería-y-extras) |
 
 La lista completa con tiendas y notas de compra está en el
 [documento técnico](https://github.com/erickdsama/bb8/blob/main/docs/proyecto-bb8-agente-llm.md#3-materiales).

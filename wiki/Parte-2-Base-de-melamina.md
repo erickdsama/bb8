@@ -20,6 +20,14 @@ solo tiene esta lista.
 
 Ninguno, salvo la tornillería, está todavía en el [pedido](Materiales.md).
 
+## Piezas impresas y plantilla
+
+El [Diseño 3D](Diseno-3D.md#base) tiene la plantilla 1:1 del disco con todos los
+agujeros (`cad/plantillas/plataforma.svg`), los soportes de motor colgantes, la charola
+de la LiPo con compartimentos de lastre y los soportes inclinados de los ball transfers.
+Con ellos la plataforma queda arriba y lo pesado cuelga debajo; los pasos de abajo
+siguen valiendo si prefieres armarla a mano.
+
 ## Pasos
 
 1. Corta el disco de Ø 20–22 cm; marca el centro y los ejes en + y ×.
