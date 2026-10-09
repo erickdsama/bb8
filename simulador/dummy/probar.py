@@ -46,7 +46,7 @@ async def main() -> None:
 
         tools = [t.name for t in (await s.list_tools()).tools]
         check("herramientas", set(tools) >= {"move", "turn", "stop", "look_at", "take_photo",
-                                             "set_eye_color", "say", "get_pose"}, tools)
+                                             "set_eye_color", "say", "express", "get_pose"}, tools)
 
         foto = await call("take_photo")
         img = next((c for c in foto if c.type == "image"), None) if isinstance(foto, list) else None
@@ -92,6 +92,10 @@ async def main() -> None:
         check("say texto", res.get("ok") is True, res)
         res = await call("say", sonido="feliz")
         check("say sonido", res.get("ok") is True, res)
+        res = await call("express", emocion="curioso")
+        check("express curioso", res.get("ok") is True and res.get("ojo") == "cian respirar", res)
+        res = await call("express", emocion="enojadísimo")
+        check("emoción inválida da error", "error" in res, res)
 
         pose = await call("get_pose")
         check("get_pose", "bateria_v" in pose and pose["control"] == "idle", pose)
