@@ -55,6 +55,7 @@ python simulador/lanzar_dummy.py --camara sintetica
 En otra terminal, con el venv activo: `python -m dummy.probar` recorre las ocho
 herramientas MCP y los frenos de seguridad, y termina con `Todo bien`. Para hablarle
 desde Claude Code: `claude mcp add --transport http bb8 http://127.0.0.1:8765/mcp`.
+Dentro del repo, Claude Code ya lo encuentra por `.mcp.json`, y `CLAUDE.md` y `.claude/skills/` le explican el proyecto.
 Detalles en [Simulador](wiki/Simulador.md) y [Conectar con Claude](wiki/Conectar-con-Claude.md).
 
 ## Por qué `pip install -e .`

@@ -14,11 +14,17 @@ claude mcp add --transport http bb8 http://127.0.0.1:8765/mcp
 
 Luego, en Claude Code: *"BB-8, mira al frente y acércate a lo que veas"*.
 
+Si abres Claude Code dentro del repo no hace falta ese paso: `.mcp.json` ya registra
+`bb8` en esa dirección y `.claude/settings.json` lo habilita. El repo también trae
+`CLAUDE.md` (contexto del proyecto) y skills en `.claude/skills/` para probar con el
+dummy, cambiar el protocolo, agregar herramientas MCP, trabajar en el firmware y
+manejar al robot.
+
 Con el robot real, arranca el MCP en la Pi con `--host 0.0.0.0` (o en
 `sistema/bb8-mcp.service`) y desde el portátil:
 
 ```bash
-claude mcp add --transport http bb8 http://<ip-de-la-pi>:8765/mcp
+claude mcp add -s local --transport http bb8-pi http://<ip-de-la-pi>:8765/mcp
 ```
 
 Sin contraseña: úsalo solo en la WiFi de casa.
