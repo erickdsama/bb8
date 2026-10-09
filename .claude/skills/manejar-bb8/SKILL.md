@@ -28,5 +28,5 @@ usuario antes de la primera orden de movimiento de la sesión.
 ## En el dummy
 
 - Habitación de 4 × 3 m; silla café a ~1.6 m al frente y una caja verde.
-- Posición real: `curl http://127.0.0.1:8080/sim/mundo`.
-- Para simular que lo inclinan o lo empujan, mira las rutas `/sim/*` en `simulador/dummy/run_dummy.py`.
+- Posición real: `curl http://127.0.0.1:8080/sim/mundo`. Erick lo puede ver en vivo en <http://127.0.0.1:8080/sim>.
+- Para simular que lo inclinan o lo empujan, mira las rutas `/sim/*` en `simulador/dummy/visor.py`.
