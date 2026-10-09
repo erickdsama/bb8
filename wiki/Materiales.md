@@ -43,7 +43,7 @@ Se puede pedir ya; nada depende del tamaño final de la esfera.
 | Ball transfer 1″ de acero, montaje de 2 tornillos ([TruePower, 6 pzs](https://www.amazon.com.mx/TruePower-Roller-Ball-Transfer-Bearings/dp/B009KASQZW)) | 2 | Amazon | ~120 (est.) | Vienen en paquete; sobran para la cabeza o repuesto |
 | Melamina 12–15 mm 30 × 30 cm, tubo PVC 25 mm o varilla 1/4″ + tuercas | 1 | Maderería, ferretería | ~120 (est.) | |
 | [Micrófono USB mini SunFounder](https://www.amazon.com.mx/SunFounder-Micr%C3%B3fono-Raspberry-computadora-reconocimiento/dp/B01KLRBHGM) | 1 | Amazon | 191 | Para la Pi principal (Parte 4) |
-| [Cámara Arducam OV5647 5 MP](https://www.amazon.com.mx/Arducam-megap%C3%ADxeles-Sensor-OV5647-Raspberry/dp/B012V1HEP4) | 1 | Amazon | 134 | Trae el cable **15 → 22 pines** que pide la Zero. Solo si de verdad no la tienes (ver abajo) |
+| [Cámara Arducam OV5647 5 MP](https://www.amazon.com.mx/Arducam-megap%C3%ADxeles-Sensor-OV5647-Raspberry/dp/B012V1HEP4) | 1 | Amazon | 134 | Confirmado: no la tienes. Trae los dos cables, 15 → 15 y **15 → 22 pines**; la Zero 2 W usa el de 22 |
 | [Amplificador I2S MAX98357A](https://www.amazon.com.mx/MAX98357A-amplificador-decodificaci%C3%B3n-selecci%C3%B3n-proyectos/dp/B0F1Y3KHJF) | 1 | Amazon | ~85 | Le da audio a la Zero y mueve directo una bocina de 4 Ω (3.2 W). Pack de 2: [DAOKAI](https://www.amazon.com.mx/DAOKAI-unidades-MAX98357-amplificador-decodificador/dp/B0B2NSMV55) 231 |
 | [Power bank 1 × 18650, 2600 mAh](https://www.mercadolibre.com.mx/cargador-tipo-power-bank-para-bateria-18650-2600mah-incluida/up/MLMU3701037772) | 1 | Mercado Libre | ~250 (est.) | 97 × 26 mm, 63 g, salida 5 V 1 A, batería incluida. Para la cabeza |
 | Imanes neodimio disco 20 × 5 mm, [paquete de 10](https://listado.mercadolibre.com.mx/imanes-de-neodimio-20x5) | 1 | Mercado Libre | ~607 | Hacen falta 8 (4 en el poste, 4 en la cabeza). Revisar que la ficha diga N42; 2 paquetes de 5 salen en ~568 |
@@ -62,7 +62,8 @@ consumo real de los motores.
 | [Cargador balanceador iMAX B6AC 80 W](https://www.mercadolibre.com.mx/cargador-balanceador-imax-b6-b6ac-80w/p/MLM47578491) | 1 | Mercado Libre | 600–750 | La versión **AC** trae fuente interna; la B6 sin AC necesita una fuente de 12 V aparte. [HetPro](https://hetpro-store.com/cargador-de-baterias-lipo-80w/) la tiene en 850 |
 | [Switch de balancín con piloto 12 Vcc, 16 A](https://www.steren.com.mx/switch-de-balancin-de-1-polo-1-tiro-2-posiciones-on-off-con-piloto-12-vcc.html) | 1 | Steren | 19 | |
 | [Portafusible europeo de cartucho 5 × 20](https://www.steren.com.mx/porta-fusible-europeo-de-cartucho.html) + 3 fusibles 5 A 5 × 20 | 1 | Steren | 15 + ~12 | |
-| Buck LM2596 ajustable 3 A (el segundo, solo para el servo) | 1 | UNIT | 42 | Mismo que ya llegó en el pedido 377466 |
+| Buck XL4015 5 A ajustable, para la Pi 3 ([Mercado Libre](https://listado.mercadolibre.com.mx/xl4015)) | 1 | Mercado Libre / UNIT | ~60 | La Pi 3 pide 5.1 V 2.5 A y el LM2596 da ~2 A reales: el XL4015 deja margen. El LM2596 del pedido 377466 se queda solo para el servo. [Versión con medidores en UNIT](https://uelectronics.com/producto/modulo-de-carga-reductor-xl4015-5a-con-medidores/): 140 |
+| Cable micro-USB corto y grueso (o pigtail micro-USB macho) | 1 | Steren | ~50 (est.) | Del buck a la Pi 3. Un cable delgado provoca avisos de bajo voltaje; no alimentar por los pines GPIO |
 | P-MOSFET AO3401 (SOT-23) | 2 | Mercado Libre | ~80 | Reposo profundo de la Pi; el IRF520 no sirve. Necesita placa adaptadora SOT-23 o soldar fino |
 | Resistencias 100 kΩ, 10 kΩ y 4.7 kΩ | — | UNIT / Steren | ~30 (est.) | Pull-up del MOSFET y divisor de batería en A0 |
 | XT60 hembra de panel + extensión JST-XH 4 pines | 1 | Amazon / UNIT | ~140 (est.) | Puerto de carga en la tapa del casco |
@@ -70,21 +71,20 @@ consumo real de los motores.
 | Primer, pintura blanca/naranja/plata, laca, lijas | 1 | Tlapalería | 300–500 (est.) | |
 | Lastre (pesas o plomo) | 200–400 g | Mercado Libre | ~50 (est.) | |
 
-**Subtotal Parte 6: ~$3,100.** Total pendiente con los dos carritos: **~$5,150** más envíos.
+**Subtotal Parte 6: ~$3,170.** Total pendiente con los dos carritos: **~$5,220** más envíos.
 
-### Cámara OV5647: confirmar
+### Cámara OV5647
 
-El documento técnico la marca como comprada, pero no viene en el pedido 377466. Si no la
-tienes, la Arducam de arriba es la más barata que trae el cable de 22 pines. La
+Confirmado el 9 oct 2026: no la tienes y va en otro pedido, así que está en el carrito
+de ahora. La
 [de visión nocturna de UNIT](https://uelectronics.com/producto/camara-vision-nocturna-raspberry-pi-5mp-1080p-ov5647/)
-cuesta 240 pero trae cable de 15 pines (para Pi grande), así que con la Zero haría falta
-un cable 15 → 22 aparte.
+cuesta 240 pero solo trae cable de 15 pines; con la Zero haría falta además un
+[cable 15 → 22](https://www.amazon.com.mx/Onyehn-flexible-c%C3%A1mara-Raspberry-unidades/dp/B07XZ5DX5H).
 
 ### Lo que ya no hace falta
 
-- **Bocina o DAC USB para la Pi principal:** ya llegaron 2 bocinas y un PAM8403. Con una
-  Pi 3 o 4, jack de 3.5 mm → PAM8403 → bocina. Solo una Pi 5 (sin jack) necesitaría un
-  DAC USB.
+- **Bocina o DAC USB para la Pi principal:** ya llegaron 2 bocinas y un PAM8403, y la
+  Pi 3 trae jack de 3.5 mm: jack → PAM8403 → bocina.
 - **Tarjeta de sonido USB para la Zero:** la reemplaza el MAX98357A del carrito.
 - **Cúpula de la cabeza:** sale impresa en la Parte 6 con el PLA.
 - **Checador de voltaje LiPo y conectores XT60 macho:** ya vienen en el pedido 377466.

@@ -32,7 +32,7 @@ todo esto funciona igual con el [simulador](Simulador.md).
 
 ## Paso 2: micrófono y altavoz
 
-Micrófono USB (o ReSpeaker 2-Mic HAT) y bocina o DAC USB en la Pi principal.
+Micrófono USB (o ReSpeaker 2-Mic HAT) en la Pi principal (una Pi 3); la voz sale por su jack de 3.5 mm → PAM8403 → bocina.
 
 ```bash
 sudo apt install libportaudio2 libopenblas0
