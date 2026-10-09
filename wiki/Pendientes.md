@@ -2,7 +2,7 @@
 
 ## Probar en el hardware real
 
-- El firmware compila para Uno y Nano, pero solo se ha ejercitado su contraparte simulada.
+- El firmware compila para Uno y Nano (lo comprueba el CI), pero solo se ha ejercitado su contraparte simulada y Wokwi.
 - `head/backends_real.py` (cámara, ToF, NeoPixel, Piper en la Zero) no se ha corrido en la Zero.
 - El agente de voz se probó contra el dummy con la API simulada, sin micrófono, Whisper ni Piper reales.
 

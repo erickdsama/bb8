@@ -14,6 +14,7 @@ La cabeza es una Pi Zero con `head.server` (:8080). Detalle: `wiki/Arquitectura.
 | Carpeta | Paquete / contenido | Parte |
 | --- | --- | --- |
 | `partes/1-protoboard/arduino/` | `pruebas/p1…p5`, `bb8_firmware/bb8_firmware.ino` | 1 |
+| `partes/1-protoboard/wokwi/` | firmware en el simulador Wokwi (`diagram.json`, `wokwi.toml`) | 1 |
 | `partes/2-base-melamina/` | solo README (montaje) | 2 |
 | `partes/3-base-andando/` | `bb8` (config, protocol, serial_link, motion, motion_api, gamepad), `calibrar` | 3 |
 | `partes/4-agente-movimiento/` | `bb8_mcp` (servidor MCP), `voz` (agente de voz) | 4 |
@@ -38,9 +39,10 @@ python -m dummy.probar                                             # prueba de p
 python -m compileall -q partes simulador                           # chequeo rápido de sintaxis
 ```
 
-No hay suite de pytest ni CI todavía: **`python -m dummy.probar` contra el dummy es la
-prueba**. Córrela después de tocar `bb8`, `bb8_mcp`, `head` o `dummy` (skill
-`probar-dummy`). El firmware no se puede probar aquí; si lo cambias, cambia también
+No hay suite de pytest: **`python -m dummy.probar` contra el dummy es la prueba**. El CI
+(`.github/workflows/ci.yml`) la corre en cada push y PR, y compila el firmware y las
+pruebas p1…p5 para Uno y Nano. Córrela después de tocar `bb8`, `bb8_mcp`, `head` o `dummy` (skill
+`probar-dummy`). El firmware no se puede probar en hardware aquí (sí en Wokwi a mano); si lo cambias, cambia también
 `dummy/arduino_sim.py` para que el simulador lo imite.
 
 ## Reglas que no se rompen

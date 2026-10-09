@@ -86,6 +86,16 @@ arduino-cli upload -p /dev/ttyACM0 --fqbn arduino:avr:uno partes/1-protoboard/ar
 El robot tiene que estar **quieto el primer segundo** mientras calibra el giroscopio.
 Si `?` responde `F=imu`, el MPU6050 no contestó al arrancar.
 
+## Probar el firmware en Wokwi
+
+Antes de cablear, el firmware corre en el simulador [Wokwi](https://wokwi.com) con el
+MPU6050, el servo, dos encoders KY-040 y LEDs en lugar del L298N. El VL53L0X no existe
+en Wokwi; el obstáculo se simula con la orden `D`. Instrucciones y qué probar en
+[`partes/1-protoboard/wokwi/`](https://github.com/erickdsama/bb8/blob/main/partes/1-protoboard/wokwi/README.md).
+
+El CI compila el firmware para Uno y Nano en cada push; el `.hex` queda como artefacto
+`firmware-uno` / `firmware-nano` de la corrida.
+
 ## Probar el firmware a mano
 
 Desde la Pi o el PC, con el repo instalado (`pip install -e .`):

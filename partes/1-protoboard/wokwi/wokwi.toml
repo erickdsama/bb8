@@ -1,0 +1,6 @@
+# Wokwi para VS Code: abre esta carpeta y usa "Wokwi: Start Simulator".
+# Antes compila el firmware con --export-binaries (ver README.md).
+[wokwi]
+version = 1
+firmware = '../arduino/bb8_firmware/build/arduino.avr.uno/bb8_firmware.ino.hex'
+elf = '../arduino/bb8_firmware/build/arduino.avr.uno/bb8_firmware.ino.elf'
