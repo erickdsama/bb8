@@ -28,13 +28,13 @@ arduino-cli compile --fqbn arduino:avr:uno  partes/1-protoboard/arduino/bb8_firm
 arduino-cli compile --fqbn arduino:avr:nano partes/1-protoboard/arduino/bb8_firmware
 ```
 
-El CI compila el firmware y `pruebas/p1…p5` para Uno y Nano en cada push y PR; si agregas
-un sketch o una librería, cámbialo también en `.github/workflows/ci.yml`. Si cambias
-pines, actualiza `partes/1-protoboard/wokwi/diagram.json`.
-
 Compila para las dos placas y fíjate en el uso de RAM que imprime: por encima del
 ~75 % empiezan los cuelgues raros. Si `arduino-cli` no está disponible, dilo en vez de
 afirmar que compila.
+
+El CI compila el firmware y `pruebas/p1…p5` para el Uno en cada push y PR; si agregas
+un sketch o una librería, cámbialo también en `.github/workflows/ci.yml`. Si cambias
+pines, actualiza `partes/1-protoboard/wokwi/diagram.json`.
 
 ## Subir (solo con la placa conectada)
 

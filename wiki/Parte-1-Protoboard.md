@@ -93,8 +93,8 @@ MPU6050, el servo, dos encoders KY-040 y LEDs en lugar del L298N. El VL53L0X no 
 en Wokwi; el obstáculo se simula con la orden `D`. Instrucciones y qué probar en
 [`partes/1-protoboard/wokwi/`](https://github.com/erickdsama/bb8/blob/main/partes/1-protoboard/wokwi/README.md).
 
-El CI compila el firmware para Uno y Nano en cada push; el `.hex` queda como artefacto
-`firmware-uno` / `firmware-nano` de la corrida.
+El CI compila el firmware para el Arduino Uno en cada push; el `.hex` queda como
+artefacto `firmware-uno` de la corrida.
 
 ## Probar el firmware a mano
 

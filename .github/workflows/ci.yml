@@ -14,12 +14,8 @@ concurrency:
 
 jobs:
   firmware:
-    name: Firmware (${{ matrix.placa }})
+    name: Firmware (Arduino Uno)
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        placa: [uno, nano]
     steps:
       - uses: actions/checkout@v4
 
@@ -36,7 +32,7 @@ jobs:
           set -e
           for sketch in partes/1-protoboard/arduino/bb8_firmware partes/1-protoboard/arduino/pruebas/*/; do
             echo "::group::$sketch"
-            arduino-cli compile --warnings default --fqbn arduino:avr:${{ matrix.placa }} \
+            arduino-cli compile --warnings default --fqbn arduino:avr:uno \
               --export-binaries "$sketch"
             echo "::endgroup::"
           done
@@ -44,7 +40,7 @@ jobs:
       # El .hex y el .elf sirven para subirlos sin compilar o para abrirlos en Wokwi.
       - uses: actions/upload-artifact@v4
         with:
-          name: firmware-${{ matrix.placa }}
+          name: firmware-uno
           path: partes/1-protoboard/arduino/bb8_firmware/build/
           if-no-files-found: error
 
