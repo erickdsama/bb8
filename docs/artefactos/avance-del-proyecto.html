@@ -1,0 +1,409 @@
+<title>BB-8 · Avance del proyecto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F5F6F7; --card:#FFFFFF; --ink:#1D2125; --muted:#66707A; --line:#DCE0E4;
+  --orange:#E8600F; --orange-soft:#FDEBDD; --steel:#3A434C; --ok:#2F6B4F; --ok-soft:#E3F0E8;
+  --display:"Chakra Petch", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#14171A; --card:#1C2024; --ink:#E8EBEE; --muted:#9AA4AD; --line:#2E343A;
+    --orange:#FF7A2E; --orange-soft:#3A2416; --steel:#C6CDD3; --ok:#6CC495; --ok-soft:#1C3328;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#14171A; --card:#1C2024; --ink:#E8EBEE; --muted:#9AA4AD; --line:#2E343A;
+  --orange:#FF7A2E; --orange-soft:#3A2416; --steel:#C6CDD3; --ok:#6CC495; --ok-soft:#1C3328;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 var(--body);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1040px;margin:0 auto;padding:24px 20px 64px}
+a{color:inherit}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--orange);outline-offset:2px;border-radius:6px}
+
+header.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:28px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:.02em}
+.brand svg{flex:none}
+.doclink{font-size:14px;color:var(--muted);text-decoration:none;border-bottom:1px solid var(--line)}
+.doclink:hover{color:var(--ink)}
+
+.now{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:end;margin-bottom:28px}
+.now .where{font-size:14px;color:var(--muted);margin:0 0 4px}
+.now h1{font-family:var(--display);font-weight:600;font-size:clamp(28px,5vw,44px);line-height:1.05;margin:0;max-width:18ch}
+.now h1 b{color:var(--orange);font-weight:700}
+.stats{display:flex;gap:28px}
+.stat .n{font-family:var(--display);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1}
+.stat .l{font-size:13px;color:var(--muted);margin-top:4px}
+@media (max-width:720px){.now{grid-template-columns:1fr}.stats{gap:20px;flex-wrap:wrap}}
+
+/* Stepper: BB-8 panel circles */
+.stepper{position:relative;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin:0 0 28px;padding:8px 0 0}
+.stepper::before{content:"";position:absolute;left:8%;right:8%;top:44px;height:2px;background:var(--line);z-index:0}
+.step{position:relative;z-index:1;background:none;border:0;padding:0 2px;cursor:pointer;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px}
+.ring{width:72px;height:72px;border-radius:50%;background:var(--card);display:grid;place-items:center;position:relative}
+.ring svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.ring .num{font-family:var(--display);font-weight:700;font-size:22px;color:var(--muted)}
+.step.done .num{color:var(--ok)}
+.step.current .num{color:var(--orange)}
+.step.selected .ring{box-shadow:0 0 0 3px var(--paper),0 0 0 5px var(--ink)}
+.step .t{font-size:13px;line-height:1.25;color:var(--muted);max-width:14ch}
+.step.selected .t{color:var(--ink);font-weight:600}
+.step .tag{font-size:11px;font-weight:600;padding:1px 7px;border-radius:99px}
+.step.current .tag{background:var(--orange);color:#fff}
+.step.done .tag{background:var(--ok-soft);color:var(--ok)}
+@media (max-width:640px){.ring{width:52px;height:52px}.stepper::before{top:34px}.ring .num{font-size:17px}.step .t{display:none}}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:24px}
+.tab{background:none;border:0;padding:10px 14px;cursor:pointer;color:var(--muted);font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--orange)}
+
+.phase{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+@media (max-width:820px){.phase{grid-template-columns:1fr}}
+.phase h2{font-family:var(--display);font-weight:600;font-size:22px;margin:0 0 6px}
+.deliv{margin:0 0 18px;color:var(--muted);max-width:60ch}
+.deliv strong{color:var(--ink);font-weight:600}
+h3{font-size:13px;font-weight:600;color:var(--muted);margin:0 0 10px;display:flex;justify-content:space-between;gap:8px}
+h3 span{font-weight:500}
+
+.tasks{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.tasks li{border-bottom:1px solid var(--line)}
+.tasks label{display:flex;gap:12px;align-items:flex-start;padding:11px 2px;cursor:pointer}
+.tasks input{appearance:none;flex:none;width:20px;height:20px;margin:1px 0 0;border:2px solid var(--silver,var(--muted));border-radius:50%;display:grid;place-items:center;cursor:pointer}
+.tasks input:checked{background:var(--ok);border-color:var(--ok)}
+.tasks input:checked::after{content:"";width:6px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg)}
+.tasks input:checked + span{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
+
+.items{border-top:1px solid var(--line)}
+.item{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:11px 2px;border-bottom:1px solid var(--line);align-items:center}
+.item .name{font-weight:500}
+.item .meta{grid-column:1;font-size:13px;color:var(--muted)}
+.item .note{grid-column:1/-1;font-size:13px;color:var(--muted);margin-top:2px}
+.item.st-comprado .name{color:var(--muted)}
+.pill{grid-row:1/3;grid-column:2;cursor:pointer;border-radius:99px;padding:5px 12px;font-size:13px;font-weight:600;white-space:nowrap;border:1.5px solid var(--line);background:transparent;color:var(--muted);min-width:108px}
+.pill.carrito{border-color:var(--orange);color:var(--orange);background:var(--orange-soft)}
+.pill.comprado{border-color:var(--ok);background:var(--ok);color:#fff}
+.sum{display:flex;justify-content:space-between;padding:12px 2px 0;font-size:14px;color:var(--muted)}
+.sum b{color:var(--ink);font-variant-numeric:tabular-nums}
+
+.shop-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.shop-head p{margin:0;color:var(--muted);max-width:60ch}
+.toggle{display:flex;border:1px solid var(--line);border-radius:99px;padding:3px}
+.toggle button{border:0;background:none;padding:5px 12px;border-radius:99px;cursor:pointer;font-size:13px;color:var(--muted)}
+.toggle button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.stores{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:28px 32px}
+.store h3{font-size:16px;color:var(--ink);font-family:var(--display)}
+.ph{display:inline-block;font-size:11px;font-weight:600;color:var(--steel);border:1px solid var(--line);border-radius:4px;padding:0 5px;margin-right:6px}
+.empty{color:var(--muted);padding:16px 0}
+.banner{font-size:13px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin-bottom:16px}
+.saving{font-size:12px;color:var(--muted);min-height:18px;text-align:right}
+@media (prefers-reduced-motion:no-preference){.ring circle.arc{transition:stroke-dashoffset .4s ease}}
+.ready{margin:6px 0 16px;padding:10px 12px;border-radius:8px;background:var(--orange-soft);color:var(--ink);font-weight:500;font-size:14px}
+.ready.ok{background:var(--ok-soft);color:var(--ok)}
+.opt-h{margin-top:24px}
+.items.opt .name{font-weight:400}
+.pblock{padding:18px 0 22px;border-top:1px solid var(--line)}
+.pblock.past{opacity:.55}
+.pblock.now-block{border-top:3px solid var(--orange)}
+.pb-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+.when{font-size:13px;color:var(--muted)}
+.now-block .when{color:var(--orange);font-weight:600}
+.pb-title{font-family:var(--display);font-size:19px;color:var(--ink);margin:2px 0 0;display:block}
+.pb-status{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.pb-status.ok{color:var(--ok)}
+.step .tag{white-space:nowrap}
+@media (max-width:640px){.step .tag{font-size:10px;padding:1px 5px;white-space:normal}}
+</style>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="17" r="10" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="14" cy="17" r="4" fill="none" stroke="#E8600F" stroke-width="2.4"/><path d="M8 8a6 6 0 0 1 12 0z" fill="currentColor"/></svg>
+      BB-8 · avance
+    </div>
+    <a class="doclink" href="https://claude.ai/artifact/A2g3Jwnm6UZo2xpf5jJ2wH" target="_blank" rel="noopener">Documento técnico</a>
+  </header>
+
+  <div id="banner"></div>
+
+  <section class="now" aria-live="polite">
+    <div>
+      <p class="where">Estás en</p>
+      <h1 id="nowTitle">Cargando…</h1>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n" id="sTasks">–</div><div class="l">tareas hechas</div></div>
+      <div class="stat"><div class="n" id="sBuy">–</div><div class="l">piezas compradas</div></div>
+      <div class="stat"><div class="n" id="sMoney">–</div><div class="l" id="sMoneyL">gastado</div></div>
+    </div>
+  </section>
+
+  <nav class="stepper" id="stepper" aria-label="Partes del proyecto"></nav>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tabPhase" aria-selected="true">Parte seleccionada</button>
+    <button class="tab" role="tab" id="tabShop" aria-selected="false">Compras por fase</button>
+  </div>
+  <div class="saving" id="saving"></div>
+  <main id="view"></main>
+</div>
+
+<script>
+const PHASES = [
+  {n:1,t:"Componentes en protoboard",d:"los dos motores giran en ambos sentidos desde el Arduino, el servo barre 0–180° y la IMU imprime ángulos en el monitor serial.",
+   tasks:["Ajustar el buck a 5.1 V en vacío antes de conectar nada","Cablear: fuente 12 V → DRV8871 ×2; Pi con su cargador; GND común","Firmware mínimo: M <izq> <der> y H <ángulo>, respuesta OK/ERR","Probar motores al 50 % y freno; probar servo; leer MPU6050","Foto del cableado y tabla de pines"]},
+  {n:2,t:"Base de melamina",d:"disco de 20–22 cm con motores, ruedas, ball transfers y electrónica fijos, con el hueco de la batería listo; se levanta con una mano y nada se mueve.",
+   tasks:["Cortar el disco, marcar centro y ejes","Atornillar soportes de motor con ruedas en dos muescas opuestas","Montar 2 ball transfers a 90° de las ruedas","Dejar hueco de la LiPo abajo; Arduino, drivers y buck arriba","Poste central con el portaimanes arriba","Pesar y anotar el centro de gravedad"]},
+  {n:3,t:"Base rodando",d:"la base avanza, gira y frena en el piso por comandos desde la Pi, sin esfera; video de 30 s.",
+   tasks:["Pi principal con Raspberry Pi OS Lite, USB al Arduino","Servicio de movimiento: M/H/S, IMU, watchdog 500 ms","Mando Bluetooth con evdev para conducir a mano","Rutina: adelante 1 s, giro 90°, alto; medir deriva","Ajustar PWM máximo y rampa para que no cabecee"]},
+  {n:4,t:"Agente controla el movimiento",d:"le dices “BB-8, ven acá” y la base lo hace; log con las llamadas a herramientas.",
+   tasks:["Servidor MCP bb8-motion: move, turn, stop, get_pose","Probarlo desde Claude Desktop o Claude Code","Voz: openWakeWord → faster-whisper → Claude → Piper","Personalidad en el system prompt; pitidos","Registro de voces"]},
+  {n:5,t:"Agente controla la cabeza",d:"la cabeza gira hacia quien habla, manda una foto al modelo y BB-8 describe lo que ve; el ojo cambia de color.",
+   tasks:["Chasis de cabeza: cámara, ToF, NeoPixel, power bank, audio","MG996R del poste a rotación continua","Herramientas look_at, take_photo, set_eye_color, say","Foto reducida a 640 px antes de enviarla","Probar unión magnética sobre superficie curva"]},
+  {n:6,t:"Esfera y baterías",d:"esfera de 30–35 cm que cierra sin cinta, base rodando adentro, cabeza flotando encima y sin cable.",
+   tasks:["Modelar en Fusion 360 los paneles de la esfera","Imprimir: 0.28 mm de capa, 10–15 % de relleno","Pegar, reforzar por dentro, lijar, primer, pintar, laca","Cargar la LiPo en modo Balance; verificar 12.6 V","Pasar de fuente de pared a LiPo + interruptor + fusible","Cortar el poste: imanes a 2–3 mm del casco","Lastre hasta 1–1.5 kg; probar que no vuelque al frenar","Cúpula impresa con 3 ruedecitas"]}
+];
+const ITEMS = [
+  // Parte 1: lo mínimo para mover motores, servo e IMU en la mesa
+  ["m1",1,"Motorreductor JGB37-520B encoder 12 V 319 RPM ×2","UNIT",462,"Elegir 319 RPM, no 600"],
+  ["m7",1,"Driver L298N doble puente H","UNIT",59,"Reemplaza a los DRV8871: maneja los 2 motores; usa ENA/ENB para PWM"],
+  ["m8",1,"Eliminador 12V 2A con plug","UNIT",80,"Sustituye a la LiPo hasta la Parte 6"],
+  ["m9",1,"Par conector plug jack macho-hembra con bornera","UNIT",15,"Del eliminador a las borneras del L298N"],
+  ["m6",1,"Kit protoboard 830 + fuente MB102 + Dupont","UNIT",90,"La MB102 no aguanta el servo; el servo va al buck"],
+  ["m2",1,"IMU MPU6050","UNIT",87,""],
+  ["m3",1,"Servo MG996R ×2","UNIT",228,"En la Parte 1 basta uno; el otro va al poste en la 5"],
+  ["m4",1,"Buck LM2596 ajustable 3 A","UNIT",42,"Da 5 V al servo desde la fuente de 12 V"],
+  // Parte 2: base
+  ["b1",2,"Melamina 12–15 mm, 30 × 30 cm","Ferretería",80,"Disco Ø 20–22 cm"],
+  ["b2",2,"Llanta de goma 65 mm CON accesorios ×2","UNIT",178,"Trae escuadra, buje hexagonal y tornillo; hecha para el JGB37-520B. Verifica precio por pieza"],
+  ["b3",2,"Tornillos M3×6 con tuerca + separadores de latón M3","UNIT",60,"Separadores para igualar la altura de las ruedas locas"],
+  ["b4",2,"Rueda loca CY-15A metal ×2","UNIT",36,"Igualar altura con las ruedas usando arandelas"],
+  ["b7",2,"Velcro, bridas, tornillos M3, pijas","Ferretería",100,""],
+  ["b6",2,"Cinta doble cara 3M VHB","Mercado Libre",100,""],
+  ["m10",2,"Cable eléctrico 22 AWG rojo y negro, 2 m","UNIT",20,"Para motores ya montados"],
+  ["b8",2,"Thermofit surtido","UNIT",60,""],
+  // Parte 3: nada nuevo
+  ["r1",3,"microSD 32 GB + cable USB a Arduino","Ya lo tienes",0,""],
+  ["r2",3,"Mando Bluetooth","Ya lo tienes",0,""],
+  // Parte 4: voz
+  ["a1",4,"Micrófono USB","Steren",250,"O ReSpeaker 2-Mic HAT (~$450), que además cancela eco"],
+  ["a2",4,"Bocina 4 Ω 5 W","UNIT",80,"Con el PAM8403; luego se muda a la cabeza"],
+  // Parte 5: cabeza fuera de la esfera
+  ["h1",5,"Raspberry Pi Zero 2 W + microSD","Ya lo tienes",0,"Por ahora con cable USB, sin batería"],
+  ["h2",5,"Cámara OV5647 + cable 15 pines Zero","UNIT",240,"Verificar que traiga el cable de Zero"],
+  ["h3",5,"Anillo NeoPixel 16 LED, 45 mm (sin cables)","UNIT",58,"Soldar a IN, no a OUT; 330–470 Ω en datos"],
+  ["h9",5,"Imanes neodimio N42 20×5 mm ×8","Mercado Libre",150,"Para probar la unión magnética"],
+  ["b5",5,"Tubo PVC 25 mm o varilla 1/4″ + tuercas","Ferretería",40,"Poste de los imanes"],
+  // Parte 6: todo lo que hace falta para cerrar la esfera y quitar cables
+  ["e1",6,"LiPo 3S 5200 mAh XT60","Amazon",800,"Hilldow, XT60"],
+  ["e2",6,"Cargador iMAX B6AC","UNIT",525,"Versión AC"],
+  ["e3",6,"Alarma de voltaje LiPo","UNIT",60,""],
+  ["e4",6,"Conector XT60 par + cables XT60 12AWG","UNIT",77,""],
+  ["e6",6,"Interruptor rocker 10 A","Steren",40,""],
+  ["e7",6,"Portafusible + fusibles 5 A","Steren",50,""],
+  ["m5",6,"Condensador 1000 µF 16 V ×4","UNIT",12,"Cuando la Pi pase a alimentarse del buck; barato, puedes sumarlo ya"],
+  ["e8",6,"Filamento PLA 1.75 mm, 2–3 kg","Mercado Libre",750,"O esfera acrílica de 30–35 cm ($400–800)"],
+  ["e9",6,"Pegamento, resanador, primer, pinturas, laca, lijas","Tlapalería",400,""],
+  ["e10",6,"Lastre 200–400 g","Mercado Libre",50,""],
+  ["e11",6,"Tuercas de nylon ×8","Ferretería",20,""],
+  ["h5",6,"Power bank 18650 tipo tubo","Mercado Libre",250,"Batería de la cabeza"],
+  ["h6",4,"Amplificador PAM8403 con volumen","UNIT",29,"Bocina a L+ y L−, nunca a GND"],
+  ["h7",6,"(ya cubierto por la bocina 4 Ω de la Parte 4)","Ya lo tienes",0,""],
+  ["h8",6,"Cúpula 12–14 cm","Mercado Libre",150,"O impresa"],
+  ["h10",6,"3 ruedecitas + eje 2.5 mm","Mercado Libre",60,""],
+  // Opcionales: mejoras, no bloquean ninguna parte
+  ["m7b",1,"BTS7960 ×2 (alternativa robusta al L298N)","UNIT",242,"Solo si el L298N se calienta demasiado",true],
+  ["h4",4,"Sensor ToF VL53L0X","UNIT",47,"Freno reflejo ante paredes; muy recomendado antes de soltarlo por la casa",true],
+  ["a3",4,"Módulo Bluetooth HC-05","UNIT",91,"Solo si la Pi y el Arduino van sin cable",true],
+  ["e5",6,"XT60 hembra + JST-XH de panel","Amazon",90,"Cargar sin abrir la esfera",true],
+  ["e12",6,"Módulo MOSFET IRF520","UNIT",40,"Reposo profundo",true]
+].map(([id,p,name,store,price,note,opt])=>({id,p,name,store,price,note,opt:!!opt}));
+const NEXT = {pendiente:"carrito",carrito:"comprado",comprado:"pendiente"};
+const LABEL = {pendiente:"Pendiente",carrito:"En carrito",comprado:"✓ Comprado"};
+
+let state = {tasks:{}, items:{}};
+let selected = null, tab = "phase", shopFilter = "fase";
+let docRef = null, saveTimer = null, readOnly = false, useLocal = false;
+
+const money = n => "$" + Math.round(n).toLocaleString("es-MX");
+const st = id => state.items[id] || "pendiente";
+const taskId = (p,i) => p + "." + i;
+const phaseDone = ph => ph.tasks.filter((_,i)=>state.tasks[taskId(ph.n,i)]).length;
+function currentPhase(){ for(const ph of PHASES){ if(phaseDone(ph) < ph.tasks.length) return ph; } return null; }
+const need = n => ITEMS.filter(i=>i.p===n && !i.opt);
+const missingFor = n => need(n).filter(i=>st(i.id)!=="comprado");
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function ring(pct, cls){
+  const r=31, c=2*Math.PI*r, off=c*(1-pct);
+  const col = cls==="done" ? "var(--ok)" : "var(--orange)";
+  return `<svg viewBox="0 0 72 72" width="100%" height="100%" aria-hidden="true">
+    <circle cx="36" cy="36" r="${r}" fill="none" stroke="var(--line)" stroke-width="5"/>
+    <circle class="arc" cx="36" cy="36" r="${r}" fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}"/></svg>`;
+}
+
+function render(){
+  const cur = currentPhase();
+  if(selected===null) selected = cur ? cur.n : 6;
+  const allTasks = PHASES.reduce((a,p)=>a+p.tasks.length,0);
+  const doneTasks = PHASES.reduce((a,p)=>a+phaseDone(p),0);
+  const core = ITEMS.filter(i=>!i.opt);
+  const buyable = core.filter(i=>i.price>0);
+  const bought = core.filter(i=>st(i.id)==="comprado").length;
+  const spent = ITEMS.filter(i=>st(i.id)==="comprado").reduce((a,i)=>a+i.price,0);
+  const total = buyable.reduce((a,i)=>a+i.price,0);
+
+  document.getElementById("nowTitle").innerHTML = cur
+    ? `<b>Parte ${cur.n}</b> · ${esc(cur.t)}`
+    : `<b>BB-8 terminado</b>`;
+  document.getElementById("sTasks").textContent = `${doneTasks}/${allTasks}`;
+  document.getElementById("sBuy").textContent = `${bought}/${core.length}`;
+  document.getElementById("sMoney").textContent = money(spent);
+  document.getElementById("sMoneyL").textContent = `gastado de ~${money(total)} (sin opcionales)`;
+
+  document.getElementById("stepper").innerHTML = PHASES.map(ph=>{
+    const d = phaseDone(ph), pct = d/ph.tasks.length;
+    const cls = d===ph.tasks.length ? "done" : (cur && cur.n===ph.n ? "current" : "");
+    const miss = missingFor(ph.n).length;
+    const tag = cls==="done" ? "Hecha" : cls==="current" ? (miss ? `Aquí vas · faltan ${miss}` : "Aquí vas") : (miss ? `Faltan ${miss} piezas` : "Material listo");
+    return `<button class="step ${cls} ${selected===ph.n?"selected":""}" data-step="${ph.n}" aria-label="Parte ${ph.n}: ${esc(ph.t)}, ${d} de ${ph.tasks.length} tareas" aria-current="${cur&&cur.n===ph.n?"step":"false"}">
+      <span class="ring">${ring(pct,cls)}<span class="num">${ph.n}</span></span>
+      <span class="t">${esc(ph.t)}</span><span class="tag">${tag}</span></button>`;
+  }).join("");
+
+  document.getElementById("tabPhase").setAttribute("aria-selected", tab==="phase");
+  document.getElementById("tabShop").setAttribute("aria-selected", tab==="shop");
+  document.getElementById("view").innerHTML = tab==="phase" ? phaseView() : shopView();
+}
+
+function itemRow(i, showPhase){
+  const s = st(i.id);
+  const price = i.price ? money(i.price) : "—";
+  return `<div class="item st-${s}">
+    <div class="name">${esc(i.name)}</div>
+    <button class="pill ${s}" data-item="${i.id}" ${readOnly?"disabled":""} aria-label="${esc(i.name)}: ${LABEL[s]}. Cambiar estado">${LABEL[s]}</button>
+    <div class="meta">${showPhase?`<span class="ph">P${i.p}</span>`:""}${esc(i.store)} · ${price}</div>
+    ${i.note?`<div class="note">${esc(i.note)}</div>`:""}
+  </div>`;
+}
+
+function readyLine(n){
+  const miss = missingFor(n);
+  if(!miss.length) return `<p class="ready ok">Tienes todo lo indispensable para esta parte.</p>`;
+  const cost = miss.reduce((a,i)=>a+i.price,0);
+  return `<p class="ready">Para empezar te faltan ${miss.length} pieza${miss.length>1?"s":""} · ${money(cost)}</p>`;
+}
+function phaseView(){
+  const ph = PHASES.find(p=>p.n===selected);
+  const core = need(ph.n), opt = ITEMS.filter(i=>i.p===ph.n && i.opt);
+  return `<div class="phase">
+    <section>
+      <h2>Parte ${ph.n} · ${esc(ph.t)}</h2>
+      <p class="deliv"><strong>Listo cuando</strong> ${esc(ph.d)}</p>
+      <h3>Tareas <span>${phaseDone(ph)}/${ph.tasks.length}</span></h3>
+      <ul class="tasks">${ph.tasks.map((t,i)=>`<li><label><input type="checkbox" data-task="${taskId(ph.n,i)}" ${state.tasks[taskId(ph.n,i)]?"checked":""} ${readOnly?"disabled":""}><span>${esc(t)}</span></label></li>`).join("")}</ul>
+    </section>
+    <section>
+      ${readyLine(ph.n)}
+      <h3>Indispensable para esta parte <span>${core.length-missingFor(ph.n).length}/${core.length}</span></h3>
+      <div class="items">${core.length ? core.map(i=>itemRow(i,false)).join("") : `<p class="empty">Nada nuevo: usas lo de las partes anteriores.</p>`}</div>
+      ${opt.length ? `<h3 class="opt-h">Opcional, no te detiene</h3><div class="items opt">${opt.map(i=>itemRow(i,false)).join("")}</div>` : ""}
+    </section>
+  </div>`;
+}
+
+function shopView(){
+  const cur = currentPhase();
+  const curN = cur ? cur.n : 7;
+  const toggle = `<div class="toggle" role="group" aria-label="Agrupar">
+      <button data-filter="fase" aria-pressed="${shopFilter==="fase"}">Por fase</button>
+      <button data-filter="tienda" aria-pressed="${shopFilter==="tienda"}">Por tienda</button></div>`;
+  if(shopFilter==="fase"){
+    const blocks = PHASES.map(ph=>{
+      const core = need(ph.n);
+      const miss = missingFor(ph.n);
+      const cost = miss.reduce((a,i)=>a+i.price,0);
+      const when = ph.n<curN ? "Ya pasaste esta parte" : ph.n===curN ? "Lo que necesitas ahora" : ph.n===curN+1 ? "Siguiente" : "Más adelante";
+      const status = !core.length ? "No hay que comprar nada" : miss.length ? `Faltan ${miss.length} · ${money(cost)}` : "Completo";
+      return `<section class="pblock ${ph.n===curN?"now-block":""} ${ph.n<curN?"past":""}">
+        <div class="pb-head"><div><div class="when">${when}</div><h3 class="pb-title">Parte ${ph.n} · ${esc(ph.t)}</h3></div>
+        <div class="pb-status ${miss.length?"":"ok"}">${status}</div></div>
+        ${core.length ? `<div class="items">${core.map(i=>itemRow(i,false)).join("")}</div>` : ""}
+      </section>`;
+    }).join("");
+    const opts = ITEMS.filter(i=>i.opt);
+    return `<div class="shop-head"><p>Solo lo indispensable de cada parte. Compra la parte en la que vas y la siguiente; lo demás puede esperar.</p>${toggle}</div>
+      ${blocks}
+      <section class="pblock"><div class="pb-head"><div><div class="when">Cuando quieras</div><h3 class="pb-title">Opcionales y mejoras</h3></div></div>
+      <div class="items opt">${opts.map(i=>itemRow(i,true)).join("")}</div></section>`;
+  }
+  const list = ITEMS.filter(i=>st(i.id)!=="comprado" && i.price>0 && !i.opt).sort((a,b)=>a.p-b.p);
+  const stores = [...new Set(list.map(i=>i.store))];
+  return `<div class="shop-head"><p>Lo indispensable que falta, agrupado por tienda para cuando salgas a comprar. La etiqueta indica en qué parte lo vas a usar.</p>${toggle}</div>
+    ${stores.length ? `<div class="stores">${stores.map(s=>{
+      const its = list.filter(i=>i.store===s);
+      const sub = its.reduce((a,i)=>a+i.price,0);
+      return `<section class="store"><h3>${esc(s)} <span>${money(sub)}</span></h3><div class="items">${its.map(i=>itemRow(i,true)).join("")}</div></section>`;
+    }).join("")}</div>` : `<p class="empty">Ya compraste todo lo indispensable.</p>`}`;
+}
+
+function setSaving(t){ document.getElementById("saving").textContent = t; }
+function save(){
+  setSaving("Guardando…");
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async ()=>{
+    if(useLocal){
+      try{ localStorage.setItem("bb8-progress", JSON.stringify(state)); setSaving("Guardado en este navegador"); }catch(e){ setSaving("No se pudo guardar"); }
+      return;
+    }
+    if(!docRef) return;
+    try{ await docRef.set(state); setSaving("Guardado"); }
+    catch(e){
+      if(e && (e.code==="not_writer"||e.code==="permission_denied"||e.code==="not_granted")){ readOnly=true; setSaving("Solo lectura"); render(); }
+      else setSaving("No se pudo guardar; reintenta en un momento");
+    }
+  }, 600);
+}
+
+document.addEventListener("click", e=>{
+  const step = e.target.closest("[data-step]");
+  if(step){ selected = +step.dataset.step; tab="phase"; render(); return; }
+  const pill = e.target.closest("[data-item]");
+  if(pill && !readOnly){ const id=pill.dataset.item; state.items={...state.items,[id]:NEXT[st(id)]}; render(); save(); return; }
+  const f = e.target.closest("[data-filter]");
+  if(f){ shopFilter=f.dataset.filter; render(); return; }
+  if(e.target.id==="tabPhase"){ tab="phase"; render(); }
+  if(e.target.id==="tabShop"){ tab="shop"; render(); }
+});
+document.addEventListener("change", e=>{
+  const t = e.target.closest("[data-task]");
+  if(t && !readOnly){ state.tasks={...state.tasks,[t.dataset.task]:t.checked}; render(); save(); }
+});
+
+render();
+
+(async ()=>{
+  let db = null;
+  try{ db = window.claude && await window.claude.use("db"); }catch(e){ db = null; }
+  if(!db){
+    useLocal = true;
+    try{ const s = JSON.parse(localStorage.getItem("bb8-progress")||"null"); if(s) state = {tasks:s.tasks||{},items:s.items||{}}; }catch(e){}
+    document.getElementById("banner").innerHTML = `<div class="banner">Sin conexión al guardado del proyecto: los cambios se quedan solo en este navegador.</div>`;
+    selected = null; render(); return;
+  }
+  docRef = db.doc("progress/state");
+  docRef.onSnapshot(snap=>{
+    const d = snap.exists ? snap.data() : null;
+    state = {tasks:(d&&d.tasks)||{}, items:(d&&d.items)||{}};
+    if(!window.__bb8Loaded){ window.__bb8Loaded = true; selected = null; }
+    render();
+  }, err=>{ setSaving("Se perdió la conexión; recarga la página"); });
+})();
+</script>
+

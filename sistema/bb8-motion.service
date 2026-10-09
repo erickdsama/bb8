@@ -1,0 +1,14 @@
+[Unit]
+Description=BB-8 servicio de movimiento (único dueño del serial)
+After=network-online.target bluetooth.target
+
+[Service]
+User=bb8
+WorkingDirectory=/home/bb8/bb8
+EnvironmentFile=-/etc/bb8.env
+ExecStart=/home/bb8/bb8/.venv/bin/python -m bb8.motion_api --mando
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

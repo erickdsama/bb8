@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+# Se generan al correr
+foto_dummy.jpg
+partes/4-agente-movimiento/voz/modelos/
+partes/4-agente-movimiento/voz/voces.json
+.env

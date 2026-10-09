@@ -1,0 +1,9 @@
+# Agente de voz en la Pi principal (Parte 4), además de requirements.txt.
+# Sistema: sudo apt install libportaudio2 libopenblas0
+anthropic>=1.13
+sounddevice>=0.4
+openwakeword>=0.4      # trae Silero VAD en ONNX, sin torch
+faster-whisper>=1.0
+piper-tts>=1.3
+# Identificación de voz (opcional; instala torch, ~1 GB en la Pi):
+# resemblyzer>=0.1.4
