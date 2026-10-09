@@ -1,0 +1,1300 @@
+<title>Proyecto BB-8 con agente LLM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: technical manual, sticky section index on the left at desktop width, single reading column on phones */
+:root{
+  --paper:#F5F6F7; --card:#FFFFFF; --ink:#1D2125; --muted:#66707A; --line:#DCE0E4;
+  --orange:#E8600F; --orange-soft:#FDEBDD; --steel:#3A434C; --code:#EEF0F2;
+  --display:"Chakra Petch","Segoe UI",system-ui,sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#14171A; --card:#1C2024; --ink:#E8EBEE; --muted:#9AA4AD; --line:#2E343A;
+  --orange:#FF7A2E; --orange-soft:#3A2416; --steel:#C6CDD3; --code:#23282D; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --paper:#14171A; --card:#1C2024; --ink:#E8EBEE; --muted:#9AA4AD; --line:#2E343A;
+  --orange:#FF7A2E; --orange-soft:#3A2416; --steel:#C6CDD3; --code:#23282D; color-scheme:dark;}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{background:var(--paper);color:var(--ink);font:16px/1.6 var(--body);-webkit-font-smoothing:antialiased}
+.page{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:32px 80px;display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+@media (max-width:900px){.page{grid-template-columns:minmax(0,1fr);gap:20px}}
+aside{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px);align-self:start}
+@media (max-width:900px){aside{position:static}}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:20px}
+aside ol{list-style:none;margin:0;padding:0;border-left:2px solid var(--line)}
+aside li a{display:block;padding:6px 0 6px 14px;margin-left:-2px;border-left:2px solid transparent;color:var(--muted);text-decoration:none;font-size:14px;line-height:1.3}
+aside li a:hover{color:var(--ink);border-left-color:var(--orange)}
+@media (max-width:900px){aside ol{display:flex;flex-wrap:wrap;gap:6px;border:0}aside li a{border:1px solid var(--line);border-radius:99px;padding:4px 12px;margin:0;font-size:13px}}
+main{min-width:0;max-width:820px}
+header.doc{border-bottom:3px solid var(--orange);padding-bottom:18px;margin-bottom:8px}
+header.doc h1{font-family:var(--display);font-weight:600;font-size:clamp(30px,5vw,46px);line-height:1.05;margin:0 0 10px;text-wrap:balance}
+header.doc p{margin:0;color:var(--muted);font-size:14px}
+h2{font-family:var(--display);font-weight:600;font-size:28px;line-height:1.15;margin:56px 0 12px;text-wrap:balance;scroll-margin-top:20px}
+h3{font-family:var(--display);font-weight:600;font-size:19px;margin:32px 0 8px;text-wrap:balance;color:var(--ink)}
+p,li{max-width:68ch}
+p{margin:0 0 14px}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin:4px 0}
+li:has(> input[type=checkbox]){list-style:none;margin-left:-22px;display:flex;gap:10px;align-items:flex-start}
+input[type=checkbox]{appearance:none;flex:none;width:16px;height:16px;margin:4px 0 0;border:2px solid var(--muted);border-radius:50%}
+strong{font-weight:600}
+em{color:var(--steel)}
+a{color:var(--orange)}
+code{font-family:var(--mono);font-size:.88em;background:var(--code);padding:1px 5px;border-radius:4px}
+pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;font:14px/1.55 var(--mono);margin:0 0 18px}
+pre code{background:none;padding:0;font-size:inherit}
+.tw{overflow-x:auto;margin:6px 0 22px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th{text-align:left;font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--paper);padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+.dia{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px;margin:6px 0 22px}
+.dia pre.mermaid{background:none;border:0;padding:0;margin:0;font-family:var(--body);text-align:center}
+a:focus-visible{outline:2px solid var(--orange);outline-offset:2px;border-radius:4px}
+</style>
+<div class="page">
+  <aside>
+    <div class="brand"><svg width="24" height="24" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="17" r="10" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="14" cy="17" r="4" fill="none" stroke="var(--orange)" stroke-width="2.4"/><path d="M8 8a6 6 0 0 1 12 0z" fill="currentColor"/></svg>BB-8</div>
+    <nav aria-label="Secciones"><ol><li><a href="#s1">1. Arquitectura</a></li><li><a href="#s2">2. Plan por partes</a></li><li><a href="#s3">3. Materiales</a></li><li><a href="#s4">4. Mecánica interna</a></li><li><a href="#s5">5. Electrónica y alimentación</a></li><li><a href="#s6">6. Software: cómo se mueve</a></li></ol></nav>
+  </aside>
+  <main>
+    <header class="doc">
+      <h1>Proyecto BB-8 con agente LLM</h1>
+      <p>19 sep 2026 · Erick</p>
+    </header>
+<h2 id="s1">1. Arquitectura</h2>
+<p>Un BB-8 de 30–35 cm con el principio del Sphero: una base con dos
+ruedas rueda por dentro de la esfera y un poste con imanes sujeta la
+cabeza a través del casco. El movimiento lo escribe un servicio propio,
+sin ROS, y se expone al LLM como servidor MCP. El mando Bluetooth usa el
+mismo servicio para pruebas y tiene prioridad cuando lo tocas.</p>
+<div class="dia"><pre class="mermaid">flowchart TD
+  U[Usuario&lt;br/&gt;voz] --&gt; AG[Agente de voz&lt;br/&gt;Pi principal]
+  AG --&gt;|API| LLM[Claude&lt;br/&gt;tool use]
+  LLM --&gt;|tools| MCP[Servidor MCP&lt;br/&gt;bb8-motion]
+  J[Mando BT&lt;br/&gt;pruebas, prioridad] --&gt; MS[Servicio de movimiento&lt;br/&gt;Python]
+  MCP --&gt; MS
+  MS --&gt;|serial USB| AR[Arduino&lt;br/&gt;firmware propio]
+  AR --&gt; M[2 motores + servo del poste]
+  MCP &lt;--&gt;|WiFi| Z[Pi Zero 2 W&lt;br/&gt;cámara, ToF, ojo, altavoz]</pre></div>
+<div class="tw"><table>
+<thead>
+<tr class="header">
+<th>Pieza</th>
+<th>Rol</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Raspberry Pi (normal)</td>
+<td>Servicio de movimiento, servidor MCP, agente de voz</td>
+</tr>
+<tr class="even">
+<td>Arduino</td>
+<td>Firmware de motores, encoders, servo, IMU; reflejos de
+seguridad</td>
+</tr>
+<tr class="odd">
+<td>Raspberry Pi Zero 2 W</td>
+<td>Cabeza: cámara, sensor ToF, NeoPixel, altavoz; batería propia</td>
+</tr>
+<tr class="even">
+<td>Mando Bluetooth</td>
+<td>Control manual para pruebas, prioridad sobre el LLM</td>
+</tr>
+<tr class="odd">
+<td>Claude</td>
+<td>Decide qué hacer a partir de voz y fotos; nunca toca motores</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="s2">2. Plan por partes</h2>
+<p>Seis partes en orden de dependencia; cada una termina con algo
+tangible. Nada de esfera hasta que la base ruede sola y obedezca al
+agente. Las baterías entran hasta la Parte 6: antes, la Pi va con su
+cargador USB y los motores con una fuente de pared de 12 V.</p>
+<h3 id="parte-1--componentes-conectados-en-protoboard">Parte 1 —
+Componentes conectados en protoboard</h3>
+<p><em>Entregable:</em> los dos motores giran en ambos sentidos desde el
+Arduino, el servo barre 0–180° y la IMU imprime ángulos en el monitor
+serial.</p>
+<ul class="task-list">
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Ajustar el buck a 5.1 V en vacío
+antes de conectar nada</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Cablear en protoboard: fuente 12 V →
+DRV8871 ×2; Pi con su cargador USB; GND común entre fuente, Pi y
+Arduino</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Firmware mínimo: protocolo serial
+<code>M &lt;izq&gt; &lt;der&gt;</code> y <code>H &lt;ángulo&gt;</code>,
+respuesta <code>OK</code>/<code>ERR</code></label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Probar motores con PWM al 50 % y
+freno; probar servo; leer MPU6050 por I2C</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Foto del cableado y tabla de pines
+(va a la sección Electrónica)</label></li>
+</ul>
+<h3 id="parte-2--todo-montado-en-la-base-de-melamina">Parte 2 — Todo
+montado en la base de melamina</h3>
+<p><em>Entregable:</em> un disco de melamina de 20–22 cm con motores,
+ruedas, ball transfers y electrónica fijos, con el hueco de la batería
+listo; se levanta con una mano y nada se mueve.</p>
+<ul class="task-list">
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Cortar el disco, marcar centro y
+ejes en + y ×</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Atornillar soportes de motor con las
+ruedas asomando por dos muescas opuestas</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Montar 2 ball transfers a 90° de las
+ruedas, a la misma altura de contacto</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Dejar el hueco de la LiPo (139 × 47
+× 25 mm) centrado abajo; Arduino, drivers y buck arriba</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Poste central (tubo PVC 25 mm o
+varilla roscada) con el portaimanes arriba</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Pesar el conjunto y anotar el centro
+de gravedad</label></li>
+</ul>
+<h3 id="parte-3--test-de-movimiento-con-la-base">Parte 3 — Test de
+movimiento con la base</h3>
+<p><em>Entregable:</em> la base se maneja por comandos desde la Pi por
+USB y avanza, gira y frena en el piso sin la esfera; video de 30 s.</p>
+<ul class="task-list">
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Pi principal con Raspberry Pi OS
+Lite, conectada al Arduino por USB</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Servicio de movimiento en la Pi:
+envía <code>M</code>/<code>H</code>/<code>S</code>, lee la IMU, watchdog
+de 500 ms</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Mando Bluetooth con
+<code>evdev</code> para conducirla a mano</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Rutina de prueba: adelante 1 s, giro
+90°, alto; medir deriva con la IMU</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Ajustar PWM máximo y rampa de
+aceleración para que no cabecee</label></li>
+</ul>
+<h3 id="parte-4--agente-llm-controlando-el-movimiento">Parte 4 — Agente
+LLM controlando el movimiento</h3>
+<p><em>Entregable:</em> le dices "BB-8, ven acá" o "da una vuelta" y la
+base lo hace; log de la conversación con las llamadas a
+herramientas.</p>
+<ul class="task-list">
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Servidor MCP <code>bb8-motion</code>
+con <code>move</code>, <code>turn</code>, <code>stop</code>,
+<code>get_pose</code> sobre el servicio de la Parte 3</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Probarlo primero desde Claude
+Desktop o Claude Code con el robot en el piso</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Micrófono y altavoz USB en la Pi;
+openWakeWord → faster-whisper <code>small</code> → Claude con tool use →
+Piper</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Personalidad en el system prompt;
+pitidos de droide entre respuestas</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Registro de voces (ver Voz e
+identificación)</label></li>
+</ul>
+<h3 id="parte-5--agente-llm-controlando-la-cabeza">Parte 5 — Agente LLM
+controlando la cabeza</h3>
+<p><em>Entregable:</em> la cabeza (todavía sin carcasa) gira hacia quien
+habla, la cámara manda una foto al modelo y BB-8 describe lo que ve; el
+ojo NeoPixel cambia de color según el estado.</p>
+<ul class="task-list">
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Chasis de cabeza: cámara OV5647, ToF
+VL53L1X, NeoPixel, power bank 18650, PAM8403 + altavoz</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Modificar el MG996R del poste a
+rotación continua si la cabeza va a girar 360°</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Herramientas MCP
+<code>look_at</code>, <code>take_photo</code>,
+<code>set_eye_color</code>, <code>say</code></label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Foto reducida a 640 px antes de
+enviarla al modelo</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Probar la unión magnética
+cabeza–poste sobre una superficie curva (una pelota de playa
+sirve)</label></li>
+</ul>
+<h3 id="parte-6--esfera-impresa-en-3d-y-baterías">Parte 6 — Esfera
+impresa en 3D y baterías</h3>
+<p><em>Entregable:</em> esfera de 30–35 cm en dos mitades que cierran
+sin cinta, con la base rodando adentro y la cabeza flotando encima; el
+BB-8 completo y sin cable.</p>
+<ul class="task-list">
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Modelar en Fusion 360: 6 círculos
+naranjas + 8 piezas blancas, cortadas para la cama de la impresora, con
+biscós de alineación</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Imprimir con 0.28 mm de capa y 10–15
+% de relleno; ~2–3 kg de filamento</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Pegar, reforzar por dentro (fibra de
+vidrio o segunda capa de resina), lijar, primer, pintar,
+laca</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Cargar la LiPo con el B6AC en modo
+Balance; verificar 12.6 V y celdas parejas</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Pasar de la fuente de pared a LiPo →
+interruptor + fusible → drivers y buck; fijar la LiPo centrada abajo con
+velcro y brida</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Cortar el poste a la medida para que
+los imanes queden a 2–3 mm de la pared</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Lastre hasta 1–1.5 kg total, lo más
+abajo posible; probar que la base no vuelque al frenar</label></li>
+<li><label><input type="checkbox" disabled aria-label="pendiente" />Cabeza: cúpula impresa con 3
+ruedecitas para que los imanes no rocen la pintura</label></li>
+</ul>
+<h2 id="s3">3. Materiales</h2>
+<p>Qué tener en la mesa antes de empezar cada parte. ☑ = ya comprado.
+Precios aproximados en MXN a octubre de 2026; el total ronda los
+$5,600–7,700. Las partes 1 y 2 se pueden pedir juntas; la 5 y la 6
+conviene esperar a que la 3 ruede, por si cambia el tamaño de la
+esfera.</p>
+<div class="tw"><table>
+<thead>
+<tr class="header">
+<th>✓</th>
+<th>Parte</th>
+<th>Pieza</th>
+<th>Cant.</th>
+<th>Tienda</th>
+<th>MXN</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>☑</td>
+<td>1</td>
+<td>Motorreductor JGB37-520B con encoder, 12 V, 319 RPM</td>
+<td>2</td>
+<td>UNIT</td>
+<td>231 c/u</td>
+</tr>
+<tr class="even">
+<td>☑</td>
+<td>1</td>
+<td>IMU MPU6050</td>
+<td>1</td>
+<td>UNIT</td>
+<td>87</td>
+</tr>
+<tr class="odd">
+<td>☑</td>
+<td>1</td>
+<td>Servo MG996R</td>
+<td>2</td>
+<td>UNIT</td>
+<td>114 c/u</td>
+</tr>
+<tr class="even">
+<td>☑</td>
+<td>1</td>
+<td>Buck LM2596 ajustable 3 A</td>
+<td>1</td>
+<td>UNIT</td>
+<td>42</td>
+</tr>
+<tr class="odd">
+<td>☑</td>
+<td>1</td>
+<td>Condensador 1000 µF 16 V</td>
+<td>4</td>
+<td>UNIT</td>
+<td>3 c/u</td>
+</tr>
+<tr class="even">
+<td>☑</td>
+<td>1</td>
+<td>Kit protoboard + cables Dupont</td>
+<td>1</td>
+<td>UNIT</td>
+<td>200</td>
+</tr>
+<tr class="odd">
+<td>☐</td>
+<td>1</td>
+<td>Driver DRV8871</td>
+<td>2–3</td>
+<td>Amazon</td>
+<td>119 c/u</td>
+</tr>
+<tr class="even">
+<td>☐</td>
+<td>1</td>
+<td>Fuente de pared 12 V 3 A con jack barril</td>
+<td>1</td>
+<td>Steren</td>
+<td>150</td>
+</tr>
+<tr class="odd">
+<td>☐</td>
+<td>1</td>
+<td>Adaptador jack barril a terminales de tornillo</td>
+<td>1</td>
+<td>Steren / UNIT</td>
+<td>30</td>
+</tr>
+<tr class="even">
+<td>☐</td>
+<td>1</td>
+<td>Cable calibre 18 rojo/negro</td>
+<td>2 m</td>
+<td>Steren</td>
+<td>60</td>
+</tr>
+<tr class="odd">
+<td>☐</td>
+<td>2</td>
+<td>Melamina 12–15 mm, 30 × 30 cm</td>
+<td>1</td>
+<td>Maderería</td>
+<td>80</td>
+</tr>
+<tr class="even">
+<td>☐</td>
+<td>2</td>
+<td>Rueda de goma 65 mm + cople hexagonal eje D 6 mm</td>
+<td>2</td>
+<td>Mercado Libre</td>
+<td>75 c/u</td>
+</tr>
+<tr class="odd">
+<td>☐</td>
+<td>2</td>
+<td>Soporte de motor JGB37</td>
+<td>2</td>
+<td>Mercado Libre</td>
+<td>40 c/u</td>
+</tr>
+<tr class="even">
+<td>☐</td>
+<td>2</td>
+<td>Ball transfer 1″</td>
+<td>2</td>
+<td>Mercado Libre</td>
+<td>60 c/u</td>
+</tr>
+<tr class="odd">
+<td>☐</td>
+<td>2</td>
+<td>Tubo PVC 25 mm × 30 cm o varilla roscada 1/4″ + 4 tuercas</td>
+<td>1</td>
+<td>Ferretería</td>
+<td>40</td>
+</tr>
+<tr class="even">
+<td>☐</td>
+<td>2</td>
+<td>Cinta doble cara 3M VHB</td>
+<td>1</td>
+<td>Mercado Libre</td>
+<td>100</td>
+</tr>
+<tr class="odd">
+<td>☐</td>
+<td>2</td>
+<td>Velcro adhesivo, bridas, tornillos M3 y pijas</td>
+<td>1 kit</td>
+<td>Ferretería</td>
+<td>100</td>
+</tr>
+<tr class="even">
+<td>☐</td>
+<td>2</td>
+<td>Termorretráctil surtido</td>
+<td>1</td>
+<td>Steren</td>
+<td>60</td>
+</tr>
+<tr class="odd">
+<td>☐</td>
+<td>3</td>
+<td>microSD 32 GB + cable USB a Arduino</td>
+<td>1</td>
+<td>Ya los tienes</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td>☐</td>
+<td>3</td>
+<td>Mando Bluetooth (PS4/Xbox/genérico)</td>
+<td>1</td>
+<td>Ya lo tienes</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td>☐</td>
+<td>4</td>
+<td>Micrófono USB (o ReSpeaker 2-Mic HAT, ~$450)</td>
+<td>1</td>
+<td>Steren / Amazon</td>
+<td>250</td>
+</tr>
+<tr class="even">
+<td>☐</td>
+<td>4</td>
+<td>Bocina USB o DAC USB para la Pi principal</td>
+<td>1</td>
+<td>Steren</td>
+<td>150</td>
+</tr>
+<tr class="odd">
+<td>☑</td>
+<td>4</td>
+<td>Módulo Bluetooth HC-05 (opcional)</td>
+<td>1</td>
+<td>UNIT</td>
+<td>91</td>
+</tr>
+<tr class="even">
+<td>☐</td>
+<td>5</td>
+<td>Raspberry Pi Zero 2 W + microSD</td>
+<td>1</td>
+<td>Ya la tienes</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td>☑</td>
+<td>5</td>
+<td>Cámara OV5647 5 MP + cable de 15 pines para Zero</td>
+<td>1</td>
+<td>UNIT</td>
+<td>240</td>
+</tr>
+<tr class="even">
+<td>☑</td>
+<td>5</td>
+<td>Anillo NeoPixel 16 LED WS2812, 45 mm</td>
+<td>1</td>
+<td>UNIT</td>
+<td>34</td>
+</tr>
+<tr class="odd">
+<td>☐</td>
+<td>5</td>
+<td>Sensor ToF VL53L1X</td>
+<td>1</td>
+<td>UNIT</td>
+<td>80</td>
+</tr>
+<tr class="even">
+<td>☐</td>
+<td>5</td>
+<td>Power bank 18650 tipo tubo, 2,600 mAh</td>
+<td>1</td>
+<td>Mercado Libre</td>
+<td>250</td>
+</tr>
+<tr class="odd">
+<td>☐</td>
+<td>5</td>
+<td>Amplificador PAM8403 (o MAX98357 I2S)</td>
+<td>1</td>
+<td>Amazon / Geek Factory</td>
+<td>40–155</td>
+</tr>
+<tr class="even">
+<td>☐</td>
+<td>5</td>
+<td>Altavoz 3 W 4 Ω</td>
+<td>1</td>
+<td>Geek Factory</td>
+<td>60</td>
+</tr>
+<tr class="odd">
+<td>☐</td>
+<td>5</td>
+<td>Cúpula 12–14 cm (impresa o media esfera de plástico)</td>
+<td>1</td>
+<td>Mercado Libre</td>
+<td>150</td>
+</tr>
+<tr class="even">
+<td>☐</td>
+<td>5</td>
+<td>Imanes neodimio N42 20 × 5 mm</td>
+<td>8</td>
+<td>Mercado Libre</td>
+<td>150</td>
+</tr>
+<tr class="odd">
+<td>☐</td>
+<td>5</td>
+<td>3 ruedecitas + eje 2.5 mm</td>
+<td>1</td>
+<td>Mercado Libre</td>
+<td>60</td>
+</tr>
+<tr class="even">
+<td>☐</td>
+<td>6</td>
+<td>LiPo 3S 11.1 V 5200 mAh 80C, conector XT60</td>
+<td>1</td>
+<td>Amazon / Geek Factory</td>
+<td>700–900</td>
+</tr>
+<tr class="odd">
+<td>☐</td>
+<td>6</td>
+<td>Cargador balanceador iMAX B6AC 80 W</td>
+<td>1</td>
+<td>UNIT / Amazon</td>
+<td>350–700</td>
+</tr>
+<tr class="even">
+<td>☐</td>
+<td>6</td>
+<td>Alarma de voltaje LiPo 1S–8S</td>
+<td>1</td>
+<td>UNIT</td>
+<td>60</td>
+</tr>
+<tr class="odd">
+<td>☐</td>
+<td>6</td>
+<td>Conector XT60 macho con cable + XT60 hembra de panel</td>
+<td>1</td>
+<td>UNIT / Amazon</td>
+<td>80</td>
+</tr>
+<tr class="even">
+<td>☐</td>
+<td>6</td>
+<td>Conector JST-XH 4 pines de panel + divisor en Y</td>
+<td>1</td>
+<td>Amazon</td>
+<td>60</td>
+</tr>
+<tr class="odd">
+<td>☐</td>
+<td>6</td>
+<td>Interruptor rocker 10 A</td>
+<td>1</td>
+<td>Steren</td>
+<td>40</td>
+</tr>
+<tr class="even">
+<td>☐</td>
+<td>6</td>
+<td>Portafusible + fusibles 5 A</td>
+<td>1</td>
+<td>Steren</td>
+<td>50</td>
+</tr>
+<tr class="odd">
+<td>☐</td>
+<td>6</td>
+<td>Filamento PLA 1.75 mm</td>
+<td>2–3 kg</td>
+<td>Mercado Libre</td>
+<td>600–900</td>
+</tr>
+<tr class="even">
+<td>☐</td>
+<td>6</td>
+<td>Gorilla gel, resanador, primer, pintura blanca/naranja/plata, laca,
+lijas, cinta de pintor</td>
+<td>1</td>
+<td>Tlapalería</td>
+<td>300–500</td>
+</tr>
+<tr class="odd">
+<td>☐</td>
+<td>6</td>
+<td>Lastre (pesas o plomo)</td>
+<td>200–400 g</td>
+<td>Mercado Libre</td>
+<td>50</td>
+</tr>
+<tr class="even">
+<td>☐</td>
+<td>6</td>
+<td>Tuercas de nylon para imanes</td>
+<td>8</td>
+<td>Ferretería</td>
+<td>20</td>
+</tr>
+<tr class="odd">
+<td>☐</td>
+<td>6</td>
+<td>Módulo MOSFET IRF520 o relevador 5 V (opcional, reposo
+profundo)</td>
+<td>1</td>
+<td>UNIT</td>
+<td>40</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="dónde-comprar">Dónde comprar</h3>
+<ul>
+<li><strong>UNIT Electronics</strong> (uelectronics.com): la electrónica
+en un solo pedido. Ya están ahí los motores, IMU, servos, buck,
+capacitores, cámara y NeoPixel.</li>
+<li><strong>Amazon MX</strong>: lo que UNIT no tiene: DRV8871 (AMONIDA),
+LiPo Hilldow u Ovonic, PAM8403 en pack.</li>
+<li><strong>Geek Factory</strong> (geekfactory.mx o Mercado Libre):
+alternativa para LiPo, cargador y audio.</li>
+<li><strong>Mercado Libre</strong>: mecánica y misceláneos; filtrar por
+envío Full. Para la esfera, si no imprimes, buscar "esfera acrílica 30
+cm en dos mitades" ($400–800) o pedirla en una acrilería local.</li>
+<li><strong>Steren</strong>: tienda física para fuente, cables,
+interruptor, fusibles y lo que falte el mismo día.</li>
+</ul>
+<h3 id="notas-de-compra">Notas de compra</h3>
+<ul>
+<li><strong>DRV8871:</strong> hasta 3.6 A y 45 V, sobra para el JGB37.
+Trae terminales de tornillo; el límite de corriente se fija con una
+resistencia en la placa. Comprar 3 por si uno sale malo. El DRV8833 de
+UNIT no sirve: máx. 10.8 V y 1.5 A por canal.</li>
+<li><strong>MG996R:</strong> en UNIT elegir la opción "MG996R DIGI
+HI-TORQUE", no la MG995.</li>
+<li><strong>Buck LM2596:</strong> comprar el módulo armado, no el chip.
+Ajustar la salida a 5.1 V y girar el preset de corriente al máximo antes
+de conectar la Pi; 2 A reales sin disipador.</li>
+<li><strong>Condensadores:</strong> en UNIT es un listado con varios
+valores: elegir 1000 µF (12 × 8 mm). Pata larga a +5 V.</li>
+<li><strong>Cámara OV5647:</strong> con 5 MP sobra, el agente manda
+fotos pequeñas. Verificar que incluya el cable de 15 pines para Zero
+(~$40 aparte). Los LED IR se pueden desconectar si calientan.</li>
+<li><strong>NeoPixel:</strong> la versión de 45 mm, no la de 68 mm (no
+cabe en la cabeza). 16 LED a blanco pleno piden ~1 A: alimentar del
+power bank y limitar brillo al 30 %. Datos por GPIO18 de la Pi
+Zero.</li>
+<li><strong>Ruedas:</strong> la "Llanta de Goma 65 mm" de UNIT es para
+motor TT (eje 3 mm), no entra en el JGB37. Buscar "rueda 65 mm cople
+hexagonal 6 mm" o el kit JGB37 con rueda y soporte (Tecneu, Amazon).
+Forrar con cinta de silicona.</li>
+<li><strong>Ball transfer:</strong> de bola metálica, 1″; resbala mejor
+sobre el casco que una rueda loca. No está en UNIT; sí en Mercado Libre
+y Sonrobots.</li>
+<li><strong>Melamina:</strong> disco de Ø 20–22 cm con dos muescas para
+las ruedas; 3 mm de MDF era muy delgado.</li>
+<li><strong>LiPo 5200 mAh:</strong> 2.5–3 h de uso activo; con 2200 mAh
+serían 1–1.5 h. Preferir XT60 (Hilldow, 450 g, 139 × 47 × 25 mm); si es
+Ovonic con Deans T, comprar adaptador Deans→XT60. Montada en el fondo
+hace de lastre.</li>
+<li><strong>Cargador:</strong> buscar "cargador balanceador", no "LiPo".
+Elegir la versión AC (se enchufa a la pared). Cargar la 3S a 2.6 A
+(0.5C) en modo Balance.</li>
+<li><strong>Alarma de voltaje:</strong> viene en 3.3 V/celda; subir a
+3.5 V alarga la vida de la batería. Se enchufa al JST-XH y el buzzer se
+oye a través de la esfera.</li>
+<li><strong>PAM8403:</strong> alimentar a 5 V del power bank, nunca a
+11.1 V. Un canal en mono con el altavoz de 4 Ω. La Pi Zero no trae
+salida de audio: usar I2S (MAX98357) o un DAC USB barato.</li>
+<li><strong>Power bank 18650:</strong> 97 × 26 mm, 63 g. Se apaga solo
+si la carga baja de ~100 mA; con el NeoPixel al 30 % no hay problema, si
+no, usar celda + TP4056 directo.</li>
+<li><strong>HC-05:</strong> versión maestro/esclavo de 6 pines. Solo si
+la Pi y el Arduino van sin cable.</li>
+<li><strong>VL53L1X:</strong> 4 cm–4 m para el freno reflejo; el VL53L0X
+(2 m) también sirve y es más barato.</li>
+</ul>
+<h2 id="s4">4. Mecánica interna</h2>
+<p>Una plataforma con dos ruedas motrices sube por la pared interior de
+la esfera y la hace rodar; el lastre abajo la mantiene derecha y un
+poste con imanes arriba sujeta la cabeza a través del casco. Tomado del
+BB-8 de nachumtwersky en Instructables (2021), escalado a 30–35 cm.</p>
+<div class="dia"><pre class="mermaid">flowchart TD
+  H[Cabeza: cúpula + 3 ruedecitas&lt;br/&gt;4 imanes elevados 2 mm] -. atracción magnética .-&gt; P
+  P[Poste central&lt;br/&gt;4 imanes N42, cara N arriba] --&gt; B[Base melamina 20–22 cm]
+  B --&gt; R[2 ruedas 65 mm&lt;br/&gt;JGB37 + cople hex]
+  B --&gt; T[2 ball transfers 1″&lt;br/&gt;a 90° de las ruedas]
+  B --&gt; L[LiPo 450 g + lastre&lt;br/&gt;hasta 1–1.5 kg, abajo]</pre></div>
+<div class="tw"><table>
+<thead>
+<tr class="header">
+<th>Elemento</th>
+<th>Especificación</th>
+<th>Por qué</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Base</td>
+<td>Disco de melamina 12–15 mm, Ø 20–22 cm, dos muescas para las
+ruedas</td>
+<td>Con 1.5 kg encima, 3 mm de MDF se pandea</td>
+</tr>
+<tr class="even">
+<td>Ruedas motrices</td>
+<td>2 × 65 mm goma, cople hexagonal eje D 6 mm, forradas con
+silicona</td>
+<td>Contacto contra el casco; el cople es lo que casi nadie compra</td>
+</tr>
+<tr class="odd">
+<td>Apoyo</td>
+<td>2 ball transfers 1″ a 90° de las ruedas, misma altura de
+contacto</td>
+<td>Si tocan antes que las ruedas, la esfera no rueda</td>
+</tr>
+<tr class="even">
+<td>Lastre</td>
+<td>LiPo 450 g + pesas hasta 1–1.5 kg, lo más abajo posible</td>
+<td>Los imanes tiran hacia arriba; sin lastre se voltea</td>
+</tr>
+<tr class="odd">
+<td>Poste</td>
+<td>Tubo PVC 25 mm o varilla roscada 1/4″, portaimanes impreso
+arriba</td>
+<td>Se recorta hasta dejar los imanes a 2–3 mm del casco</td>
+</tr>
+<tr class="even">
+<td>Imanes cuerpo</td>
+<td>4 × N42 20 × 5 mm avellanados, tuercas de nylon, cara N arriba</td>
+<td>Los 8 de la lista alcanzan: 4 abajo, 4 arriba</td>
+</tr>
+<tr class="odd">
+<td>Imanes cabeza</td>
+<td>4 iguales, cara S abajo, elevados sobre 3 ruedecitas</td>
+<td>Si rozan el casco arruinan la pintura y frenan el giro</td>
+</tr>
+<tr class="even">
+<td>Giro de cabeza</td>
+<td>MG996R a rotación continua en el poste; el portaimanes gira con
+él</td>
+<td>La cabeza sigue al imán, no hace falta motor arriba</td>
+</tr>
+<tr class="odd">
+<td>Interruptor</td>
+<td>Rocker 10 A accesible desde una tapa del casco</td>
+<td>Apagar sin abrir la esfera</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Reglas que aprendió a golpes el Instructable</strong></p>
+<ul>
+<li>Probar que la base rueda dentro de la esfera <strong>antes</strong>
+de poner imanes y lastre; si las ruedas giran pero la esfera no, los
+ball transfers tocan primero.</li>
+<li>Los imanes N42 de 20 mm lastiman dedos y rompen piezas impresas;
+separarlos con una cuña de madera, nunca deslizando.</li>
+<li>Reforzar el casco impreso por dentro (resina o fibra) antes de
+pintar: pegado borde con borde no basta.</li>
+<li>El autor terminó añadiendo un IMU para PID contra el bamboleo al
+frenar; el MPU6050 y la rampa de la Parte 3 lo resuelven desde el
+inicio.</li>
+</ul>
+<h2 id="s5">5. Electrónica y alimentación</h2>
+<p>Una sola batería para el cuerpo, con la Pi aislada de los picos de
+los motores; la cabeza lleva su propia batería porque va unida solo por
+imanes. Hasta la Parte 6 la LiPo se sustituye por la fuente de pared de
+12 V y la Pi va con su cargador USB.</p>
+<div class="dia"><pre class="mermaid">flowchart LR
+  B[LiPo 3S 11.1 V&lt;br/&gt;o fuente 12 V] --&gt; SW[Rocker&lt;br/&gt;+ fusible 5 A]
+  SW --&gt; D1[DRV8871 ×2] --&gt; M[Motores 12 V]
+  SW --&gt; BK[Buck 5 V] --&gt; C[Cond. 1000 µF] --&gt; PI[Raspberry Pi]
+  PI --&gt;|USB| AR[Arduino]
+  AR --&gt;|PWM| D1
+  BK --&gt; SV[Servo del poste]</pre></div>
+<h3 id="conexiones-del-arduino">Conexiones del Arduino</h3>
+<div class="tw"><table>
+<thead>
+<tr class="header">
+<th>Pin</th>
+<th>Conecta a</th>
+<th>Función</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>D5, D6</td>
+<td>DRV8871 motor izquierdo (IN1, IN2)</td>
+<td>PWM velocidad y sentido</td>
+</tr>
+<tr class="even">
+<td>D9, D10</td>
+<td>DRV8871 motor derecho (IN1, IN2)</td>
+<td>PWM velocidad y sentido</td>
+</tr>
+<tr class="odd">
+<td>D2, D3</td>
+<td>Encoders A/B</td>
+<td>Interrupciones para contar pulsos</td>
+</tr>
+<tr class="even">
+<td>A4, A5</td>
+<td>MPU6050 (SDA, SCL)</td>
+<td>I2C, inclinación; pin INT para despertar</td>
+</tr>
+<tr class="odd">
+<td>D7</td>
+<td>Servo del poste</td>
+<td>Giro de cabeza</td>
+</tr>
+<tr class="even">
+<td>D8</td>
+<td>Módulo MOSFET (opcional)</td>
+<td>Corta la 5 V de la Pi en reposo profundo</td>
+</tr>
+<tr class="odd">
+<td>USB</td>
+<td>Raspberry Pi</td>
+<td>Serial 115200 baudios</td>
+</tr>
+<tr class="even">
+<td>GND</td>
+<td>Común a todo</td>
+<td>Una sola masa</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="reglas-que-evitan-problemas">Reglas que evitan problemas</h3>
+<ul>
+<li>Masa común: todos los GND unidos (fuente, Pi, Arduino, drivers), o
+el serial dará basura.</li>
+<li>La Pi nunca alimenta motores ni servos; solo el buck lo hace.</li>
+<li>Condensador de 1000 µF en la entrada 5 V de la Pi para que no se
+reinicie al arrancar los motores.</li>
+<li>Nunca descargar la LiPo por debajo de 3.3 V por celda (~10 V); la
+alarma de voltaje se encarga.</li>
+<li>Fusible entre batería e interruptor: si algo se cruza dentro de la
+esfera no lo ves hasta que huele.</li>
+<li>Autonomía con 5200 mAh: 2.5–3 h de uso activo (ver Modo
+reposo).</li>
+</ul>
+<h3 id="cómo-se-carga-sin-abrir-la-esfera">Cómo se carga sin abrir la
+esfera</h3>
+<p>Uno de los seis círculos naranjas del casco es una tapa desmontable
+(imanes o dos tornillos). Detrás, en un soporte impreso, quedan a la
+mano el rocker, un <strong>XT60 hembra de panel</strong> y un
+<strong>JST-XH 4 pines de panel</strong>, ambos con extensiones a la
+LiPo. Para cargar: apagar el rocker, abrir la tapa, enchufar el B6AC a
+los dos conectores y cargar en modo Balance a 2.6 A (~2 h). La batería
+nunca sale del robot.</p>
+<div class="dia"><pre class="mermaid">flowchart LR
+  LIPO[LiPo 3S] --&gt;|XT60 extensión 30 cm| PX[XT60 panel]
+  LIPO --&gt;|balanceador extensión| PB[JST-XH panel]
+  LIPO --&gt; SW[Rocker] --&gt; ROBOT[Fusible → drivers y buck]
+  PX -.-&gt;|solo al cargar| B6[iMAX B6AC]
+  PB -.-&gt; B6</pre></div>
+<ul>
+<li>El rocker debe estar apagado al cargar: el B6AC se confunde si el
+robot consume mientras carga.</li>
+<li>La alarma de voltaje va al mismo JST-XH de panel con un divisor en
+Y, para desconectarla cuando guardes el robot.</li>
+<li>Cabeza: el power bank 18650 se carga por micro-USB; una extensión de
+15 cm llega a un puerto trasero de la cúpula, bajo la antena. ~3 h con
+cualquier cargador de teléfono.</li>
+<li>Descartado: cargador integrado con jack DC (no balancea celdas) y
+contactos pogo en el casco (una esfera no tiene "abajo" fijo).</li>
+<li><em>Base de carga inductiva (opcional, después de la Parte 6):</em>
+la plataforma interna siempre cuelga hacia abajo, así que una bobina
+receptora bajo ella y una transmisora en una cuna se alinean solas a
+través del casco, como en el Sphero. Módulo inalámbrico 12 V / 15–30 W,
+cargador 3S CC/CV con balanceo ($150), diodo ideal, cuna impresa Ø 12
+cm. A 15 W, 5–7 h para 5200 mAh. Que regrese sola a la cuna es otro
+proyecto.</li>
+</ul>
+<h2 id="s6">6. Software: cómo se mueve</h2>
+<p>El LLM decide <em>qué</em> hacer; nunca maneja. Tres capas, cada una
+con su propio reloj, y la regla es que <strong>ninguna capa lenta puede
+bloquear a una rápida</strong>: el Arduino frena solo aunque la Pi esté
+esperando a Claude.</p>
+<div class="tw"><table>
+<thead>
+<tr class="header">
+<th>Capa</th>
+<th>Dónde</th>
+<th>Ciclo</th>
+<th>Qué hace</th>
+<th>Qué no hace</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Reflejos</td>
+<td>Arduino</td>
+<td>10 ms</td>
+<td>Rampa, velocidad por encoders, freno si la IMU pasa de 35° o el ToF
+marca &lt; 25 cm, watchdog de 500 ms</td>
+<td>Decidir a dónde ir</td>
+</tr>
+<tr class="even">
+<td>Servicio de movimiento</td>
+<td>Pi principal, Python</td>
+<td>50 ms</td>
+<td>Traduce <code>move(1.0)</code> y <code>turn(90)</code> en
+<code>M</code>; cuenta encoders e integra el giroscopio; devuelve
+<code>done</code> o <code>blocked</code></td>
+<td>Interpretar lenguaje</td>
+</tr>
+<tr class="odd">
+<td>Agente</td>
+<td>Claude vía MCP</td>
+<td>1–4 s</td>
+<td>Elige la siguiente herramienta según lo que ve y oye</td>
+<td>Tocar motores</td>
+</tr>
+</tbody>
+</table></div>
+<div class="dia"><pre class="mermaid">sequenceDiagram
+  participant U as Erick
+  participant A as Claude (agente)
+  participant S as Servicio (Pi)
+  participant F as Arduino
+  U-&gt;&gt;A: &quot;ven acá&quot;
+  A-&gt;&gt;S: turn(-40) [ángulo del micrófono]
+  S-&gt;&gt;F: M -60 60 … M 0 0
+  S--&gt;&gt;A: done (1.2 s)
+  A-&gt;&gt;S: take_photo()
+  S--&gt;&gt;A: persona al centro, lejos
+  A-&gt;&gt;S: move(1.0)
+  S-&gt;&gt;F: M 70 70
+  Note over F: ToF &lt; 25 cm → M 0 0 sin preguntar
+  S--&gt;&gt;A: blocked a 0.6 m
+  A-&gt;&gt;U: &quot;ya llegué&quot; (pitido)</pre></div>
+<div class="tw"><table>
+<thead>
+<tr class="header">
+<th>Evento</th>
+<th>Quién reacciona</th>
+<th>Tiempo</th>
+<th>Por qué ahí</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Pared a 25 cm, escalón, alguien lo empuja</td>
+<td>Arduino (ToF + IMU)</td>
+<td>&lt; 20 ms</td>
+<td>El LLM tarda segundos; para entonces ya chocó</td>
+</tr>
+<tr class="even">
+<td>Obstáculo que la cámara ve a 1 m</td>
+<td>Servicio de movimiento</td>
+<td>~200 ms</td>
+<td>Frena, devuelve <code>blocked</code>, Claude decide rodear o
+preguntar</td>
+</tr>
+<tr class="odd">
+<td>Se pierde la conexión con la Pi</td>
+<td>Arduino (watchdog)</td>
+<td>500 ms</td>
+<td>Sin comandos nuevos = alto total</td>
+</tr>
+<tr class="even">
+<td>Orden nueva o cambio de plan</td>
+<td>Claude</td>
+<td>1–4 s</td>
+<td>Solo decide entre movimientos ya seguros</td>
+</tr>
+<tr class="odd">
+<td>"Alto" por voz</td>
+<td>Wake word + palabra clave</td>
+<td>~300 ms</td>
+<td>openWakeWord con "BB-8 alto" como segunda wake word que manda
+<code>stop</code> directo</td>
+</tr>
+</tbody>
+</table></div>
+<p>Lo que hace tolerable esperar 1–4 s al agente: cada herramienta es
+<strong>corta y auto-contenida</strong>. <code>move(1.0)</code> avanza
+un metro y se detiene solo; no hay un motor girando mientras Claude
+piensa. Si el usuario habla a mitad de un movimiento, el servicio
+termina el paso actual (máximo 1.5 s) antes de atender la orden nueva;
+un "alto" cancela de inmediato.</p>
+<p>Lo que no va a tener: mapa de la casa, memoria de dónde está el
+sillón, "ve a la cocina". Eso requiere SLAM, otro proyecto. Todo lo
+relativo a lo que ve y oye ahora mismo (ir hacia quien habla, seguir a
+alguien, rodear una silla, dar una vuelta) sí sale con lo de la
+lista.</p>
+<h3 id="firmware-del-arduino">Firmware del Arduino</h3>
+<ol type="1">
+<li>Parser de líneas serial: lee hasta <code>\n</code>, separa por
+espacios, primer token = comando.</li>
+<li><code>M &lt;izq&gt; &lt;der&gt;</code>: velocidad objetivo de cada
+rueda, −255…255.</li>
+<li>Lazo PID cada 10 ms con los encoders para que ambas ruedas vayan a
+la velocidad pedida.</li>
+<li>Rampa de aceleración (máx. 30 unidades por ciclo) para que la esfera
+no vuelque al arrancar.</li>
+<li>Watchdog: sin comando en 500 ms → frena.</li>
+<li>MPU6050: inclinación &gt; 35° → frena y responde
+<code>ERR tilt</code>. ToF (vía la Zero) &lt; 25 cm → frena y responde
+<code>ERR obstacle</code>.</li>
+<li><code>?</code> devuelve estado en una línea;
+<code>Z</code>/<code>W</code> duermen y despiertan (ver Modo
+reposo).</li>
+</ol>
+<h3 id="protocolo-serial-pi--arduino-115200-baudios">Protocolo serial
+(Pi → Arduino, 115200 baudios)</h3>
+<pre><code>M &lt;izq&gt; &lt;der&gt;    velocidad por rueda, -255..255
+H &lt;ángulo&gt;       giro del poste (cabeza), grados
+S                parar
+?                estado → &quot;OK V=11.6 T=3 E=142,139&quot;
+Z / W            dormir / despertar</code></pre>
+<p>El Arduino contesta <code>OK</code> o <code>ERR &lt;motivo&gt;</code>
+a cada línea. Al firmware no le importa quién origina la orden; la
+prioridad mando/LLM vive solo en el servicio.</p>
+<h3 id="servicio-de-movimiento-pi-python-200-líneas">Servicio de
+movimiento (Pi, Python, ~200 líneas)</h3>
+<ul>
+<li>Único dueño del puerto serial. API interna por socket Unix o HTTP
+local: <code>move(m)</code>, <code>turn(deg)</code>,
+<code>stop()</code>, <code>look_at(deg)</code>,
+<code>get_pose()</code>.</li>
+<li>Árbitro: si el mando ha enviado algo en el último segundo, las
+órdenes del LLM se rechazan con <code>manual_override</code>; al
+soltarlo, el LLM recupera el control.</li>
+<li>Cola serial única: una orden en curso a la vez; <code>stop</code>
+salta la cola.</li>
+<li><code>move(1.0)</code> → pulsos de encoder objetivo (65 mm de rueda
+≈ 4.9 vueltas/m, con factor de deslizamiento calibrado) → <code>M</code>
+hasta alcanzarlos; <code>turn</code> integra el giroscopio.</li>
+<li>Mando Bluetooth con <code>evdev</code>, mezcla arcade
+(<code>izq = y + x</code>, <code>der = y − x</code>), zona muerta
+±10.</li>
+<li>Lee la cámara a 5 fps y marca "obstáculo al frente"; devuelve
+<code>blocked</code> con la distancia.</li>
+<li>Límites de seguridad en un solo sitio: velocidad máxima (PWM 50–60 %
+con los motores de 319 RPM), duración máxima de una orden (5 s), parada
+si el Arduino responde <code>ERR</code>.</li>
+</ul>
+<h3 id="servidor-mcp-bb8-motion">Servidor MCP
+<code>bb8-motion</code></h3>
+<p>Escrito con el SDK de Python para MCP (<code>FastMCP</code>): cada
+herramienta es una función decorada que llama al servicio de movimiento
+o a la Zero. Transporte <code>streamable-http</code> en el puerto 8765
+para conectarse desde otra máquina; <code>stdio</code> si solo lo usa el
+agente local. El agente de voz es un cliente más; también puedes
+conectarlo a Claude Desktop o Claude Code y conducir el robot desde el
+portátil. Las descripciones de las herramientas son la parte importante:
+le dicen a Claude que mire antes de avanzar en sitio nuevo y que no
+encadene más de tres movimientos sin preguntar.</p>
+<div class="tw"><table>
+<thead>
+<tr class="header">
+<th>Herramienta</th>
+<th>Parámetros</th>
+<th>Qué hace</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>move</code></td>
+<td>metros (−2…2)</td>
+<td>Avanza con encoders; devuelve metros reales o
+<code>blocked</code></td>
+</tr>
+<tr class="even">
+<td><code>turn</code></td>
+<td>grados (+ derecha, − izquierda)</td>
+<td>Giro sobre sí mismo con giroscopio</td>
+</tr>
+<tr class="odd">
+<td><code>stop</code></td>
+<td>—</td>
+<td>Frena, salta la cola</td>
+</tr>
+<tr class="even">
+<td><code>look_at</code></td>
+<td>grados</td>
+<td>Gira el poste; la cabeza sigue al imán</td>
+</tr>
+<tr class="odd">
+<td><code>take_photo</code></td>
+<td>—</td>
+<td>Foto de la Zero a 640 px, devuelta como imagen</td>
+</tr>
+<tr class="even">
+<td><code>set_eye_color</code></td>
+<td>color, patrón</td>
+<td>Anillo NeoPixel</td>
+</tr>
+<tr class="odd">
+<td><code>say</code></td>
+<td>texto o sonido (feliz, triste, alerta, pregunta)</td>
+<td>Piper o WAV en el altavoz de la cabeza</td>
+</tr>
+<tr class="even">
+<td><code>get_pose</code></td>
+<td>—</td>
+<td>Batería, inclinación, distancia ToF, quién controla</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="personalidad-system-prompt">Personalidad (system prompt)</h3>
+<ul>
+<li>Habla poco y con pitidos entre palabras; curioso, leal, algo
+cabezota.</li>
+<li>Antes de moverse en un sitio nuevo usa <code>take_photo</code> para
+no chocar; nunca más de 1 m sin volver a mirar.</li>
+<li>Si el mando está activo, no insiste: "el piloto manda".</li>
+<li>Si <code>get_pose</code> marca inclinación alta o batería baja, lo
+avisa y se para.</li>
+<li>Saluda por nombre a las voces registradas y no obedece órdenes de
+movimiento de desconocidos.</li>
+<li>Responde en español; frases de menos de 15 palabras porque irán a
+TTS.</li>
+</ul>
+<h3 id="voz-e-identificación">Voz e identificación</h3>
+<div class="tw"><table>
+<thead>
+<tr class="header">
+<th>Problema</th>
+<th>Cómo</th>
+<th>Dónde corre</th>
+<th>Costo</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Detectar que le hablan</td>
+<td>openWakeWord ("oye BB-8", ~10 % CPU) → Silero VAD graba hasta 0.8 s
+de silencio → faster-whisper <code>small</code> transcribe (2–4 s)</td>
+<td>Pi principal, sin internet</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td>Saber quién habla</td>
+<td>Embedding de voz (Resemblyzer o ECAPA): 3 s de audio → vector de
+256; similitud &gt; 0.75 contra las voces registradas → "Habla Erick" en
+el system prompt</td>
+<td>Pi principal, en paralelo (~0.3 s)</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td>Saber de dónde viene la voz</td>
+<td>ReSpeaker 2-Mic HAT: da el ángulo y cancela el eco del propio
+altavoz. Plan B: la cabeza barre hasta que la cámara ve una cara</td>
+<td>HAT sobre la Pi principal</td>
+<td>~$450</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>Registro de voces: cada persona dice 3–4 frases una vez; se guarda
+el promedio de embeddings en <code>voices.json</code>. No es biometría
+segura, pero basta para saludar por nombre y guardar preferencias.</li>
+<li>El ReSpeaker sustituye al micrófono USB: sin cancelación de eco,
+BB-8 se oye a sí mismo y dispara su propia wake word.</li>
+<li>Toda la voz se procesa en la Pi; solo el texto transcrito y las
+fotos van a Claude.</li>
+</ul>
+<h3 id="stack-en-la-pi">Stack en la Pi</h3>
+<div class="tw"><table>
+<thead>
+<tr class="header">
+<th>Función</th>
+<th>Herramienta</th>
+<th>Por qué</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Wake word</td>
+<td>openWakeWord</td>
+<td>Local, ligero</td>
+</tr>
+<tr class="even">
+<td>STT</td>
+<td>faster-whisper <code>small</code></td>
+<td>Buen español, corre en Pi 4/5</td>
+</tr>
+<tr class="odd">
+<td>LLM</td>
+<td>Claude API con tool use</td>
+<td>Decide acciones de forma fiable</td>
+</tr>
+<tr class="even">
+<td>TTS</td>
+<td>Piper (voz es_ES)</td>
+<td>Local y rápido</td>
+</tr>
+<tr class="odd">
+<td>Serial</td>
+<td>pyserial</td>
+<td>Estándar</td>
+</tr>
+<tr class="even">
+<td>MCP</td>
+<td>FastMCP</td>
+<td>Mismas herramientas para voz, Desktop y Code</td>
+</tr>
+<tr class="odd">
+<td>Cabeza</td>
+<td>Flask en la Zero</td>
+<td><code>/foto</code>, <code>/hablar</code>, <code>/tof</code>,
+<code>/ojo</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="modo-reposo-de-bajo-consumo">Modo reposo de bajo consumo</h3>
+<p>Dos niveles: <em>reposo ligero</em>, donde la Pi sigue escuchando la
+wake word y el resto se apaga por software; y <em>reposo profundo</em>,
+donde la Pi se apaga del todo y el Arduino queda dormido vigilando la
+IMU. Con la LiPo de 5200 mAh:</p>
+<div class="tw"><table>
+<thead>
+<tr class="header">
+<th>Estado</th>
+<th>Qué está encendido</th>
+<th>Consumo</th>
+<th>Autonomía</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Activo</td>
+<td>Todo, motores en movimiento</td>
+<td>1.5–2 A</td>
+<td>2.5–3 h</td>
+</tr>
+<tr class="even">
+<td>Escuchando</td>
+<td>Pi + micrófono, motores frenados, ojo al 30 %</td>
+<td>~0.6 A</td>
+<td>~8 h</td>
+</tr>
+<tr class="odd">
+<td>Reposo ligero</td>
+<td>Pi con WiFi; cámara y ojo apagados, servo sin PWM, drivers en
+sleep</td>
+<td>~0.25 A</td>
+<td>~20 h</td>
+</tr>
+<tr class="even">
+<td>Reposo profundo</td>
+<td>Solo Arduino dormido + IMU + alarma de voltaje</td>
+<td>~15 mA</td>
+<td>Días</td>
+</tr>
+</tbody>
+</table></div>
+<div class="dia"><pre class="mermaid">stateDiagram-v2
+  [*] --&gt; Activo
+  Activo --&gt; Escuchando: 30 s sin comando
+  Escuchando --&gt; ReposoLigero: 5 min sin voz ni movimiento
+  ReposoLigero --&gt; ReposoProfundo: 30 min, o &quot;BB-8, a dormir&quot;
+  Escuchando --&gt; Activo: wake word / comando MCP
+  ReposoLigero --&gt; Activo: wake word / comando MCP / IMU detecta movimiento
+  ReposoProfundo --&gt; Activo: IMU detecta movimiento (Arduino enciende la Pi, ~25 s)</pre></div>
+<p><em>Reposo ligero</em> no necesita hardware extra:</p>
+<ul>
+<li>Drivers: el DRV8871 entra solo en sleep (&lt;10 µA) con IN1 = IN2 =
+0 por más de 1 ms; basta <code>M 0 0</code>.</li>
+<li>Servo: <code>servo.detach()</code> quita el PWM y baja de ~100 mA a
+~5 mA; al despertar, <code>attach()</code> y mover despacio a la última
+posición.</li>
+<li>Ojo: NeoPixel en negro (~16 mA); una respiración azul al 3 % cuesta
+menos de 30 mA si quieres que se note que duerme.</li>
+<li>Cámara: cerrar el proceso de captura; en idle consume ~150 mA.</li>
+<li>Pi Zero 2 W: <code>cpufreq</code> en <code>powersave</code>,
+Bluetooth apagado, HDMI desactivado (<code>tvservice -o</code>) bajan
+~60 mA. No apagar el WiFi: es la vía para despertarla por MCP.</li>
+<li>Comandos <code>Z</code> (dormir) y <code>W</code> (despertar) que el
+firmware traduce en lo anterior.</li>
+</ul>
+<p><em>Reposo profundo</em> necesita el <strong>módulo MOSFET o
+relevador de 5 V</strong> entre el buck y la Pi, controlado por D8 del
+Arduino:</p>
+<ul>
+<li>La Pi hace <code>shutdown -h</code> limpio y avisa al Arduino; 10 s
+después el Arduino corta su alimentación (una Pi apagada pero conectada
+sigue consumiendo ~50 mA).</li>
+<li>El Arduino entra en <code>SLEEP_MODE_PWR_DOWN</code> (~10 mA en
+Nano/Uno; &lt;1 mA en Pro Mini sin LED) y despierta por la interrupción
+de movimiento del MPU6050.</li>
+<li>Al despertar cierra el MOSFET, la Pi arranca en ~25 s y BB-8 pita
+"me desperté". Si el retraso molesta, quedarse en reposo ligero.</li>
+<li>La alarma de voltaje sigue conectada al balanceador y suena aunque
+todo duerma.</li>
+</ul>
+
+  </main>
+</div>

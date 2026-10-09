@@ -1,0 +1,743 @@
+<title>BB-8 en casa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600&family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap">
+<style>
+/* Layout: escenario 16:9 tipo caricatura con panel lateral que narra cada pieza; un solo mundo claro, a propósito. */
+:root{
+  --ink:#2E2A4F; --muted:#6C678F; --paper:#FFFDF9; --bg:#F5F1FF;
+  --wall:#F1EBFF; --blush:#FFE3EE; --peach:#FFD8C2; --mint:#BDEFE0;
+  --pink:#FF4F9E; --cyan:#22C9DE; --orange:#FF8A3D; --steel:#CBCFDC;
+  --pcb:#3DB57A; --violet:#7B5CD6;
+  --f-display:"Fredoka","Baloo 2","Trebuchet MS",system-ui,sans-serif;
+  --f-body:"Nunito","Segoe UI",system-ui,sans-serif;
+  --f-hud:"Chakra Petch","Consolas","SFMono-Regular",ui-monospace,monospace;
+  color-scheme:light;
+}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--f-body);font-size:16px;line-height:1.55}
+.wrap{max-width:1320px;margin:0 auto;padding-inline:16px;padding-block:22px 48px;display:flex;flex-direction:column;gap:22px}
+header{display:flex;flex-direction:column;gap:6px}
+.eyebrow{font-family:var(--f-hud);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--pink);font-weight:600}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(34px,5vw,54px);line-height:1.02;margin:0;text-wrap:balance}
+h1 span{color:var(--orange)}
+.lede{margin:0;max-width:68ch;color:var(--muted)}
+.player{display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:20px;align-items:start}
+@media (max-width:1020px){.player{grid-template-columns:minmax(0,1fr)}}
+.stage-card{border:3px solid var(--ink);border-radius:24px;overflow:hidden;background:var(--wall);box-shadow:7px 7px 0 var(--ink);min-width:0}
+#stage{display:block;width:100%;height:auto}
+.controls{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--paper);border-top:3px solid var(--ink);flex-wrap:wrap}
+.btn{font:600 15px var(--f-display);color:var(--ink);background:var(--paper);border:2.5px solid var(--ink);border-radius:999px;padding:6px 14px;cursor:pointer;box-shadow:2px 2px 0 var(--ink);transition:transform .08s}
+.btn:active{transform:translate(2px,2px);box-shadow:none}
+.btn:focus-visible,.chip-btn:focus-visible,.part-btn:focus-visible,#scrub:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+.play{width:46px;height:46px;padding:0;display:grid;place-items:center;background:var(--pink);color:var(--paper)}
+.play svg{width:18px;height:18px;fill:currentColor}
+#scrub{flex:1 1 180px;min-width:120px;accent-color:var(--pink)}
+.time{font:500 14px var(--f-hud);font-variant-numeric:tabular-nums;color:var(--muted);min-width:92px;text-align:right}
+.chapters{display:flex;flex-wrap:wrap;gap:8px}
+.chip-btn{font:600 14px var(--f-display);border:2px solid var(--ink);background:var(--paper);color:var(--ink);border-radius:999px;padding:4px 12px;cursor:pointer}
+.chip-btn[aria-current="true"]{background:var(--ink);color:var(--paper)}
+.panel{background:var(--paper);border:3px solid var(--ink);border-radius:24px;padding:20px 20px 22px;box-shadow:7px 7px 0 var(--cyan);display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel .where{font:600 12px var(--f-hud);letter-spacing:.12em;text-transform:uppercase;color:var(--pink)}
+.panel h2{font:700 28px/1.1 var(--f-display);margin:0;text-wrap:balance}
+.panel p{margin:0}
+.specs{display:flex;flex-wrap:wrap;gap:6px;padding:0;margin:0;list-style:none}
+.specs li{font:500 13px var(--f-hud);background:var(--blush);border:1.5px solid var(--ink);border-radius:8px;padding:2px 8px;font-variant-numeric:tabular-nums}
+.term{background:var(--ink);color:#E9E5FF;border-radius:14px;padding:12px 12px;font:500 12.5px/1.6 var(--f-hud);overflow:auto;min-height:60px;max-height:240px;margin:0}
+.term div{white-space:pre}
+.term .k{color:var(--cyan)} .term .c{color:#FFB3D6} .term .e{color:#FF8A8A} .term .g{color:#9FF0C9}
+.parts h3{font:700 22px var(--f-display);margin:0 0 10px}
+.parts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px}
+.part-btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:var(--paper);border:2px solid var(--ink);border-radius:14px;padding:10px 12px;cursor:pointer;color:var(--ink)}
+.part-btn b{font:600 16px var(--f-display)}
+.part-btn small{font:500 12px var(--f-hud);color:var(--muted)}
+.part-btn[aria-current="true"]{background:var(--mint);box-shadow:3px 3px 0 var(--ink)}
+footer{font-size:13px;color:var(--muted);max-width:90ch}
+@media (prefers-reduced-motion:reduce){.btn{transition:none}}
+/* SVG */
+.o{stroke:var(--ink);stroke-width:3;stroke-linejoin:round;stroke-linecap:round}
+.o2{stroke:var(--ink);stroke-width:2;stroke-linejoin:round}
+.tagN{font:600 24px var(--f-display);fill:var(--ink)}
+.tagC{font:500 16px var(--f-hud);fill:var(--muted)}
+.hudT{font:600 23px var(--f-display);fill:var(--ink)}
+.hudC{font:600 30px var(--f-hud);fill:var(--ink)}
+.bub{font:700 30px var(--f-display);fill:var(--ink)}
+.small{font:500 17px var(--f-hud);fill:var(--ink)}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Proyecto BB-8 · cómo funciona por dentro</div>
+    <h1>BB-8 <span>en casa</span></h1>
+    <p class="lede">Un BB-8 de 30–35 cm rueda por la sala, se abre en sus 12 grupos de piezas, vuelve a cerrarse y luego obedece un «ven acá» paso a paso, desde el micrófono hasta el freno del Arduino.</p>
+  </header>
+
+  <section class="player">
+    <div class="stage-card">
+      <svg id="stage" viewBox="0 0 1600 900" role="img" aria-label="Animación: BB-8 en una sala, despiece de sus componentes y recorrido de una orden de voz">
+        <defs>
+          <linearGradient id="wallG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EEE7FF"/><stop offset="1" stop-color="#FFEFF5"/></linearGradient>
+          <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#AFC0FF"/><stop offset=".6" stop-color="#E9C9FF"/><stop offset="1" stop-color="#FFD3E4"/></linearGradient>
+          <linearGradient id="floorG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F9DCC8"/><stop offset="1" stop-color="#F3CDB6"/></linearGradient>
+          <radialGradient id="shade" cx=".36" cy=".32" r=".75"><stop offset=".55" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="1" stop-color="#C9BFEF" stop-opacity=".75"/></radialGradient>
+          <radialGradient id="lampG" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#FFE7B0" stop-opacity=".85"/><stop offset="1" stop-color="#FFE7B0" stop-opacity="0"/></radialGradient>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#9FDCEB" stroke-width="1.2"/></pattern>
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <clipPath id="winClip"><rect x="436" y="-10" width="708" height="346" rx="14"/></clipPath>
+          <clipPath id="bodyClip"><circle r="147"/></clipPath>
+          <clipPath id="headClip"><path d="M-64 0 L-64 -22 C-64 -62 -36 -78 0 -78 C36 -78 64 -62 64 -22 L64 0 Z"/></clipPath>
+        </defs>
+
+        <g id="room">
+          <rect width="1600" height="760" fill="url(#wallG)"/>
+          <!-- ventana con la ciudad -->
+          <g clip-path="url(#winClip)">
+            <rect x="436" y="-10" width="708" height="346" fill="url(#skyG)"/>
+            <circle cx="560" cy="70" r="46" fill="#FFF6FB" opacity=".9"/>
+            <circle cx="560" cy="70" r="62" fill="none" stroke="#FFFFFF" stroke-width="2" opacity=".6"/>
+            <g id="far" fill="#C8B9F2">
+              <rect x="430" y="170" width="70" height="180"/><rect x="505" y="120" width="56" height="230"/><rect x="566" y="190" width="80" height="160"/>
+              <rect x="650" y="90" width="60" height="260"/><rect x="716" y="160" width="90" height="190"/><rect x="812" y="60" width="54" height="290"/>
+              <rect x="872" y="150" width="76" height="200"/><rect x="954" y="100" width="64" height="250"/><rect x="1024" y="180" width="70" height="170"/><rect x="1098" y="130" width="60" height="220"/>
+            </g>
+            <g fill="#A794E6">
+              <rect x="460" y="230" width="90" height="120"/><rect x="600" y="210" width="70" height="140"/><rect x="760" y="240" width="110" height="110"/><rect x="930" y="200" width="80" height="150"/><rect x="1060" y="235" width="90" height="115"/>
+            </g>
+            <g id="winDots" fill="#FFF3B8" opacity=".9"></g>
+            <!-- letreros de neón -->
+            <g id="ramen">
+              <rect x="664" y="104" width="32" height="118" rx="6" fill="#FFF0F7" stroke="#FF4F9E" stroke-width="3" filter="url(#glow)"/>
+              <text x="680" y="128" text-anchor="middle" style="font:700 17px var(--f-hud);fill:#FF4F9E">R</text>
+              <text x="680" y="150" text-anchor="middle" style="font:700 17px var(--f-hud);fill:#FF4F9E">A</text>
+              <text x="680" y="172" text-anchor="middle" style="font:700 17px var(--f-hud);fill:#FF4F9E">M</text>
+              <text x="680" y="194" text-anchor="middle" style="font:700 17px var(--f-hud);fill:#FF4F9E">E</text>
+              <text x="680" y="216" text-anchor="middle" style="font:700 17px var(--f-hud);fill:#FF4F9E">N</text>
+            </g>
+            <g id="holo">
+              <rect x="882" y="120" width="120" height="62" rx="8" fill="#DFFBFF" fill-opacity=".75" stroke="#22C9DE" stroke-width="3" filter="url(#glow)"/>
+              <text x="942" y="147" text-anchor="middle" style="font:600 16px var(--f-hud);fill:#0E8EA0">NEO·CDMX</text>
+              <text x="942" y="169" text-anchor="middle" style="font:500 13px var(--f-hud);fill:#0E8EA0">24°C ☂ 0%</text>
+            </g>
+            <g id="car">
+              <path d="M-46 0 C-40 -18 -14 -24 6 -24 C30 -24 44 -12 48 0 Z" fill="#FFFFFF" class="o2"/>
+              <rect x="-50" y="-2" width="104" height="12" rx="6" fill="#FF8A3D" class="o2"/>
+              <rect x="-8" y="-20" width="24" height="14" rx="4" fill="#BDEFE0"/>
+              <rect x="-150" y="2" width="96" height="4" rx="2" fill="#22C9DE" opacity=".7"/>
+            </g>
+          </g>
+          <rect x="436" y="-10" width="708" height="346" rx="14" fill="none" class="o" stroke-width="10" style="stroke:#FFFFFF"/>
+          <rect x="436" y="-10" width="708" height="346" rx="14" fill="none" class="o"/>
+          <line x1="790" y1="-10" x2="790" y2="336" stroke="#FFFFFF" stroke-width="10"/>
+          <line x1="790" y1="-10" x2="790" y2="336" class="o" stroke-width="2"/>
+          <rect x="414" y="334" width="752" height="22" rx="8" fill="#FFFFFF" class="o"/>
+          <!-- maceta y taza en el alféizar -->
+          <g transform="translate(1080 334)">
+            <path d="M-22 0 L-18 -34 L18 -34 L22 0 Z" fill="#FF8A3D" class="o"/>
+            <path d="M0 -34 C-6 -60 -30 -70 -40 -64 C-28 -60 -12 -50 0 -34 M0 -34 C4 -66 22 -80 34 -74 C20 -66 8 -52 0 -34 M0 -34 C-2 -58 6 -84 0 -96 C-8 -80 -6 -56 0 -34" fill="#7FD8B0" class="o2"/>
+          </g>
+          <g transform="translate(500 334)">
+            <rect x="-18" y="-36" width="34" height="36" rx="6" fill="#BDEFE0" class="o"/>
+            <path d="M16 -28 C30 -28 30 -10 16 -10" fill="none" class="o"/>
+            <path id="steam" d="M-6 -44 C-14 -56 2 -62 -6 -76 M6 -46 C-2 -58 14 -64 6 -78" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+          </g>
+          <!-- repisa con libros -->
+          <g transform="translate(110 400)">
+            <rect x="0" y="0" width="230" height="16" rx="4" fill="#FFFFFF" class="o"/>
+            <rect x="16" y="-62" width="22" height="62" rx="3" fill="#FF8A3D" class="o2"/>
+            <rect x="40" y="-74" width="20" height="74" rx="3" fill="#7B5CD6" class="o2"/>
+            <rect x="62" y="-56" width="24" height="56" rx="3" fill="#22C9DE" class="o2"/>
+            <rect x="90" y="-48" width="58" height="22" rx="3" fill="#FFD8C2" class="o2" transform="rotate(-8 90 -26)"/>
+            <circle cx="186" cy="-22" r="22" fill="#FFFFFF" class="o"/>
+            <circle cx="186" cy="-22" r="10" fill="none" stroke="#FF8A3D" stroke-width="5"/>
+            <path d="M174 -44 C176 -56 196 -56 198 -44" fill="#FFFFFF" class="o2"/>
+          </g>
+          <!-- letrero de neón "hogar" -->
+          <g id="neonSign">
+            <text x="1300" y="180" text-anchor="middle" style="font:700 64px var(--f-display);fill:none;stroke:#FF4F9E;stroke-width:5" filter="url(#glow)">hogar</text>
+            <text x="1300" y="180" text-anchor="middle" style="font:700 64px var(--f-display);fill:none;stroke:#FFF1F8;stroke-width:1.6">hogar</text>
+          </g>
+          <!-- lámpara -->
+          <circle cx="70" cy="80" r="260" fill="url(#lampG)"/>
+          <rect x="62" y="-20" width="14" height="770" fill="#FFFFFF" class="o2"/>
+          <ellipse cx="69" cy="752" rx="54" ry="10" fill="#FFFFFF" class="o"/>
+          <!-- contacto de pared -->
+          <rect x="300" y="610" width="40" height="58" rx="8" fill="#FFFFFF" class="o2"/>
+          <rect x="311" y="626" width="6" height="12" rx="2" fill="var(--ink)"/><rect x="323" y="626" width="6" height="12" rx="2" fill="var(--ink)"/>
+          <!-- zócalo y tira LED -->
+          <rect x="0" y="724" width="1600" height="30" fill="#E6DDFB"/>
+          <line x1="0" y1="722" x2="1600" y2="722" stroke="#22C9DE" stroke-width="4" filter="url(#glow)" opacity=".9"/>
+          <!-- piso -->
+          <rect y="752" width="1600" height="148" fill="url(#floorG)"/>
+          <g stroke="#E9BFA5" stroke-width="2"><line x1="0" y1="800" x2="1600" y2="800"/><line x1="0" y1="852" x2="1600" y2="852"/><line x1="230" y1="752" x2="230" y2="800"/><line x1="770" y1="752" x2="770" y2="800"/><line x1="1310" y1="752" x2="1310" y2="800"/><line x1="500" y1="800" x2="500" y2="852"/><line x1="1040" y1="800" x2="1040" y2="852"/><line x1="320" y1="852" x2="320" y2="900"/><line x1="900" y1="852" x2="900" y2="900"/></g>
+          <line x1="0" y1="752" x2="1600" y2="752" class="o"/>
+          <!-- tapete -->
+          <ellipse cx="820" cy="812" rx="560" ry="54" fill="#FFC9DD" class="o"/>
+          <ellipse cx="820" cy="812" rx="500" ry="40" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-dasharray="18 12"/>
+          <!-- sillón y piernas de Erick -->
+          <g id="sofa">
+            <rect x="1468" y="300" width="160" height="340" rx="34" fill="#9FA8F5" class="o"/>
+            <rect x="1468" y="300" width="160" height="70" rx="30" fill="#B7BEFA" class="o"/>
+            <rect x="1490" y="636" width="22" height="116" rx="6" fill="#FFFFFF" class="o"/>
+            <path d="M1520 336 L1440 336 L1440 712" fill="none" stroke="var(--ink)" stroke-width="80" stroke-linejoin="round"/>
+            <path d="M1520 336 L1440 336 L1440 712" fill="none" stroke="#BDEFE0" stroke-width="74" stroke-linejoin="round"/>
+            <line x1="1420" y1="360" x2="1420" y2="700" stroke="#9FE0CC" stroke-width="6"/>
+            <path d="M1400 704 C1384 704 1378 752 1408 752 L1474 752 C1490 752 1490 704 1474 704 Z" fill="#FFD8C2" class="o"/>
+            <path d="M1396 716 C1376 690 1378 668 1392 674 C1400 690 1402 704 1404 712" fill="#FFFFFF" class="o2"/>
+            <path d="M1414 712 C1404 684 1410 664 1424 672 C1426 690 1422 704 1420 712" fill="#FFFFFF" class="o2"/>
+            <circle cx="1398" cy="732" r="4" fill="var(--ink)"/>
+          </g>
+          <!-- gato dormido -->
+          <g id="cat" transform="translate(250 772)">
+            <g id="catTail"><path d="M58 4 C96 0 104 -30 86 -40" fill="none" stroke="var(--ink)" stroke-width="16" stroke-linecap="round"/><path d="M58 4 C96 0 104 -30 86 -40" fill="none" stroke="#FFB27A" stroke-width="10" stroke-linecap="round"/></g>
+            <ellipse cx="0" cy="0" rx="74" ry="34" fill="#FFB27A" class="o"/>
+            <path d="M-20 -30 C-10 -36 10 -36 20 -30" fill="none" stroke="#F08E52" stroke-width="5" stroke-linecap="round"/>
+            <circle cx="-62" cy="-6" r="30" fill="#FFB27A" class="o"/>
+            <path d="M-86 -24 L-84 -50 L-66 -34 Z M-54 -34 L-38 -48 L-38 -22 Z" fill="#FFB27A" class="o2"/>
+            <path d="M-76 -6 Q-70 -1 -64 -6 M-56 -6 Q-50 -1 -44 -6" fill="none" class="o2"/>
+            <g id="zzz"><text x="-40" y="-60" class="bub" style="font-size:24px;fill:#7B5CD6">z</text><text x="-22" y="-84" class="bub" style="font-size:30px;fill:#7B5CD6">Z</text></g>
+          </g>
+        </g>
+
+        <rect id="gridOv" width="1600" height="900" fill="url(#grid)" opacity="0"/>
+        <rect id="paperOv" width="1600" height="900" fill="#FBFAFF" opacity="0"/>
+
+        <g id="leads" fill="none" stroke="#22C9DE" stroke-width="2.5" stroke-dasharray="7 7"></g>
+
+        <!-- haz del ToF -->
+        <g id="tof" opacity="0">
+          <polygon id="tofBeam" fill="#22C9DE" fill-opacity=".18" stroke="#22C9DE" stroke-width="2"/>
+          <g id="tofTag"><rect x="-140" y="-48" width="280" height="40" rx="10" fill="#FFFFFF" class="o2"/><text id="tofTxt" x="0" y="-20" text-anchor="middle" class="small" style="font-size:20px">D = 615 mm</text></g>
+        </g>
+
+        <g id="bb" transform="translate(330 600)">
+          <ellipse cx="0" cy="152" rx="122" ry="14" fill="var(--ink)" opacity=".16"/>
+          <g id="shell">
+            <circle r="150" id="shellFill" fill="#FFFDF9"/>
+            <g clip-path="url(#bodyClip)" id="decalsWrap"><g id="decals">
+              <circle r="64" fill="none" stroke="#FF8A3D" stroke-width="22"/>
+              <circle r="42" fill="#D9DCE8" class="o2"/>
+              <circle r="18" fill="#FF8A3D" class="o2"/>
+              <circle r="76" fill="none" class="o2"/><circle r="53" fill="none" class="o2"/>
+              <g id="rings"></g>
+            </g></g>
+            <circle r="150" fill="url(#shade)" id="shellShade"/>
+            <circle r="150" fill="none" class="o" id="shellLine"/>
+          </g>
+          <g id="sparks" opacity="0" stroke="#FF4F9E" stroke-width="5" stroke-linecap="round">
+            <line x1="40" y1="150" x2="70" y2="138"/><line x1="52" y1="156" x2="90" y2="152"/><line x1="30" y1="158" x2="58" y2="168"/>
+          </g>
+        </g>
+        <g id="cascoTag" opacity="0"><text x="800" y="800" text-anchor="middle" class="tagN">Casco</text><text x="800" y="824" text-anchor="middle" class="tagC">esfera PLA · Ø 30–35 cm</text></g>
+
+        <g id="parts"></g>
+
+        <!-- burbujas -->
+        <g id="bubBB" opacity="0"><path d="M0 0 h230 a18 18 0 0 1 18 18 v44 a18 18 0 0 1 -18 18 h-170 l-30 26 l4 -26 h-34 a18 18 0 0 1 -18 -18 v-44 a18 18 0 0 1 18 -18z" fill="#FFFFFF" class="o"/><text id="bubBBt" x="115" y="51" text-anchor="middle" class="bub">¡bip-bup!</text></g>
+        <g id="bubE" opacity="0" transform="translate(1100 110)"><path d="M0 0 h300 a18 18 0 0 1 18 18 v50 a18 18 0 0 1 -18 18 h-40 l40 50 l-80 -50 h-220 a18 18 0 0 1 -18 -18 v-50 a18 18 0 0 1 18 -18z" fill="#FFFFFF" class="o"/><text x="150" y="54" text-anchor="middle" class="bub">BB-8, ven acá</text></g>
+
+        <!-- HUD de la cadena de mando -->
+        <g id="hud" opacity="0">
+          <rect x="40" y="18" width="1520" height="84" rx="42" fill="#FFFFFF" fill-opacity=".94" class="o"/>
+          <g id="hudLinks" stroke="var(--ink)" stroke-width="3"></g>
+          <g id="hudNodes"></g>
+          <g id="hudCall"><rect id="hudCallBg" x="560" y="118" width="480" height="54" rx="27" fill="#2E2A4F"/><text id="hudCallT" x="800" y="155" text-anchor="middle" class="hudC" style="fill:#FFFFFF">turn(grados=90)</text></g>
+        </g>
+
+        <!-- foto tomada -->
+        <g id="photo" opacity="0" transform="translate(470 330) rotate(-6)">
+          <rect x="-110" y="-90" width="220" height="196" rx="8" fill="#FFFFFF" class="o"/>
+          <rect x="-96" y="-76" width="192" height="144" fill="#F1EBFF" class="o2"/>
+          <rect x="-96" y="40" width="192" height="28" fill="#FFC9DD"/>
+          <rect x="-20" y="-76" width="40" height="110" fill="#BDEFE0" class="o2"/><rect x="26" y="-76" width="40" height="104" fill="#AEE5D3" class="o2"/>
+          <ellipse cx="-4" cy="40" rx="30" ry="14" fill="#FFD8C2" class="o2"/><ellipse cx="46" cy="34" rx="28" ry="12" fill="#FFD8C2" class="o2"/>
+          <text x="0" y="96" text-anchor="middle" class="small" style="font-size:15px">640×480 · persona al frente</text>
+        </g>
+
+        <rect id="flash" width="1600" height="900" fill="#FFFFFF" opacity="0" pointer-events="none"/>
+
+        <!-- cierre -->
+        <g id="outro" opacity="0">
+          <rect x="300" y="40" width="1000" height="220" rx="30" fill="#FFFFFF" class="o"/>
+          <text x="800" y="104" text-anchor="middle" style="font:700 42px var(--f-display);fill:var(--ink)">Claude decide. El Arduino reacciona.</text>
+          <g transform="translate(370 140)">
+            <rect width="270" height="88" rx="18" fill="#FFE3EE" class="o2"/><text x="135" y="38" text-anchor="middle" class="hudT">Arduino · reflejos</text><text x="135" y="70" text-anchor="middle" class="hudC" style="font-size:26px">cada 10 ms</text>
+          </g>
+          <g transform="translate(665 140)">
+            <rect width="270" height="88" rx="18" fill="#BDEFE0" class="o2"/><text x="135" y="38" text-anchor="middle" class="hudT">Pi · movimiento</text><text x="135" y="70" text-anchor="middle" class="hudC" style="font-size:26px">cada 50 ms</text>
+          </g>
+          <g transform="translate(960 140)">
+            <rect width="270" height="88" rx="18" fill="#E5DCFF" class="o2"/><text x="135" y="38" text-anchor="middle" class="hudT">Claude · decisión</text><text x="135" y="70" text-anchor="middle" class="hudC" style="font-size:26px">1–4 s</text>
+          </g>
+        </g>
+      </svg>
+      <div class="controls">
+        <button class="btn play" id="playBtn" aria-label="Pausar"><svg viewBox="0 0 20 20" id="playIco"><rect x="4" y="3" width="4" height="14" rx="1"/><rect x="12" y="3" width="4" height="14" rx="1"/></svg></button>
+        <input type="range" id="scrub" min="0" max="114" step="0.05" value="0" aria-label="Posición de la animación">
+        <span class="time" id="time">0:00 / 1:54</span>
+        <button class="btn" id="soundBtn" aria-pressed="false">♪ Música: no</button>
+      </div>
+    </div>
+
+    <aside class="panel" aria-live="polite">
+      <div class="where" id="pWhere">Sala · 0.94 px por mm</div>
+      <h2 id="pTitle">BB-8 en casa</h2>
+      <p id="pBody"></p>
+      <ul class="specs" id="pSpecs"></ul>
+      <div class="term" id="term" hidden></div>
+    </aside>
+  </section>
+
+  <nav class="chapters" id="chapters" aria-label="Capítulos"></nav>
+
+  <section class="parts">
+    <h3>Las 12 piezas</h3>
+    <div class="parts-grid" id="partsGrid"></div>
+  </section>
+
+  <footer>Fuentes: documento técnico «Proyecto BB-8 con agente LLM», PROTOCOLO.md v0.2 (serial, HTTP y pines con un solo L298N) y el pedido UNIT #377466. La sala está dibujada a la escala del droide: 300 px de esfera equivalen a 320 mm, así que la distancia del ToF y el recorrido de move() salen de la geometría del dibujo. El modelo del Arduino (Uno o Nano) aún no está confirmado.</footer>
+</div>
+
+<script>
+(()=>{
+const T_END=114, R=150, CY=600, PXMM=0.94;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,k)=>a+(b-a)*k;
+const sm=(a,b,t)=>{const u=clamp((t-a)/(b-a),0,1);return u*u*(3-2*u);};
+const eio=u=>u<.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2;
+const backOut=u=>{const c1=1.5,c3=c1+1;return 1+c3*Math.pow(u-1,3)+c1*Math.pow(u-1,2);};
+const $=id=>document.getElementById(id);
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- movimiento del cuerpo ---------- */
+const VMAX=232, RAMP=.4, MOVE0=97.4, XSTOP=1143, OBST=1440; // M 70 70 ≈ 0.25 m/s; obstáculo = espinillas de Erick
+const T_BRAKE=MOVE0+(XSTOP-800)/VMAX+RAMP/2;
+function bbX(t){
+  if(t<5) return lerp(330,800,eio(clamp(t/4.5,0,1)));
+  if(t<MOVE0) return 800;
+  const s=t-MOVE0, d=s<RAMP?VMAX*s*s/(2*RAMP):VMAX*(s-RAMP/2);
+  return 800+Math.min(d,XSTOP-800);
+}
+function lean(t){
+  const v=(bbX(t+.02)-bbX(t-.02))/.04;
+  let th=clamp(v*.0011,-.3,.3);
+  for(const [ts,A] of [[4.5,.2],[T_BRAKE,.32]]){ if(t>ts){const s=t-ts; th+=A*Math.exp(-s*3.2)*Math.sin(s*11);} }
+  return th;
+}
+function facing(t){ return sm(92.6,93.9,t)*(1-sm(106,107,t)); } // 0 = cámara, 1 = derecha
+
+/* ---------- dibujos de las piezas (coordenadas locales) ---------- */
+const D={
+cabeza:`<g id="headDome"><path d="M-64 0 L-64 -22 C-64 -62 -36 -78 0 -78 C36 -78 64 -62 64 -22 L64 0 Z" fill="#FFFDF9" class="o" id="domeFill"/></g>
+  <g clip-path="url(#headClip)"><rect x="-70" y="-31" width="140" height="10" fill="#FF8A3D"/><rect x="-70" y="-16" width="140" height="6" fill="#CBCFDC"/>
+  <g id="face"><circle cx="0" cy="-48" r="22" fill="#CBCFDC" class="o2"/><circle cx="0" cy="-48" r="15" fill="#2E2A4F"/><circle cx="-5" cy="-53" r="5" fill="#FFFFFF"/>
+  <circle cx="30" cy="-30" r="8" fill="#2E2A4F"/><circle cx="30" cy="-30" r="3.5" fill="#22C9DE" id="stateLed"/></g></g>
+  <path d="M-64 0 L-64 -22 C-64 -62 -36 -78 0 -78 C36 -78 64 -62 64 -22 L64 0 Z" fill="none" class="o"/>
+  <line x1="-18" y1="-74" x2="-22" y2="-120" class="o" stroke-width="4"/><line x1="-4" y1="-77" x2="-6" y2="-100" class="o"/>
+  <rect x="-68" y="-5" width="136" height="9" rx="4.5" fill="#CBCFDC" class="o2"/>
+  <g fill="#C9CDD9" class="o2"><rect x="-46" y="-12" width="18" height="6"/><rect x="28" y="-12" width="18" height="6"/></g>
+  <circle cx="-46" cy="8" r="5" fill="#2E2A4F"/><circle cx="46" cy="8" r="5" fill="#2E2A4F"/>`,
+pizero:`<rect x="-80" y="-24" width="130" height="46" rx="6" fill="#3DB57A" class="o"/>
+  <rect x="-72" y="-19" width="104" height="8" rx="2" fill="#2E2A4F"/>
+  <rect x="-34" y="-5" width="22" height="22" rx="3" fill="#CBCFDC" class="o2"/>
+  <rect x="-2" y="2" width="16" height="12" rx="2" fill="#2E2A4F"/>
+  <path d="M50 -6 L72 -6 L80 -14 L88 -14 L88 -2 L82 -2 L76 6 L50 6Z" fill="#F2C14E" class="o2"/>
+  <rect x="84" y="-36" width="40" height="40" rx="5" fill="#3DB57A" class="o"/>
+  <circle cx="104" cy="-16" r="12" fill="#2E2A4F"/><circle cx="104" cy="-16" r="5.5" fill="#5D6BD0"/><circle cx="100" cy="-20" r="2.5" fill="#FFFFFF"/>
+  <rect x="86" y="14" width="38" height="26" rx="4" fill="#7B5CD6" class="o2"/>
+  <rect x="94" y="21" width="9" height="11" rx="2" fill="#2E2A4F"/><rect x="107" y="21" width="9" height="11" rx="2" fill="#2E2A4F"/>`,
+ojo:`<circle cx="0" cy="0" r="44" fill="none" stroke="#2E2A4F" stroke-width="20"/>
+  <circle cx="0" cy="0" r="54" fill="none" class="o2"/><circle cx="0" cy="0" r="34" fill="none" class="o2"/>
+  <g id="leds"></g>
+  <circle cx="116" cy="-6" r="36" fill="#2E2A4F"/><circle cx="116" cy="-6" r="24" fill="#CBCFDC" class="o2"/><circle cx="116" cy="-6" r="8" fill="#2E2A4F"/>
+  <rect x="94" y="40" width="44" height="22" rx="3" fill="#2F6FD6" class="o2"/><circle cx="128" cy="51" r="5" fill="#FFFFFF" class="o2"/>
+  <rect x="-60" y="70" width="140" height="28" rx="14" fill="#BDEFE0" class="o"/><rect x="-60" y="70" width="18" height="28" rx="6" fill="#2E2A4F"/>
+  <rect x="60" y="78" width="10" height="12" rx="2" fill="#CBCFDC"/>`,
+mastil:`<rect x="-11" y="-112" width="22" height="262" rx="4" fill="#F3F1FA" class="o"/>
+  <rect x="-30" y="140" width="60" height="10" rx="3" fill="#F3F1FA" class="o2"/>
+  <rect x="-36" y="-150" width="72" height="40" rx="5" fill="#2E2A4F"/>
+  <text x="0" y="-124" text-anchor="middle" style="font:600 13px var(--f-hud);fill:#FFFFFF">MG996R</text>
+  <rect x="-48" y="-158" width="44" height="8" rx="4" fill="#FFFFFF" class="o2"/>
+  <rect x="-54" y="-172" width="108" height="14" rx="5" fill="#FFFFFF" class="o"/>
+  <g fill="#CBCFDC" class="o2"><rect x="-50" y="-188" width="20" height="14" rx="3"/><rect x="-24" y="-188" width="20" height="14" rx="3"/><rect x="4" y="-188" width="20" height="14" rx="3"/><rect x="30" y="-188" width="20" height="14" rx="3"/></g>
+  <text x="0" y="-196" text-anchor="middle" style="font:600 14px var(--f-hud);fill:#FF4F9E">N N N N</text>`,
+pi:`<rect x="-85" y="-56" width="170" height="112" rx="9" fill="#3DB57A" class="o"/>
+  <g fill="#FFFDF9"><circle cx="-73" cy="-44" r="4"/><circle cx="-73" cy="44" r="4"/><circle cx="50" cy="-44" r="4"/><circle cx="50" cy="44" r="4"/></g>
+  <rect x="-62" y="-52" width="104" height="12" rx="2" fill="#2E2A4F"/>
+  <rect x="-44" y="-22" width="38" height="38" rx="4" fill="#CBCFDC" class="o2"/>
+  <rect x="4" y="-16" width="28" height="22" rx="2" fill="#2E2A4F"/>
+  <g fill="#E4E7F0" class="o2"><rect x="56" y="-50" width="42" height="28" rx="2"/><rect x="56" y="-16" width="42" height="28" rx="2"/><rect x="56" y="18" width="42" height="32" rx="2"/></g>
+  <rect x="-80" y="30" width="24" height="16" rx="2" fill="#E4E7F0" class="o2"/>`,
+arduino:`<rect x="-80" y="-56" width="160" height="112" rx="9" fill="#3AA6C9" class="o"/>
+  <rect x="-96" y="-44" width="36" height="30" rx="3" fill="#E4E7F0" class="o2"/>
+  <rect x="-92" y="18" width="30" height="28" rx="4" fill="#2E2A4F"/>
+  <rect x="-36" y="-52" width="110" height="10" rx="2" fill="#2E2A4F"/><rect x="-8" y="42" width="80" height="10" rx="2" fill="#2E2A4F"/>
+  <rect x="-10" y="2" width="76" height="20" rx="3" fill="#2E2A4F"/>
+  <text x="-34" y="-12" style="font:700 italic 22px var(--f-display);fill:#FFFFFF">UNO</text>
+  <circle cx="58" cy="-26" r="4" fill="#9FF0C9"/>`,
+imu:`<rect x="-34" y="-24" width="68" height="48" rx="5" fill="#7B5CD6" class="o"/>
+  <rect x="-11" y="-14" width="22" height="22" rx="2" fill="#2E2A4F"/>
+  <g fill="#F2C14E">${[...Array(8)].map((_,i)=>`<circle cx="${-26+i*7.4}" cy="16" r="2.6"/>`).join('')}</g>
+  <path d="M-26 -16 l10 0 M-26 -16 l0 10" stroke="#FFFFFF" stroke-width="2.5" fill="none"/>`,
+l298n:`<rect x="-56" y="-56" width="112" height="112" rx="7" fill="#E5484D" class="o"/>
+  <rect x="-32" y="-64" width="64" height="58" rx="3" fill="#2E2A4F"/>
+  <g stroke="#6C678F" stroke-width="3">${[...Array(7)].map((_,i)=>`<line x1="${-26+i*8.6}" y1="-60" x2="${-26+i*8.6}" y2="-10"/>`).join('')}</g>
+  <g fill="#3A7BE0" class="o2"><rect x="-66" y="-30" width="18" height="40" rx="2"/><rect x="48" y="-30" width="18" height="40" rx="2"/><rect x="-26" y="38" width="52" height="16" rx="2"/></g>
+  <rect x="20" y="8" width="20" height="26" rx="4" fill="#2E2A4F"/><line x1="20" y1="14" x2="40" y2="14" stroke="#CBCFDC" stroke-width="3"/>
+  <g fill="#F2C14E"><rect x="-44" y="10" width="6" height="6"/><rect x="-34" y="10" width="6" height="6"/><rect x="-24" y="10" width="6" height="6"/><rect x="-14" y="10" width="6" height="6"/></g>`,
+motores:`<line x1="-120" y1="-10" x2="-150" y2="-30" stroke="#E5484D" stroke-width="4"/><line x1="-120" y1="0" x2="-152" y2="-8" stroke="#2E2A4F" stroke-width="4"/><line x1="-120" y1="10" x2="-150" y2="16" stroke="#3DB57A" stroke-width="4"/>
+  <rect x="-124" y="-26" width="14" height="52" rx="3" fill="#3DB57A" class="o2"/>
+  <rect x="-110" y="-22" width="88" height="44" rx="10" fill="#E4E7F0" class="o"/>
+  <rect x="-24" y="-25" width="54" height="50" rx="4" fill="#F2C14E" class="o"/>
+  <line x1="-10" y1="-25" x2="-10" y2="25" class="o2"/>
+  <rect x="30" y="-5" width="16" height="10" fill="#CBCFDC" class="o2"/>
+  <ellipse cx="62" cy="0" rx="20" ry="54" fill="#2E2A4F"/>
+  <ellipse cx="62" cy="0" rx="9" ry="26" fill="#FFB27A" class="o2"/>
+  <g transform="translate(110 -48)"><rect x="-22" y="-16" width="44" height="32" rx="16" fill="#FF4F9E"/><text x="0" y="7" text-anchor="middle" style="font:700 18px var(--f-display);fill:#FFFFFF">×2</text></g>`,
+base:`<ellipse cx="0" cy="14" rx="120" ry="34" fill="#E8D2B9" class="o"/>
+  <ellipse cx="0" cy="0" rx="120" ry="34" fill="#F7E9D8" class="o"/>
+  <rect x="-112" y="-8" width="24" height="16" rx="5" fill="#2E2A4F"/><rect x="88" y="-8" width="24" height="16" rx="5" fill="#2E2A4F"/>
+  <rect x="-10" y="-30" width="20" height="30" rx="3" fill="#F3F1FA" class="o2"/>
+  <g transform="translate(0 46)"><path d="M-16 -10 L16 -10 L12 4 L-12 4 Z" fill="#CBCFDC" class="o2"/><circle cx="0" cy="10" r="10" fill="#E4E7F0" class="o2"/><circle cx="-3" cy="7" r="3" fill="#FFFFFF"/></g>
+  <g transform="translate(0 -22) scale(.7)" opacity=".7"><path d="M-16 -10 L16 -10 L12 4 L-12 4 Z" fill="#CBCFDC" class="o2"/></g>
+  <text x="0" y="14" text-anchor="middle" style="font:500 13px var(--f-hud);fill:#9C7F62">Ø 20–22 cm</text>`,
+energia:`<rect x="-100" y="-30" width="140" height="56" rx="9" fill="#3E4C8C" class="o"/>
+  <text x="-30" y="-4" text-anchor="middle" style="font:600 16px var(--f-hud);fill:#FFFFFF">LiPo 3S</text>
+  <text x="-30" y="16" text-anchor="middle" style="font:500 13px var(--f-hud);fill:#BDEFE0">11.1 V · 5200 mAh</text>
+  <path d="M40 -10 C56 -10 56 -24 70 -24" fill="none" stroke="#E5484D" stroke-width="5"/><path d="M40 6 C60 6 60 -4 70 -4" fill="none" stroke="#2E2A4F" stroke-width="5"/>
+  <rect x="68" y="-32" width="26" height="36" rx="4" fill="#F2C14E" class="o2"/>
+  <rect x="104" y="-34" width="32" height="14" rx="3" fill="#FFFFFF" class="o2"/><line x1="108" y1="-27" x2="132" y2="-27" stroke="#2E2A4F" stroke-width="2"/>
+  <rect x="104" y="-12" width="32" height="26" rx="4" fill="#2E2A4F"/><rect x="106" y="-10" width="14" height="22" rx="2" fill="#E5484D"/>
+  <rect x="-96" y="40" width="96" height="44" rx="5" fill="#2F6FD6" class="o2"/>
+  <circle cx="-70" cy="62" r="13" fill="#2E2A4F"/><rect x="-40" y="52" width="12" height="12" fill="#3A7BE0" class="o2"/>
+  <rect x="20" y="40" width="22" height="40" rx="5" fill="#2E2A4F"/><rect x="34" y="40" width="5" height="40" fill="#CBCFDC"/>`
+};
+
+/* ---------- datos de cada pieza ---------- */
+const P=[
+ {id:'casco',name:'Casco',code:'esfera PLA',where:'Cuerpo · lo que se ve',
+  body:'Esfera de 30–35 cm impresa en PLA en dos mitades: 6 círculos naranjas y 8 piezas blancas. No tiene motor. La base de adentro trepa por la pared interior, el centro de gravedad se adelanta y la esfera rueda, igual que un hámster en su rueda. Es el principio del Sphero.',
+  specs:['Ø 30–35 cm','capa 0.28 mm','2–3 kg de filamento','2–2.5 kg en total']},
+ {id:'cabeza',name:'Cabeza',code:'cúpula + imanes S',home:'head',ex:[800,196],es:1.2,
+  where:'Cabeza · flota sobre el casco',
+  body:'Cúpula de 12–14 cm sin ningún cable hacia el cuerpo. Cuatro imanes N42 con la cara S hacia abajo la sujetan contra los del mástil a través del casco. Tres ruedecitas la mantienen 2–3 mm separada para que no raye la pintura ni frene el giro.',
+  specs:['4 × N42 20×5 mm','3 ruedecitas','batería propia']},
+ {id:'pizero',name:'Pi Zero 2 W',code:'cámara + ToF',home:[0,-190],hs:.4,ex:[1172,176],es:1,
+  where:'Cabeza · los ojos',
+  body:'Vive en la cabeza y habla por WiFi con la Pi principal (HTTP, puerto 8080). Toma fotos con la cámara OV5647 y las reduce a 640 px antes de mandarlas a Claude. El ToF VL53L0X mide lo que hay enfrente; la Pi lo consulta cada 100 ms y se lo reenvía al Arduino como D <mm>.',
+  specs:['OV5647 5 MP','foto a 640 px','ToF hasta 2 m','GET /tof cada 100 ms']},
+ {id:'ojo',name:'Ojo y voz',code:'NeoPixel · PAM8403',home:[0,-206],hs:.3,ex:[1414,336],es:.92,
+  where:'Cabeza · luz y sonido',
+  body:'Anillo NeoPixel de 16 LED y 45 mm en GPIO18, limitado al 30 % de brillo porque en blanco pleno pide cerca de 1 A. Su color dice el estado: escucha, piensa, se mueve. La voz sale por un PAM8403 a 5 V hacia una bocina de 4 Ω; la Zero no trae audio, así que va con DAC USB o I2S. Todo come de un power bank 18650.',
+  specs:['WS2812 × 16','brillo 30 %','bocina 4 Ω','power bank 18650']},
+ {id:'mastil',name:'Mástil',code:'servo + imanes N',home:[0,-35],hs:.66,ex:[1112,468],es:.8,
+  where:'Cuerpo · el puente a la cabeza',
+  body:'Un poste de PVC de 25 mm sube desde la base. Arriba, un servo MG996R gira el portaimanes; la cabeza sigue a los imanes sin motor propio. Los 4 imanes N42, con la cara N arriba, quedan a 2–3 mm de la pared del casco. La Pi lo mueve con H <grados>.',
+  specs:['MG996R en D9','H −90…90','4 × N42 cara N']},
+ {id:'pi',name:'Raspberry Pi',code:'voz · MCP · movimiento',home:[56,56],hs:.3,ex:[330,170],es:1,
+  where:'Cuerpo · el sistema nervioso',
+  body:'Corre tres cosas. El agente de voz (openWakeWord, Silero VAD, faster-whisper, Claude y Piper). El servidor MCP bb8-motion, que le da a Claude sus herramientas. Y el servicio de movimiento, con ciclo de 50 ms, que es el único que abre el puerto serial y decide entre el mando Bluetooth y el LLM. El mando siempre gana.',
+  specs:['MCP :8765','servicio 127.0.0.1:8770','serial 115200','ciclo 50 ms']},
+ {id:'arduino',name:'Arduino',code:'reflejos · 10 ms',home:[-6,58],hs:.3,ex:[312,380],es:1,
+  where:'Cuerpo · los reflejos',
+  body:'Firmware propio que corre cada 10 ms. Convierte M <izq> <der> en PWM con rampa (máximo 30 por ciclo) y PID por encoders. Frena por su cuenta si la inclinación pasa de 35°, si el ToF marca menos de 250 mm mientras avanza o si pasan 500 ms sin un M. No le pregunta a nadie.',
+  specs:['ciclo 10 ms','watchdog 500 ms','freno a 35°','M S H D ? Z W']},
+ {id:'imu',name:'MPU6050',code:'IMU 6 ejes',home:[30,72],hs:.45,ex:[566,520],es:1.3,
+  where:'Cuerpo · el equilibrio',
+  body:'Acelerómetro y giroscopio de 6 ejes por I2C. Da la inclinación para el freno de 35° y el rumbo integrado que usa turn(90) para saber cuándo ya giró. Su pin INT despierta al Arduino del reposo profundo cuando alguien mueve al droide.',
+  specs:['I2C 0x68','A4 / A5','INT en A2']},
+ {id:'l298n',name:'L298N',code:'driver de motores',home:[-60,52],hs:.36,ex:[322,588],es:.95,
+  where:'Cuerpo · el músculo',
+  body:'Un solo L298N mueve los dos motores: ENA y ENB reciben PWM desde D5 y D6, e IN1–IN4 eligen el sentido. Es bipolar y se come unos 2 V, así que a 12 V el motor ve unos 10 V y el tope baja a 0.9 m/s. El segundo L298N del pedido queda de repuesto; si se calienta, el plan B es un BTS7960.',
+  specs:['ENA D5 · ENB D6','IN D7 D8 D11 D12','caída ~2 V']},
+ {id:'motores',name:'Motores y ruedas',code:'JGB37-520B',home:[0,118],hs:.42,ex:[1340,660],es:1,
+  where:'Cuerpo · lo que empuja',
+  body:'Dos motorreductores JGB37-520B de 12 V y 319 RPM con encoder. Los encoders cuentan pulsos por interrupción en D2 y D3 para que el PID iguale las dos ruedas. Ruedas de goma de 65 mm con cople hexagonal de 6 mm empujan contra la pared interior. 319 RPM × π × 65 mm ≈ 1.08 m/s en teoría; se limita a unos 0.6 m/s útiles.',
+  specs:['12 V · 319 RPM','encoder D2 / D3','rueda 65 mm','~0.6 m/s útil']},
+ {id:'base',name:'Base',code:'melamina + ball transfers',home:[0,86],hs:.8,ex:[1060,822],es:.82,tagUp:true,
+  where:'Cuerpo · la plataforma',
+  body:'Disco de melamina de 20–22 cm y 12–15 mm de grueso, con dos muescas por donde asoman las ruedas. Dos ball transfers de 1″ a 90° de las ruedas apoyan sobre el casco a la misma altura de contacto. Si tocan antes que las ruedas, la esfera no rueda.',
+  specs:['Ø 20–22 cm','12–15 mm','2 × ball transfer 1″']},
+ {id:'energia',name:'Energía',code:'LiPo · fusible · buck',home:[0,102],hs:.42,ex:[470,812],es:.95,tagUp:true,
+  where:'Cuerpo · abajo de todo',
+  body:'LiPo 3S de 11.1 V y 5200 mAh, lo más abajo posible: sus 450 g hacen de lastre (hasta 1–1.5 kg con pesas). Pasa por un fusible de 5 A y el interruptor. Los motores toman el voltaje directo y un buck LM2596 baja a 5.1 V para la Pi, con un condensador de 1000 µF para que no se reinicie al arrancar los motores. Hasta la Parte 6 se usa la fuente de pared de 12 V.',
+  specs:['3S · 5200 mAh','fusible 5 A','buck a 5.1 V','2.5–3 h de uso']}
+];
+const TOUR0=14, TSTEP=5.5, NT=P.length; // 14 → 80
+const exK=(t,i)=>{
+  if(t<80) return sm(10+i*.17,12.4+i*.17,t);
+  const j=NT-1-i; return 1-sm(80+j*.16,82.2+j*.16,t);
+};
+
+/* ---------- construir piezas en el SVG ---------- */
+const parts=$('parts'), leads=$('leads');
+const order=['base','motores','energia','l298n','arduino','pi','imu','mastil','cabeza','pizero','ojo'];
+const ref={};
+order.forEach(id=>{
+  const p=P.find(q=>q.id===id);
+  parts.insertAdjacentHTML('beforeend',`<g id="pt-${id}"><g class="fx"><rect class="card" rx="20" fill="#FFFFFF" stroke="#2E2A4F" stroke-width="2.5"/><g class="dw">${D[id]}</g><g class="tg"><text class="tagN" text-anchor="middle">${p.name}</text><text class="tagC" text-anchor="middle" dy="22">${p.code}</text></g></g></g>`);
+  const g=$('pt-'+id), dw=g.querySelector('.dw'), card=g.querySelector('.card'), tg=g.querySelector('.tg');
+  const b=dw.getBBox();
+  let cx=b.x+b.width/2, cy=b.y+b.height/2;
+  if(id==='cabeza'){cx=0;cy=0;}
+  dw.setAttribute('transform',`translate(${-cx} ${-cy})`);
+  const x0=b.x-cx, y0=b.y-cy;
+  card.setAttribute('x',x0-18);card.setAttribute('y',y0-18);card.setAttribute('width',b.width+36);card.setAttribute('height',b.height+36);
+  tg.setAttribute('transform',p.tagUp?`translate(0 ${y0-50})`:`translate(0 ${y0+b.height+50})`);
+  if(id!=='cabeza'){const l=document.createElementNS('http://www.w3.org/2000/svg','line');leads.appendChild(l);p.lead=l;}
+  ref[id]={g,fx:g.querySelector('.fx'),card,tg,p};
+});
+// anillos del casco
+$('rings').innerHTML=[45,135,225,315].map(a=>{const r=a*Math.PI/180,x=150*Math.cos(r),y=150*Math.sin(r);
+  return `<circle cx="${x}" cy="${y}" r="58" fill="none" stroke="#FF8A3D" stroke-width="18"/><circle cx="${x}" cy="${y}" r="36" fill="#D9DCE8" class="o2"/><circle cx="${x}" cy="${y}" r="70" fill="none" class="o2"/>`}).join('')
+  +[0,90,180,270].map(a=>`<rect x="88" y="-7" width="34" height="14" rx="3" fill="#FF8A3D" transform="rotate(${a})"/>`).join('');
+// LEDs del NeoPixel
+const ledG=$('leds'); const leds=[];
+for(let i=0;i<16;i++){const a=i/16*Math.PI*2;const c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',44*Math.cos(a));c.setAttribute('cy',44*Math.sin(a));c.setAttribute('r',5.5);ledG.appendChild(c);leds.push(c);}
+// ventanas encendidas de la ciudad
+(()=>{let s='';let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  for(let i=0;i<70;i++){const x=440+rnd()*700,y=110+rnd()*220;s+=`<rect x="${x.toFixed(0)}" y="${y.toFixed(0)}" width="8" height="10" rx="1"/>`;} $('winDots').innerHTML=s;})();
+
+/* ---------- HUD ---------- */
+const HUDN=['Voz','Whisper','Claude','MCP','Pi','Arduino'];
+const HUDX=HUDN.map((_,i)=>110+i*250);
+$('hudLinks').innerHTML=HUDX.slice(0,-1).map((x,i)=>`<line x1="${x+30}" y1="60" x2="${HUDX[i+1]-30}" y2="60" stroke-dasharray="2 8"/>`).join('');
+$('hudNodes').innerHTML=HUDN.map((n,i)=>`<g transform="translate(${HUDX[i]} 60)"><circle r="24" fill="#FFFFFF" class="o" id="hn${i}"/><text x="36" y="8" class="hudT">${n}</text></g>`).join('');
+const HUDW=[[[87,88.6]],[[88.6,90.2]],[[90.2,92],[100.4,101.6]],[[92,92.5],[94.2,94.7],[96.8,97.2],[101.6,102.3]],[[92.4,93.9],[97.1,T_BRAKE+1.3]],[[92.6,93.9],[97.4,T_BRAKE+1.3]]];
+const CALLS=[[87,'«BB-8, ven acá»'],[88.6,'texto · habla Erick'],[90.2,'Claude piensa…'],[92,'turn(grados=90)'],[94.2,'take_photo()'],[96.8,'move(metros=1.0)'],[T_BRAKE,'freno reflejo · F=obstacle'],[100.4,'← blocked · 0.36 m'],[101.6,'say(«¡Ya llegué!»)']];
+
+/* ---------- terminal ---------- */
+const TERM=[
+ [87.0,'<span class="k">[voz]</span>   openWakeWord → «BB-8»  0.91'],
+ [88.8,'<span class="k">[voz]</span>   whisper → «ven acá»'],
+ [89.6,'<span class="k">[voz]</span>   resemblyzer → Erick  0.82 ✓'],
+ [92.0,'<span class="c">[claude]</span> turn(grados=90)'],
+ [92.6,'<span class="g">pi→ard</span>  M 60 -60      OK'],
+ [93.9,'<span class="g">pi</span>      Y=89.6 → done  1.3 s'],
+ [94.2,'<span class="c">[claude]</span> take_photo()'],
+ [94.6,'<span class="g">cabeza</span>  GET /foto → 640×480'],
+ [96.8,'<span class="c">[claude]</span> move(metros=1.0)'],
+ [97.4,'<span class="g">pi→ard</span>  M 70 70        OK  (cada 100 ms)'],
+ [97.9,'<span class="g">pi→ard</span>  D 560          OK'],
+ [98.6,'<span class="g">pi→ard</span>  D 330          OK'],
+ [T_BRAKE,'<span class="g">pi→ard</span>  D 248          OK'],
+ [T_BRAKE+.05,'<span class="e">ard</span>     freno sin rampa · F=obstacle'],
+ [99.5,'<span class="g">pi→ard</span>  M 70 70        <span class="e">ERR obstacle</span>'],
+ [100.4,'<span class="g">pi</span>      blocked · metros 0.36 · distancia_m 0.24'],
+ [101.6,'<span class="c">[claude]</span> set_eye_color("verde")'],
+ [101.9,'<span class="c">[claude]</span> say("¡Ya llegué!")  → Piper es_ES']
+];
+const term=$('term');
+term.innerHTML=TERM.map(l=>`<div>${l[1]}</div>`).join('');
+const termRows=[...term.children];
+
+/* ---------- panel narrado ---------- */
+const SEG=[
+ {t:0,where:'Sala · escala 0.94 px por mm',title:'BB-8 en casa',body:'Un droide de 30–35 cm hecho con una Raspberry Pi, una Pi Zero 2 W y un Arduino. Escucha, ve y rueda. Claude decide qué hacer a través de un servidor MCP, pero nunca toca los motores.',specs:['30–35 cm','2–2.5 kg','~0.6 m/s','2.5–3 h de batería']},
+ {t:7,where:'Rayos X',title:'Lo que no gira',body:'Debajo del casco hay una base que nunca da vueltas con la esfera: cuelga hacia abajo por el peso de la batería, como un péndulo. Las ruedas la hacen trepar por dentro y la esfera rueda.',specs:['base colgante','lastre abajo','cabeza por imanes']},
+ {t:10,where:'Despiece',title:'12 grupos de piezas',body:'Cada pieza sale de su lugar real dentro del droide. Las líneas punteadas marcan de dónde viene cada una.',specs:['cuerpo: 9','cabeza: 3']},
+ ...P.map((p,i)=>({t:TOUR0+i*TSTEP,where:p.where,title:p.name,body:p.body,specs:p.specs,part:i})),
+ {t:80,where:'Implosión',title:'Todo a su lugar',body:'La base baja con la batería como lastre, el mástil sube hasta quedar a 2–3 mm del casco y la cabeza se engancha por imanes desde afuera. Si los ball transfers tocan antes que las ruedas, la esfera no rueda; por eso se prueba antes de poner imanes.',specs:['imanes a 2–3 mm','lastre 1–1.5 kg']},
+ {t:86,where:'Cómo decide · 1 de 6',title:'Escucha',body:'openWakeWord detecta «BB-8». Silero VAD corta cuando terminas de hablar y faster-whisper small transcribe en la Pi. Resemblyzer compara la voz con las registradas: solo obedece voces conocidas. Solo el texto y las fotos salen hacia Claude.',specs:['todo local','similitud > 0.75']},
+ {t:90.2,where:'Cómo decide · 2 de 6',title:'Claude elige una herramienta',body:'Claude recibe «Habla Erick: ven acá» y responde con llamadas al servidor MCP, no con motores. Primero gira hacia la voz: turn(90) se vuelve M 60 -60 y la Pi integra el giroscopio hasta llegar a 90°.',specs:['turn · move · stop','look_at · take_photo','say · set_eye_color']},
+ {t:94.2,where:'Cómo decide · 3 de 6',title:'Mira antes de moverse',body:'La personalidad pide mirar antes de avanzar en un lugar nuevo. take_photo() le pide a la Zero una foto de 640 px; Claude ve a Erick enfrente y lejos.',specs:['GET /foto','640×480']},
+ {t:96.8,where:'Cómo decide · 4 de 6',title:'El servicio traduce',body:'move(1.0) se vuelve M 70 70, reenviado cada 100 ms para que el watchdog no frene. El Arduino lo persigue con rampa y PID; la Pi cuenta encoders hasta el metro y reenvía el ToF de la cabeza como D <mm>.',specs:['M 70 70','D cada 100 ms','watchdog 500 ms']},
+ {t:T_BRAKE,where:'Cómo decide · 5 de 6',title:'Reflejo',body:'El ToF marca menos de 250 mm mientras avanza. El Arduino frena solo, en menos de 20 ms, sin preguntarle a la Pi ni a Claude. El siguiente M de avance recibe ERR obstacle; retroceder o girar sí se permite.',specs:['< 250 mm','< 20 ms','ERR obstacle']},
+ {t:100.4,where:'Cómo decide · 6 de 6',title:'Responde',body:'El servicio devuelve blocked tras 0.36 m, a 0.24 m de Erick. Claude entiende que ya llegó, pone el ojo en verde y llama a say(). Piper habla en español por la bocina de la cabeza.',specs:['blocked','Piper es_ES']},
+ {t:106,where:'Tres relojes',title:'Ninguna capa lenta frena a una rápida',body:'El Arduino reacciona cada 10 ms, la Pi mueve cada 50 ms y Claude decide en 1–4 s. Por eso el droide frena aunque Claude todavía esté pensando.',specs:['10 ms','50 ms','1–4 s']}
+].sort((a,b)=>a.t-b.t);
+
+const CH=[['Inicio',0],['Rayos X',7],['Despiece',10],['Piezas',14],['Implosión',80],['Cómo decide',86],['Final',106]];
+$('chapters').innerHTML=CH.map(([n,t],i)=>`<button class="chip-btn" data-t="${t}" data-i="${i}">${n}</button>`).join('');
+const chBtns=[...$('chapters').children];
+$('partsGrid').innerHTML=P.map((p,i)=>`<button class="part-btn" data-i="${i}"><b>${p.name}</b><small>${p.code}</small></button>`).join('');
+const partBtns=[...$('partsGrid').children];
+
+let curSeg=-1, lastN=-1;
+function setPanel(t){
+  let k=0; for(let i=0;i<SEG.length;i++) if(SEG[i].t<=t) k=i;
+  if(k===curSeg) return; curSeg=k; const s=SEG[k];
+  $('pWhere').textContent=s.where; $('pTitle').textContent=s.title; $('pBody').textContent=s.body;
+  $('pSpecs').innerHTML=s.specs.map(x=>`<li>${x}</li>`).join('');
+  partBtns.forEach((b,i)=>b.setAttribute('aria-current',s.part===i?'true':'false'));
+}
+
+/* ---------- sonido opcional ---------- */
+let ac=null, soundOn=false;
+const SFX=[[4.6,[[1200,.07],[1650,.07],[900,.1]]],[85.4,[[700,.08],[1000,.08],[1400,.14]]],[87,[[880,.12]]],[94.6,[[2400,.03],[1800,.03]]],[T_BRAKE,[[300,.18]]],[102,[[1300,.07],[1700,.07],[2100,.07],[1500,.12]]]];
+function beep(seq){ if(!ac||!soundOn) return; let at=ac.currentTime;
+  for(const [f,d] of seq){const o=ac.createOscillator(),g=ac.createGain();o.type='square';o.frequency.setValueAtTime(f,at);o.frequency.exponentialRampToValueAtTime(f*1.15,at+d);
+    g.gain.setValueAtTime(.0001,at);g.gain.exponentialRampToValueAtTime(.05,at+.01);g.gain.exponentialRampToValueAtTime(.0001,at+d);o.connect(g).connect(ac.destination);o.start(at);o.stop(at+d+.02);at+=d+.03;} }
+
+
+/* ---------- música de fondo (sintetizada en vivo, sin archivos) ---------- */
+const BPM=112, STEP=60/BPM/4;
+const PROG=[{b:36,c:[60,64,67,72]},{b:43,c:[59,62,67,71]},{b:45,c:[57,60,64,69]},{b:41,c:[57,60,65,69]}];
+const MEL=[[76,79,84,null,83,79,76,79],[74,79,83,null,81,79,74,null],[72,76,81,null,79,76,72,76],[77,76,74,72,74,null,72,null]];
+const hz=m=>440*Math.pow(2,(m-69)/12);
+let mus=null, step=0, nextAt=0, musTimer=null;
+function musInit(){
+  if(mus) return; const out=ac.createGain(); out.gain.value=0; const comp=ac.createDynamicsCompressor();
+  const dly=ac.createDelay(); dly.delayTime.value=STEP*3; const fb=ac.createGain(); fb.gain.value=.28; const wet=ac.createGain(); wet.gain.value=.35;
+  dly.connect(fb).connect(dly); dly.connect(wet).connect(out); out.connect(comp).connect(ac.destination);
+  const nb=ac.createBuffer(1,ac.sampleRate*.5,ac.sampleRate), d=nb.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+  mus={out,dly,nb};
+}
+function env(g,at,peak,dur,att=.005){g.gain.setValueAtTime(.0001,at);g.gain.exponentialRampToValueAtTime(peak,at+att);g.gain.exponentialRampToValueAtTime(.0001,at+dur);}
+function tone(type,f,at,dur,peak,{lp=0,send=false,vib=0,slide=0}={}){
+  const o=ac.createOscillator(),g=ac.createGain(); o.type=type; o.frequency.setValueAtTime(f,at); if(slide) o.frequency.exponentialRampToValueAtTime(f*slide,at+dur);
+  let n=o; if(lp){const fl=ac.createBiquadFilter();fl.type='lowpass';fl.frequency.value=lp;o.connect(fl);n=fl;}
+  if(vib){const l=ac.createOscillator(),lg=ac.createGain();l.frequency.value=5.5;lg.gain.value=vib;l.connect(lg).connect(o.frequency);l.start(at);l.stop(at+dur+.05);}
+  n.connect(g); g.connect(mus.out); if(send) g.connect(mus.dly); env(g,at,peak,dur); o.start(at); o.stop(at+dur+.05);
+}
+function noise(at,dur,peak,type,freq){const s=ac.createBufferSource();s.buffer=mus.nb;const f=ac.createBiquadFilter();f.type=type;f.frequency.value=freq;const g=ac.createGain();s.connect(f).connect(g).connect(mus.out);env(g,at,peak,dur,.002);s.start(at);s.stop(at+dur+.02);}
+function kick(at){const o=ac.createOscillator(),g=ac.createGain();o.frequency.setValueAtTime(150,at);o.frequency.exponentialRampToValueAtTime(45,at+.12);o.connect(g).connect(mus.out);env(g,at,.9,.22,.002);o.start(at);o.stop(at+.25);}
+function playStep(n,at){
+  const s=n%16, bar=Math.floor(n/16)%4, ch=PROG[bar];
+  const full=t>=7&&t<80||t>=86, build=t>=80&&t<86, lead=t>=86||(t>=14&&Math.floor(n/64)%2===1&&t<80);
+  // pad al inicio de cada compás
+  if(s===0) ch.c.slice(0,3).forEach((m,i)=>tone('sawtooth',hz(m)*(1+(i-1)*.003),at,STEP*15,.035,{lp:900}));
+  // arpegio de pluck con eco
+  tone('square',hz(ch.c[[0,1,2,3,2,1,2,3][s%8]]+12),at,.16,full?.05:.035,{lp:2600,send:true});
+  // bajo saltarín
+  if([0,3,6,8,10,14].includes(s)) tone('triangle',hz(ch.b+(s===3||s===10?12:0)),at,STEP*1.6,.22);
+  if(full){ if(s%4===0) kick(at); if(s%4===2) noise(at,.04,.12,'highpass',7000); if(s===4||s===12) noise(at,.14,.22,'bandpass',1800); }
+  if(build){ if(s%2===0) kick(at); noise(at,.03,.06+.1*sm(80,86,t),'highpass',6000); }
+  if(lead&&s%2===0){ const m=MEL[bar][s/2]; if(m) tone('triangle',hz(m),at,STEP*1.8,.11,{vib:4,send:true}); }
+  // guiño chistoso: "boing" al final de cada 4 compases
+  if(bar===3&&s===15&&full) tone('sine',hz(84),at,.25,.07,{slide:.5});
+}
+function musTick(){ while(nextAt<ac.currentTime+.12){ playStep(step,nextAt); step++; nextAt+=STEP; } }
+function musSync(){
+  const on=soundOn&&playing&&ac;
+  if(on){ musInit(); if(!musTimer){ nextAt=ac.currentTime+.05; musTimer=setInterval(musTick,25); }
+    mus.out.gain.cancelScheduledValues(ac.currentTime); mus.out.gain.setTargetAtTime(.16,ac.currentTime,.3); }
+  else if(mus){ mus.out.gain.cancelScheduledValues(ac.currentTime); mus.out.gain.setTargetAtTime(0,ac.currentTime,.15); clearInterval(musTimer); musTimer=null; }
+}
+
+/* ---------- render ---------- */
+const bb=$('bb'), decals=$('decals');
+const tagX={};
+function render(t){
+  const x=bbX(t), th=lean(t), f=facing(t);
+  bb.setAttribute('transform',`translate(${x} ${CY})`);
+  decals.setAttribute('transform',`rotate(${((x-330)/R)*180/Math.PI})`);
+  const xray=sm(7,9.5,t)-sm(83.5,85.5,t);
+  const diag=sm(8,10,t)-sm(84,86,t);
+  $('room').setAttribute('opacity',1-.82*diag);
+  $('paperOv').setAttribute('opacity',.55*diag);
+  $('gridOv').setAttribute('opacity',diag);
+  $('shellFill').setAttribute('fill-opacity',1-.88*xray);
+  $('decalsWrap').setAttribute('opacity',1-.9*xray);
+  $('shellShade').setAttribute('opacity',1-.8*xray);
+  // foco del recorrido
+  const tourOn=sm(TOUR0-.2,TOUR0+.3,t)*(1-sm(79.6,80,t));
+  const fi=Math.floor((t-TOUR0)/TSTEP);
+  const focusOf=i=>{ if(i!==fi||t<TOUR0||t>=80) return 0; const a=TOUR0+i*TSTEP; return sm(a,a+.45,t)*(1-sm(a+TSTEP-.35,a+TSTEP,t)); };
+  const fc=focusOf(0);
+  $('shellLine').setAttribute('stroke-width',3+5*fc);
+  $('shellLine').style.stroke=fc>.05?'#FF4F9E':'';
+  $('cascoTag').setAttribute('opacity',diag*(1-.6*tourOn*(1-fc)));
+  // cabeza (posición en casa)
+  const hx=x+(R+3)*Math.sin(th), hy=CY-(R+3)*Math.cos(th);
+  P.forEach((p,i)=>{
+    if(p.id==='casco') return;
+    const r=ref[p.id]; const k=exK(t,i);
+    const kk=k<1&&t<80?backOut(k)*(k>0?1:0):(t>=80?eio(k):k);
+    let home, rot=0, hs=p.hs||1;
+    if(p.home==='head'){home=[hx,hy];rot=th*180/Math.PI;}
+    else home=[800+p.home[0],CY+p.home[1]];
+    const px=lerp(home[0],p.ex[0],kk), py=lerp(home[1],p.ex[1],kk), sc=lerp(hs,p.es,kk), rr=lerp(rot,0,clamp(kk,0,1));
+    const fo=focusOf(i);
+    r.g.setAttribute('transform',`translate(${px} ${py}) rotate(${rr}) scale(${sc*(1+.12*fo)})`);
+    const vis=p.home==='head'?1:clamp(xray+k,0,1);
+    r.g.setAttribute('opacity',vis*(1-.62*tourOn*(1-fo)));
+    r.card.setAttribute('opacity',clamp(k,0,1)*.95);
+    r.card.setAttribute('stroke',fo>.05?'#FF4F9E':'#2E2A4F');
+    r.card.setAttribute('stroke-width',2.5+4*fo);
+    r.tg.setAttribute('opacity',clamp(k*1.4-.4,0,1));
+    if(p.lead){ p.lead.setAttribute('x1',px);p.lead.setAttribute('y1',py);p.lead.setAttribute('x2',800+p.home[0]);p.lead.setAttribute('y2',CY+p.home[1]);
+      p.lead.setAttribute('opacity',clamp(k,0,1)*diag*(1-.7*tourOn*(1-fo))); }
+  });
+  // cara de la cabeza y estado del ojo
+  const kHead=exK(t,1);
+  $('domeFill').setAttribute('fill-opacity',1-.82*xray*(1-kHead));
+  const s=Math.sin(f*Math.PI/2);
+  $('face').setAttribute('transform',`translate(${34*s} 0) translate(0 -40) scale(${1-.35*s} 1) translate(0 40)`);
+  let led='#22C9DE';
+  if(t>=86.6&&t<90.2) led='#3A7BE0'; else if((t>=90.2&&t<92)||(t>=100.4&&t<101.6)) led='#9B6BFF';
+  else if(t>=92&&t<100.4) led='#FF8A3D'; else if(t>=101.6&&t<106) led='#2FD07A';
+  $('stateLed').setAttribute('fill',led);
+  leds.forEach((c,i)=>c.setAttribute('fill',`hsl(${(i*22.5+t*90)%360} 90% 66%)`));
+  // escena viva
+  $('car').setAttribute('transform',`translate(${((t*150)%1400)+300} ${78+Math.sin(t*1.3)*6})`);
+  $('ramen').setAttribute('opacity',(Math.sin(t*7)>-.85||Math.sin(t*2.3)>0)?1:.35);
+  $('holo').setAttribute('opacity',.75+.25*Math.sin(t*3.1));
+  $('catTail').setAttribute('transform',`rotate(${Math.sin(t*1.7)*9} 58 4)`);
+  const zz=(t*0.5)%1; $('zzz').setAttribute('transform',`translate(${zz*10} ${-zz*18})`); $('zzz').setAttribute('opacity',(1-zz)*(t>102.4&&t<106?0:1));
+  $('steam').setAttribute('opacity',.5+.4*Math.sin(t*2));
+  // burbujas
+  const bA=sm(4.5,4.8,t)*(1-sm(6.6,7,t)), bB=sm(102,102.3,t)*(1-sm(105.5,105.9,t));
+  $('bubBB').setAttribute('opacity',Math.max(bA,bB));
+  $('bubBBt').textContent=t>50?'¡Ya llegué!':'¡bip-bup!';
+  const bx=clamp(x-80,20,1100); $('bubBB').setAttribute('transform',`translate(${bx} ${hy-245})`);
+  $('bubE').setAttribute('opacity',sm(86.3,86.6,t)*(1-sm(90.2,90.6,t)));
+  // HUD
+  const hud=sm(86.6,87.2,t)*(1-sm(105.6,106.2,t));
+  $('hud').setAttribute('opacity',hud);
+  HUDW.forEach((ws,i)=>{ const on=ws.some(([a,b])=>t>=a&&t<b); const reflex=i===5&&t>=T_BRAKE&&t<T_BRAKE+1.3;
+    const n=$('hn'+i); n.setAttribute('fill',reflex?'#FF4F9E':on?'#22C9DE':'#FFFFFF'); n.setAttribute('r',on?28:22); });
+  let call=''; for(const [a,c] of CALLS) if(t>=a) call=c;
+  if(call!==$('hudCallT').textContent) $('hudCallT').textContent=call;
+  $('hudCallBg').setAttribute('fill',t>=T_BRAKE&&t<100.4?'#FF4F9E':'#2E2A4F');
+  // foto
+  $('photo').setAttribute('opacity',sm(94.6,94.9,t)*(1-sm(96.4,96.8,t)));
+  $('flash').setAttribute('opacity',reduce?0:.85*(sm(94.5,94.6,t)-sm(94.6,95,t)));
+  // ToF
+  const tofOn=sm(97,97.3,t)*(1-sm(100.6,101,t));
+  const ex=hx+58*s, ey=hy-44;
+  const Dmm=Math.max(0,(OBST-(x+62))/PXMM);
+  $('tof').setAttribute('opacity',tofOn);
+  $('tofBeam').setAttribute('points',`${ex},${ey} ${OBST},${ey-34} ${OBST},${ey+34}`);
+  const brk=t>=T_BRAKE; $('tofBeam').setAttribute('fill',brk?'#FF4F9E':'#22C9DE'); $('tofBeam').setAttribute('stroke',brk?'#FF4F9E':'#22C9DE');
+  $('tofTag').setAttribute('transform',`translate(${(ex+OBST)/2} ${ey-40})`);
+  $('tofTxt').textContent=`D = ${Math.round(Dmm)} mm`+(brk?' · ¡freno!':'');
+  $('sparks').setAttribute('opacity',(t>=T_BRAKE&&t<T_BRAKE+.45)?1:0);
+  // cierre
+  $('outro').setAttribute('opacity',sm(106.2,107,t));
+  // panel
+  setPanel(t);
+  term.hidden=t<86;
+  let n=0; for(const l of TERM) if(t>=l[0]) n++;
+  if(n!==lastN){termRows.forEach((r,i)=>r.hidden=i>=n);term.scrollTop=term.scrollHeight;lastN=n;}
+  // controles
+  $('scrub').value=t;
+  const m=Math.floor(t/60), sec=Math.floor(t%60);
+  $('time').textContent=`${m}:${String(sec).padStart(2,'0')} / 1:54`;
+  let ch=0; CH.forEach(([_,a],i)=>{if(t>=a)ch=i;}); chBtns.forEach((b,i)=>b.setAttribute('aria-current',i===ch?'true':'false'));
+}
+
+/* ---------- reproducción ---------- */
+let t=0, playing=!reduce, last=null;
+function setPlaying(v){ playing=v; last=null; if(typeof musSync==='function') musSync();
+  $('playBtn').setAttribute('aria-label',v?'Pausar':'Reproducir');
+  $('playIco').innerHTML=v?'<rect x="4" y="3" width="4" height="14" rx="1"/><rect x="12" y="3" width="4" height="14" rx="1"/>':'<path d="M5 3 L17 10 L5 17 Z"/>'; }
+function frame(now){
+  if(playing){ if(last!==null){ const dt=Math.min((now-last)/1000,.1), prev=t; t=Math.min(T_END,t+dt);
+      for(const [ts,seq] of SFX) if(prev<ts&&t>=ts) beep(seq);
+      if(t>=T_END) setPlaying(false); }
+    last=now; render(t); }
+  requestAnimationFrame(frame);
+}
+$('playBtn').addEventListener('click',()=>{ if(!playing&&t>=T_END) t=0; setPlaying(!playing); if(!playing) render(t); });
+$('scrub').addEventListener('input',e=>{ t=+e.target.value; render(t); });
+$('soundBtn').addEventListener('click',e=>{ soundOn=!soundOn; try{ if(soundOn&&!ac) ac=new (window.AudioContext||window.webkitAudioContext)(); if(ac&&ac.state==='suspended') ac.resume(); }catch(_){soundOn=false;}
+  e.currentTarget.textContent='♪ Música: '+(soundOn?'sí':'no'); e.currentTarget.setAttribute('aria-pressed',soundOn); if(soundOn&&!playing){ if(t>=T_END) t=0; setPlaying(true); } musSync(); });
+const jump=v=>{ t=v; render(t); setPlaying(true); };
+chBtns.forEach(b=>b.addEventListener('click',()=>jump(+b.dataset.t+.01)));
+partBtns.forEach(b=>b.addEventListener('click',()=>jump(TOUR0+(+b.dataset.i)*TSTEP+.01)));
+document.addEventListener('keydown',e=>{ if(e.code==='Space'&&!/INPUT|BUTTON/.test(document.activeElement.tagName)){ e.preventDefault(); $('playBtn').click(); }});
+setPlaying(playing);
+render(0);
+requestAnimationFrame(frame);
+})();
+</script>

@@ -1,0 +1,10 @@
+# Pi principal y PC (dummy). Python 3.11+
+mcp>=1.10,<2          # FastMCP vive en mcp 1.x; en 2.x se renombró a MCPServer
+pyserial>=3.5
+httpx>=0.27
+starlette>=0.37
+uvicorn>=0.30
+# Solo para el dummy en el PC (visión con webcam o vista sintética)
+opencv-python>=4.9,<5   # 5.x quitó los detectores Haar que usa /cara
+numpy>=1.26
+# Solo en la Pi principal, para el mando Bluetooth: pip install evdev

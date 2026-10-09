@@ -1,0 +1,615 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Diagramas BB-8</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: hoja de ingeniería de una columna, cada diagrama a ancho completo con su tabla debajo */
+:root{
+  --bg:#f3f4f2; --paper:#fbfbf9; --ink:#1d2329; --muted:#5b646c; --line:#c9cdcf;
+  --accent:#d9631e; --accent-soft:#f6dfcf;
+  --w12:#c7362b; --w5:#c98a0b; --wgnd:#4a5258; --wsig:#2361b8; --wi2c:#2f8a4a; --wser:#7a46b8; --wmot:#8c4a2f;
+  --f-disp:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#15191c; --paper:#1c2125; --ink:#e6e9ea; --muted:#9aa3a9; --line:#3a4248;
+  --accent:#f08a46; --accent-soft:#3d2a1e;
+  --w12:#f0675b; --w5:#e8b23d; --wgnd:#a5adb3; --wsig:#6fa3f0; --wi2c:#5cc47b; --wser:#b48af0; --wmot:#d58a66;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15191c; --paper:#1c2125; --ink:#e6e9ea; --muted:#9aa3a9; --line:#3a4248;
+  --accent:#f08a46; --accent-soft:#3d2a1e;
+  --w12:#f0675b; --w5:#e8b23d; --wgnd:#a5adb3; --wsig:#6fa3f0; --wi2c:#5cc47b; --wser:#b48af0; --wmot:#d58a66;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:16px;padding-block:32px 64px}
+header{display:grid;gap:8px;padding-bottom:20px;border-bottom:2px solid var(--ink)}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-disp);font-weight:700;font-size:clamp(34px,6vw,54px);line-height:1;margin:0;text-wrap:balance}
+h1 span{color:var(--accent)}
+.lead{max-width:68ch;margin:0;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:6px;font-family:var(--f-mono);font-size:13px}
+nav a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}
+nav a:hover,nav a:focus-visible{border-color:var(--accent);outline:none}
+section{padding-top:44px;display:grid;gap:16px}
+h2{font-family:var(--f-disp);font-weight:600;font-size:30px;line-height:1.1;margin:0;display:flex;gap:12px;align-items:baseline;text-wrap:balance}
+h2 .n{font-family:var(--f-mono);font-size:14px;color:var(--accent);font-weight:600}
+h3{font-family:var(--f-disp);font-weight:600;font-size:20px;margin:8px 0 0}
+p{margin:0;max-width:72ch}
+figure{margin:0;background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:12px}
+.scroll{overflow-x:auto}
+figure svg{display:block;width:100%;height:auto;min-width:760px}
+figcaption{font-size:14px;color:var(--muted);padding:10px 4px 2px;max-width:80ch}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:var(--f-mono);font-size:12px;color:var(--muted);padding:4px}
+.legend i{display:inline-block;width:22px;height:3px;vertical-align:middle;margin-right:6px;border-radius:2px}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+.tbl{overflow-x:auto;background:var(--paper);border:1px solid var(--line);border-radius:4px}
+th,td{text-align:left;padding:7px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+tr:last-child td{border-bottom:0}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+.warn{border-left:3px solid var(--accent);background:var(--accent-soft);padding:10px 14px;border-radius:0 4px 4px 0;max-width:80ch}
+.warn b{font-family:var(--f-disp);font-size:17px;letter-spacing:.02em}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.two>*{min-width:0}
+ul{margin:0;padding-left:20px;max-width:72ch}
+li+li{margin-top:4px}
+footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+
+/* SVG */
+svg text{font-family:var(--f-body);fill:var(--ink);font-size:13px}
+svg .t{font-family:var(--f-disp);font-weight:600;font-size:17px}
+svg .s{fill:var(--muted);font-size:11.5px}
+svg .m{font-family:var(--f-mono);font-size:11px}
+svg .mb{font-family:var(--f-mono);font-size:11px;font-weight:600}
+svg .box{fill:var(--paper);stroke:var(--ink);stroke-width:1.5}
+svg .box2{fill:var(--bg);stroke:var(--ink);stroke-width:1.2}
+svg .hot{fill:var(--accent-soft);stroke:var(--accent);stroke-width:2}
+svg .zone{fill:none;stroke:var(--line);stroke-width:1.2;stroke-dasharray:5 4}
+svg .w{fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+svg .w12{stroke:var(--w12)} svg .w5{stroke:var(--w5)} svg .wg{stroke:var(--wgnd)}
+svg .ws{stroke:var(--wsig)} svg .wi{stroke:var(--wi2c)} svg .wr{stroke:var(--wser)} svg .wm{stroke:var(--wmot)}
+svg .wa{stroke:var(--accent)}
+svg .dash{stroke-dasharray:6 5}
+svg .ll{stroke:var(--line);stroke-width:1.2;stroke-dasharray:3 4}
+svg .arw{fill:none;stroke:var(--ink);stroke-width:1.5}
+svg .arwa{fill:none;stroke:var(--accent);stroke-width:2}
+svg .dot{fill:var(--ink)}
+svg .c12{fill:var(--w12)} svg .c5{fill:var(--w5)} svg .cg{fill:var(--wgnd)} svg .cs{fill:var(--wsig)}
+svg .ci{fill:var(--wi2c)} svg .cr{fill:var(--wser)} svg .cm{fill:var(--wmot)} svg .ca{fill:var(--accent)}
+@media (prefers-reduced-motion:no-preference){nav a{transition:border-color .15s}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Proyecto BB-8 · diagramas de sistema · rev. 9 oct 2026</div>
+  <h1>Cómo se conecta <span>BB-8</span></h1>
+  <p class="lead">Cableado de la Parte 1 con las piezas del pedido UNIT 377466, cómo se alimenta en el banco y con la LiPo, qué protocolo habla cada enlace y qué pasa cuando le dices "ven acá". Pines, puertos y mensajes coinciden con <code>bb8/code/PROTOCOLO.md</code>, el protocolo que usa el código.</p>
+  <nav aria-label="Secciones">
+    <a href="#cableado">1 · Cableado Parte 1</a>
+    <a href="#energia">2 · Alimentación</a>
+    <a href="#comunicacion">3 · Comunicación</a>
+    <a href="#agente">4 · Flujo del agente</a>
+    <a href="#simulacion">5 · Simulación en PC</a>
+  </nav>
+</header>
+
+<!-- ============ 1 CABLEADO ============ -->
+<section id="cableado">
+  <h2><span class="n">01</span>Cableado en protoboard, Parte 1</h2>
+  <p>Un solo L298N mueve los dos motores (el segundo queda de repuesto). El Arduino recibe 5 V por el USB de la Pi, así que una caída de la fuente de 12 V no lo reinicia. El servo come de su propio buck y nunca del Arduino.</p>
+  <div class="legend">
+    <span><i style="background:var(--w12)"></i>+12 V</span>
+    <span><i style="background:var(--w5)"></i>+5.1 V buck</span>
+    <span><i style="background:var(--wgnd)"></i>GND común</span>
+    <span><i style="background:var(--wmot)"></i>salida a motor</span>
+    <span><i style="background:var(--wsig)"></i>señal / PWM / encoder</span>
+    <span><i style="background:var(--wi2c)"></i>I2C</span>
+    <span><i style="background:var(--wser)"></i>USB serial</span>
+  </div>
+  <figure>
+    <div class="scroll">
+    <svg viewBox="0 0 1000 730" role="img" aria-label="Diagrama de cableado: fuente de 12 V al L298N y al buck LM2596; buck a servo; L298N a dos motores; Arduino controla el L298N con seis pines, lee encoders, MPU6050 y VL53L0X por I2C; Raspberry Pi conectada por USB al Arduino; todas las masas unidas.">
+      <!-- GND bus -->
+      <path class="w wg" d="M8 70 V705 H920 V500"/>
+      <path class="w wg" d="M20 70 H8"/>
+      <path class="w wg" d="M20 225 H8"/>
+      <path class="w wg" d="M20 330 H8"/>
+      <path class="w wg" d="M20 455 H8"/>
+      <path class="w wg" d="M440 650 V705"/>
+      <path class="w wg" d="M900 500 H920"/>
+      <path class="w wg" d="M900 600 H920"/>
+      <text class="m" x="470" y="722" style="fill:var(--wgnd)">riel GND común de la protoboard</text>
+
+      <!-- PSU -->
+      <rect class="box" x="20" y="30" width="190" height="72" rx="3"/>
+      <text class="t" x="34" y="56">Adaptador 12 V 2 A</text>
+      <text class="s" x="34" y="74">jack barril → bornes</text>
+      <text class="s" x="34" y="90">entrada a la protoboard</text>
+
+      <!-- PSU to L298N -->
+      <path class="w w12" d="M210 50 H330"/>
+      <text class="mb" x="226" y="44" style="fill:var(--w12)">+12 V</text>
+      <path class="w wg" d="M210 86 H330"/>
+      <text class="mb" x="226" y="80" style="fill:var(--wgnd)">GND</text>
+
+      <!-- PSU to buck -->
+      <path class="w w12" d="M115 102 V170"/>
+      <text class="mb" x="122" y="142" style="fill:var(--w12)">+12 V</text>
+
+      <!-- Buck -->
+      <rect class="box" x="20" y="170" width="190" height="72" rx="3"/>
+      <text class="t" x="34" y="196">LM2596 buck</text>
+      <text class="s" x="34" y="214">IN 12 V → OUT 5.1 V</text>
+      <text class="s" x="34" y="230">ajustar en vacío primero</text>
+
+      <path class="w w5" d="M115 242 V305"/>
+      <text class="mb" x="122" y="278" style="fill:var(--w5)">+5.1 V</text>
+
+      <!-- Cap -->
+      <rect class="box" x="20" y="305" width="190" height="52" rx="3"/>
+      <text class="t" x="34" y="328">1000 µF 16 V</text>
+      <text class="s" x="34" y="346">en paralelo, pata larga a +</text>
+
+      <path class="w w5" d="M115 357 V420"/>
+
+      <!-- Servo -->
+      <rect class="box" x="20" y="420" width="190" height="72" rx="3"/>
+      <text class="t" x="34" y="446">Servo MG996R</text>
+      <text class="s" x="34" y="464">poste de la cabeza</text>
+      <text class="s" x="34" y="480">rojo 5.1 V · café GND</text>
+
+      <path class="w ws" d="M210 470 H330"/>
+      <text class="mb" x="222" y="464" style="fill:var(--wsig)">naranja → D9</text>
+
+      <!-- Pi -->
+      <rect class="box" x="20" y="560" width="190" height="80" rx="3"/>
+      <text class="t" x="34" y="586">Raspberry Pi</text>
+      <text class="s" x="34" y="604">con su cargador USB</text>
+      <text class="s" x="34" y="620">GND llega por el cable USB</text>
+
+      <path class="w wr" d="M210 600 H330"/>
+      <text class="mb" x="222" y="594" style="fill:var(--wser)">USB · 115200</text>
+
+      <!-- L298N -->
+      <rect class="box" x="330" y="30" width="220" height="230" rx="3"/>
+      <text class="t" x="440" y="110" text-anchor="middle">L298N</text>
+      <text class="s" x="440" y="128" text-anchor="middle">puente H doble</text>
+      <text class="s" x="440" y="150" text-anchor="middle">quitar jumpers ENA y ENB</text>
+      <text class="s" x="440" y="166" text-anchor="middle">jumper 5V-EN puesto</text>
+      <text class="s" x="440" y="182" text-anchor="middle">salida 5 V del módulo: no usar</text>
+      <text class="m" x="340" y="54">+12V</text>
+      <text class="m" x="340" y="90">GND</text>
+      <text class="m" x="540" y="74" text-anchor="end">OUT1·2</text>
+      <text class="m" x="540" y="194" text-anchor="end">OUT3·4</text>
+      <g class="m">
+        <text x="350" y="250" text-anchor="middle">ENA</text>
+        <text x="386" y="250" text-anchor="middle">IN1</text>
+        <text x="422" y="250" text-anchor="middle">IN2</text>
+        <text x="458" y="250" text-anchor="middle">IN3</text>
+        <text x="494" y="250" text-anchor="middle">IN4</text>
+        <text x="530" y="250" text-anchor="middle">ENB</text>
+      </g>
+
+      <!-- Control lines -->
+      <path class="w ws" d="M350 260 V330 M386 260 V330 M422 260 V330 M458 260 V330 M494 260 V330 M530 260 V330"/>
+
+      <!-- Arduino -->
+      <rect class="box" x="330" y="330" width="220" height="320" rx="3"/>
+      <g class="m">
+        <text x="350" y="346" text-anchor="middle">D5</text>
+        <text x="386" y="346" text-anchor="middle">D7</text>
+        <text x="422" y="346" text-anchor="middle">D8</text>
+        <text x="458" y="346" text-anchor="middle">D11</text>
+        <text x="494" y="346" text-anchor="middle">D12</text>
+        <text x="530" y="346" text-anchor="middle">D6</text>
+      </g>
+      <text class="s" x="440" y="364" text-anchor="middle">PWM izq · sentido izq · sentido der · PWM der</text>
+      <text class="t" x="440" y="540" text-anchor="middle">Arduino</text>
+      <text class="s" x="440" y="558" text-anchor="middle">Uno / Nano · 5 V por USB</text>
+      <text class="s" x="440" y="574" text-anchor="middle">PID 10 ms · watchdog 500 ms</text>
+      <text class="m" x="342" y="474">D9</text>
+      <text class="m" x="342" y="604">USB</text>
+      <text class="m" x="538" y="404" text-anchor="end">D3 · D10</text>
+      <text class="m" x="538" y="444" text-anchor="end">D2 · D4</text>
+      <text class="m" x="538" y="504" text-anchor="end">A4 · A5</text>
+      <text class="m" x="440" y="640" text-anchor="middle">GND</text>
+
+      <!-- Motors -->
+      <path class="w wm" d="M550 70 H700"/>
+      <text class="mb" x="566" y="64" style="fill:var(--wmot)">→ M1 · M2</text>
+      <path class="w wm" d="M550 190 H700"/>
+      <text class="mb" x="566" y="184" style="fill:var(--wmot)">→ M1 · M2</text>
+
+      <rect class="box" x="700" y="30" width="200" height="80" rx="3"/>
+      <text class="t" x="714" y="56">Motor izquierdo</text>
+      <text class="s" x="714" y="74">JGB37-520B · 12 V · 319 rpm</text>
+      <text class="s" x="714" y="90">encoder: VCC 5 V, GND, C1, C2</text>
+
+      <rect class="box" x="700" y="150" width="200" height="80" rx="3"/>
+      <text class="t" x="714" y="176">Motor derecho</text>
+      <text class="s" x="714" y="194">JGB37-520B · 12 V · 319 rpm</text>
+      <text class="s" x="714" y="210">encoder: VCC 5 V, GND, C1, C2</text>
+
+      <!-- Encoders -->
+      <path class="w ws" d="M900 190 H935 V400 H550"/>
+      <text class="mb" x="600" y="394" style="fill:var(--wsig)">encoder der C1 · C2</text>
+      <path class="w ws" d="M900 70 H965 V440 H550"/>
+      <text class="mb" x="600" y="434" style="fill:var(--wsig)">encoder izq C1 · C2</text>
+
+      <!-- I2C -->
+      <path class="w wi" d="M550 500 H700 M620 500 V600 H700"/>
+      <circle class="ci" cx="620" cy="500" r="3.5"/>
+      <text class="mb" x="560" y="492" style="fill:var(--wi2c)">SDA · SCL</text>
+
+      <rect class="box" x="700" y="470" width="200" height="64" rx="3"/>
+      <text class="t" x="714" y="495">MPU6050 · 0x68</text>
+      <text class="s" x="714" y="513">inclinación; INT → A2</text>
+      <text class="s" x="714" y="527">VCC 5 V del Arduino</text>
+
+      <rect class="box" x="700" y="568" width="200" height="64" rx="3"/>
+      <text class="t" x="714" y="593">VL53L0X · 0x29</text>
+      <text class="s" x="714" y="611">freno reflejo &lt; 25 cm</text>
+      <text class="s" x="714" y="625">VCC 5 V del Arduino</text>
+    </svg>
+    </div>
+    <figcaption>Todo lo que se mueve cuelga de 12 V; todo lo que piensa cuelga de USB. La única unión entre los dos mundos es el riel de GND y los seis cables del L298N. El VL53L0X va en el bus I2C del Arduino mientras no haya esfera, para que el freno no dependa de la Pi; en la Parte 5 sube a la cabeza.</figcaption>
+  </figure>
+
+  <div class="two">
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Pin Arduino</th><th>Va a</th><th>Uso</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">D5 · D6</td><td>L298N ENA · ENB</td><td>PWM izq · der (Timer0)</td></tr>
+          <tr><td class="mono">D7 · D8</td><td>L298N IN1 · IN2</td><td>sentido motor izq</td></tr>
+          <tr><td class="mono">D11 · D12</td><td>L298N IN3 · IN4</td><td>sentido motor der</td></tr>
+          <tr><td class="mono">D2 · D4</td><td>encoder izq C1 · C2</td><td>D2 = INT0</td></tr>
+          <tr><td class="mono">D3 · D10</td><td>encoder der C1 · C2</td><td>D3 = INT1</td></tr>
+          <tr><td class="mono">D9</td><td>servo MG996R</td><td>señal; la librería Servo toma Timer1</td></tr>
+          <tr><td class="mono">A4 · A5</td><td>MPU6050 + VL53L0X</td><td>I2C SDA · SCL</td></tr>
+          <tr><td class="mono">A2</td><td>MPU6050 INT</td><td>despertar del reposo</td></tr>
+          <tr><td class="mono">A0</td><td>divisor de batería</td><td>opcional, da el <code>V=</code> de <code>?</code></td></tr>
+          <tr><td class="mono">A3</td><td>MOSFET de la Pi</td><td>Parte 6, reposo profundo</td></tr>
+          <tr><td class="mono">USB</td><td>Raspberry Pi</td><td>serial 115200 y 5 V</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="display:grid;gap:12px;align-content:start">
+      <h3>Por qué estos pines</h3>
+      <ul>
+        <li>El Uno solo tiene dos interrupciones externas (D2, D3); cada una toma el canal C1 de un encoder. C2 se lee dentro de la interrupción para saber el sentido.</li>
+        <li>La librería Servo apaga el PWM de D9 y D10, así que los PWM de motor van en D5 y D6.</li>
+        <li>MPU6050 y VL53L0X tienen direcciones distintas y comparten bus sin problema.</li>
+        <li>Si tu Arduino es un Mega, el mismo mapa funciona; solo cambian los pines I2C a 20 y 21.</li>
+      </ul>
+      <p class="warn"><b>Antes de energizar.</b> Ajusta el LM2596 a 5.1 V sin nada conectado. Prueba los motores al 50 % con las ruedas al aire. Con el adaptador de 2 A no frenes una rueda con la mano mientras el servo se mueve: un motor trabado más el servo a tope pasan de 2 A.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2 ENERGIA ============ -->
+<section id="energia">
+  <h2><span class="n">02</span>Alimentación: banco contra LiPo</h2>
+  <p>Lo que cambia de la Parte 1 a la Parte 6 está en naranja: la LiPo con fusible e interruptor sustituye al adaptador, y la Pi deja su cargador para comer del buck. Ahí aparece un problema de capacidad.</p>
+  <figure>
+    <div class="scroll">
+    <svg viewBox="0 0 1000 400" role="img" aria-label="Comparación de alimentación. Parte 1: adaptador de 12 V alimenta L298N y un buck para el servo; la Pi usa su cargador. Parte 6: LiPo 3S pasa por fusible y rocker hacia L298N, un buck para la Pi y un segundo buck para el servo; la cabeza usa su power bank.">
+      <rect class="zone" x="10" y="10" width="470" height="380" rx="4"/>
+      <rect class="zone" x="520" y="10" width="470" height="380" rx="4"/>
+      <text class="t" x="28" y="38">Parte 1 · banco</text>
+      <text class="t" x="538" y="38">Parte 6 · dentro de la esfera</text>
+
+      <!-- P1 -->
+      <rect class="box" x="30" y="70" width="150" height="54" rx="3"/>
+      <text class="t" x="44" y="94">Adaptador 12 V</text>
+      <text class="s" x="44" y="112">2 A de pared</text>
+      <path class="w w12" d="M180 97 H300 M240 97 V200 H300"/>
+      <circle class="c12" cx="240" cy="97" r="3.5"/>
+      <rect class="box" x="300" y="70" width="160" height="54" rx="3"/>
+      <text class="t" x="314" y="94">L298N → motores</text>
+      <text class="s" x="314" y="112">~10 V en el motor (cae 2 V)</text>
+      <rect class="box" x="300" y="173" width="160" height="54" rx="3"/>
+      <text class="t" x="314" y="197">LM2596 5.1 V</text>
+      <text class="s" x="314" y="215">solo servo</text>
+      <path class="w w5" d="M380 227 V270"/>
+      <rect class="box" x="300" y="270" width="160" height="40" rx="3"/>
+      <text class="t" x="314" y="296">Servo MG996R</text>
+
+      <rect class="box" x="30" y="270" width="150" height="54" rx="3"/>
+      <text class="t" x="44" y="294">Cargador USB</text>
+      <text class="s" x="44" y="312">el de la Pi</text>
+      <path class="w w5" d="M105 324 V350"/>
+      <rect class="box" x="30" y="350" width="150" height="30" rx="3"/>
+      <text class="mb" x="44" y="370">Pi → USB → Arduino</text>
+
+      <!-- P6 -->
+      <rect class="hot" x="540" y="62" width="130" height="62" rx="3"/>
+      <text class="t" x="552" y="86">LiPo 3S</text>
+      <text class="s" x="552" y="102">11.1 V · 5.2 Ah</text>
+      <text class="s" x="552" y="116">XT60 · alarma 3.5 V</text>
+      <path class="w wa" d="M670 93 H700"/>
+      <rect class="hot" x="700" y="72" width="100" height="42" rx="3"/>
+      <text class="mb" x="712" y="90">fusible 5 A</text>
+      <text class="mb" x="712" y="106">+ rocker</text>
+      <path class="w w12" d="M800 93 H830 M815 93 V185 H830 M815 185 V275 H830"/>
+      <circle class="c12" cx="815" cy="93" r="3.5"/><circle class="c12" cx="815" cy="185" r="3.5"/>
+      <rect class="box" x="830" y="72" width="145" height="42" rx="3"/>
+      <text class="t" x="842" y="98">L298N → motores</text>
+      <rect class="hot" x="830" y="160" width="145" height="50" rx="3"/>
+      <text class="t" x="842" y="182">Buck A 5.1 V</text>
+      <text class="s" x="842" y="200">solo la Pi + 1000 µF</text>
+      <rect class="hot" x="830" y="250" width="145" height="50" rx="3"/>
+      <text class="t" x="842" y="272">Buck B 5–6 V</text>
+      <text class="s" x="842" y="290">solo el servo</text>
+      <path class="w wa" d="M830 185 H760 V250"/>
+      <rect class="hot" x="690" y="250" width="110" height="44" rx="3"/>
+      <text class="mb" x="700" y="268">Pi principal</text>
+      <text class="s" x="700" y="285">MOSFET en A3</text>
+
+      <rect class="box" x="540" y="320" width="230" height="52" rx="3"/>
+      <text class="t" x="552" y="342">Cabeza, aparte</text>
+      <text class="s" x="552" y="360">power bank 18650 → Zero, ojo, PAM8403</text>
+    </svg>
+    </div>
+    <figcaption>El LM2596 da unos 2 A reales sin disipador. Una Pi 4 bajo carga pide 1–1.5 A y un MG996R trabado llega a 2.5 A, así que en la Parte 6 conviene un segundo buck solo para el servo (otro LM2596 de 42 pesos basta). Si la Pi es una Pi 5, el buck de la Pi debe ser de 5 A.</figcaption>
+  </figure>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Carga</th><th>De dónde</th><th>Corriente típica</th><th>Pico</th></tr></thead>
+      <tbody>
+        <tr><td>2 motores JGB37 al 55 % PWM</td><td>12 V por L298N</td><td>0.3–0.8 A en total en el piso</td><td>&gt; 1.5 A por motor trabado</td></tr>
+        <tr><td>Servo MG996R</td><td>buck 5.1 V</td><td>0.1–0.5 A</td><td>2.5 A (≈1.1 A a 12 V)</td></tr>
+        <tr><td>Arduino + encoders + MPU + VL53L0X</td><td>USB de la Pi</td><td>~80 mA</td><td>—</td></tr>
+        <tr><td>Raspberry Pi</td><td>cargador (P1) o buck A (P6)</td><td>0.6–1.2 A</td><td>1.5 A (Pi 4)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:14px;color:var(--muted)">Corrientes de motor y servo son valores típicos de hoja de datos, no medidas; mídelas con el multímetro en la Parte 1.</p>
+</section>
+
+<!-- ============ 3 COMUNICACION ============ -->
+<section id="comunicacion">
+  <h2><span class="n">03</span>Quién habla con quién</h2>
+  <p>La Pi principal es el centro. Adentro corren tres procesos y solo uno, el servicio de movimiento, toca el puerto serial. Claude nunca llega al Arduino: llega al servidor MCP, que le pide al servicio, que decide si obedece.</p>
+  <figure>
+    <div class="scroll">
+    <svg viewBox="0 0 1000 600" role="img" aria-label="Topología de comunicación: en la Pi principal el agente de voz es cliente del servidor MCP, que llama al servicio de movimiento por socket local. El agente habla con la API de Claude por HTTPS. Un portátil puede conectarse al MCP por el puerto 8765. El mando Bluetooth llega al servicio. El servicio habla con el Arduino por USB serial. El MCP habla con la Pi Zero de la cabeza por HTTP sobre WiFi.">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker>
+      </defs>
+      <!-- Pi -->
+      <rect class="zone" x="300" y="120" width="400" height="340" rx="6"/>
+      <text class="t" x="316" y="146">Raspberry Pi principal</text>
+      <text class="s" x="684" y="146" text-anchor="end">micrófono + altavoz USB</text>
+
+      <rect class="box" x="340" y="170" width="320" height="58" rx="3"/>
+      <text class="t" x="356" y="194">Agente de voz</text>
+      <text class="s" x="356" y="212">openWakeWord → Silero → whisper → Piper</text>
+
+      <rect class="box" x="340" y="272" width="320" height="58" rx="3"/>
+      <text class="t" x="356" y="296">Servidor MCP bb8-motion</text>
+      <text class="s" x="356" y="314">FastMCP · streamable-http :8765/mcp</text>
+
+      <rect class="box" x="340" y="380" width="320" height="58" rx="3"/>
+      <text class="t" x="356" y="404">Servicio de movimiento</text>
+      <text class="s" x="356" y="422">dueño del serial · árbitro mando/LLM · 50 ms</text>
+
+      <path class="arw" d="M500 228 V270" marker-end="url(#ar)"/>
+      <text class="m" x="508" y="254">cliente MCP</text>
+      <path class="arw" d="M500 330 V378" marker-end="url(#ar)"/>
+      <text class="m" x="508" y="352">HTTP JSON 127.0.0.1:8770</text>
+      <text class="s" x="508" y="368">/move /turn /look_at /stop /pose</text>
+
+      <!-- Claude API -->
+      <rect class="box2" x="380" y="20" width="240" height="56" rx="3"/>
+      <text class="t" x="500" y="44" text-anchor="middle">API de Claude</text>
+      <text class="s" x="500" y="62" text-anchor="middle">en la nube</text>
+      <path class="arw" d="M420 170 V78" marker-end="url(#ar)" marker-start="url(#ar)"/>
+      <text class="m" x="428" y="96">HTTPS</text>
+      <text class="s" x="428" y="111">texto, fotos, tool use</text>
+
+      <!-- Laptop -->
+      <rect class="box2" x="20" y="250" width="220" height="64" rx="3"/>
+      <text class="t" x="36" y="276">Portátil</text>
+      <text class="s" x="36" y="294">Claude Desktop o Claude Code</text>
+      <path class="arw" d="M240 290 H338" marker-end="url(#ar)"/>
+      <text class="m" x="248" y="282">WiFi :8765</text>
+
+      <!-- Gamepad -->
+      <rect class="box2" x="20" y="380" width="220" height="64" rx="3"/>
+      <text class="t" x="36" y="406">Mando Bluetooth</text>
+      <text class="s" x="36" y="424">gana si se tocó en el último 1 s</text>
+      <path class="arw" d="M240 410 H338" marker-end="url(#ar)"/>
+      <text class="m" x="248" y="402">BT · evdev</text>
+
+      <!-- Arduino -->
+      <rect class="box" x="380" y="520" width="240" height="64" rx="3"/>
+      <text class="t" x="500" y="546" text-anchor="middle">Arduino</text>
+      <text class="s" x="500" y="564" text-anchor="middle">motores, encoders, servo, IMU, ToF</text>
+      <path class="arw" d="M500 438 V518" marker-end="url(#ar)" marker-start="url(#ar)" style="stroke:var(--wser);stroke-width:2.2"/>
+      <text class="mb" x="510" y="478" style="fill:var(--wser)">USB serial 115200</text>
+      <text class="s" x="510" y="494">líneas de texto, una orden a la vez</text>
+
+      <!-- Zero -->
+      <rect class="box" x="760" y="240" width="220" height="130" rx="3"/>
+      <text class="t" x="776" y="266">Pi Zero 2 W · cabeza</text>
+      <text class="s" x="776" y="286">Starlette · uvicorn :8080</text>
+      <text class="s" x="776" y="304">cámara OV5647 (CSI)</text>
+      <text class="s" x="776" y="320">anillo WS2812 · PAM8403</text>
+      <text class="s" x="776" y="336">VL53L0X desde la Parte 5</text>
+      <text class="s" x="776" y="354">power bank propio</text>
+      <path class="arw" d="M660 300 H758" marker-end="url(#ar)" marker-start="url(#ar)"/>
+      <text class="m" x="668" y="292">WiFi :8080</text>
+      <text class="s" x="668" y="318">take_photo, say,</text>
+      <text class="s" x="668" y="332">set_eye_color</text>
+      <path class="arw" d="M660 410 H730 V352 H758" marker-end="url(#ar)"/>
+      <text class="m" x="668" y="432">GET /tof</text>
+      <text class="s" x="668" y="447">cada 100 ms → D</text>
+      <path class="arw dash" d="M870 370 V550 H622" marker-end="url(#ar)"/>
+      <text class="s" x="856" y="574" text-anchor="end">el imán sigue al poste (H)</text>
+    </svg>
+    </div>
+    <figcaption>El agente de voz es un cliente MCP igual que el portátil: las mismas herramientas sirven para hablarle o para manejarlo desde Claude Code. La cabeza no tiene cable; el giro lo hace el servo del poste con el comando <code>H</code>, y la cabeza lo sigue por los imanes.</figcaption>
+  </figure>
+
+  <div class="two">
+    <div style="display:grid;gap:8px;align-content:start">
+      <h3>Serial Pi → Arduino</h3>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Envía</th><th>Significa</th><th>Responde</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">M -60 60</td><td>velocidad izq, der (−255…255)</td><td class="mono">OK</td></tr>
+            <tr><td class="mono">H -40</td><td>poste −90…90°, 0 al frente, + derecha</td><td class="mono">OK</td></tr>
+            <tr><td class="mono">D 612</td><td>ToF de la cabeza en mm, válido 300 ms y solo con |H| ≤ 15°</td><td class="mono">OK</td></tr>
+            <tr><td class="mono">I</td><td>identificación al arrancar</td><td class="mono">OK BB8 fw=0.1</td></tr>
+            <tr><td class="mono">S</td><td>frenar ya</td><td class="mono">OK</td></tr>
+            <tr><td class="mono">?</td><td>estado</td><td class="mono">OK V=11.62 T=3.1 Y=-12.4 E=1420,1398 H=0 D=1830 F=-</td></tr>
+            <tr><td class="mono">Z · W</td><td>dormir · despertar</td><td class="mono">OK</td></tr>
+            <tr><td class="mono">M 300 0</td><td>fuera de rango</td><td class="mono">ERR range</td></tr>
+            <tr><td class="mono">M 70 70</td><td>avanzar con obstáculo &lt; 250 mm o inclinado</td><td class="mono">ERR obstacle · ERR tilt</td></tr>
+            <tr><td class="mono">M · H</td><td>estando dormido</td><td class="mono">ERR sleep</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:14px;color:var(--muted)">Cada línea termina en <code>\n</code> y recibe exactamente una respuesta. Solo <code>M</code> alimenta el watchdog de 500 ms, así que el servicio reenvía <code>M</code> cada 100 ms mientras se mueve. <code>F</code> en <code>?</code> lista las banderas activas: obstacle, tilt, watchdog, sleep. Mientras el ToF esté en el Arduino, su lectura local gana sobre <code>D</code>.</p>
+    </div>
+    <div style="display:grid;gap:8px;align-content:start">
+      <h3>HTTP → Pi Zero, puerto 8080</h3>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Ruta</th><th>Recibe</th><th>Devuelve</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">GET /estado</td><td>—</td><td>qué cámara y qué ToF hay</td></tr>
+            <tr><td class="mono">GET /foto?ancho=640</td><td>—</td><td>JPEG, lado mayor 640 px</td></tr>
+            <tr><td class="mono">GET /tof</td><td>—</td><td><code>{"mm":1830,"t":…}</code>, 0 sin lectura</td></tr>
+            <tr><td class="mono">POST /ojo</td><td><code>{"color":"azul","patron":"respirar","brillo":0.3}</code></td><td><code>{"ok":true}</code></td></tr>
+            <tr><td class="mono">POST /hablar</td><td><code>{"texto":"hola"}</code> o <code>{"sonido":"feliz"}</code></td><td><code>{"ok":true,"segundos":1.2}</code> al terminar</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:14px;color:var(--muted)">La foto, el ojo y la voz los pide el MCP; el <code>/tof</code> lo sondea el servicio de movimiento. El brillo del anillo se limita a 0.3. Ojo: la Zero no trae salida de audio, así que el PAM8403 necesita una tarjeta de sonido USB o PWM en GPIO13 con filtro RC.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4 AGENTE ============ -->
+<section id="agente">
+  <h2><span class="n">04</span>"BB-8, ven acá", paso a paso</h2>
+  <p>Cada herramienta es corta y termina sola, así que mientras Claude piensa no hay un motor girando. La línea naranja es el reflejo: el Arduino frena sin preguntarle a nadie y Claude se entera después.</p>
+  <figure>
+    <div class="scroll">
+    <svg viewBox="0 0 1000 690" role="img" aria-label="Diagrama de secuencia: Erick habla, el agente transcribe y manda texto a Claude, Claude pide una foto a la cabeza por MCP, gira, avanza; el Arduino frena solo al detectar un obstáculo a menos de 25 cm, el servicio devuelve blocked y Claude responde ya llegué.">
+      <defs>
+        <marker id="sq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker>
+      </defs>
+      <!-- lanes -->
+      <g>
+        <rect class="box2" x="30" y="16" width="110" height="44" rx="3"/><text class="t" x="85" y="44" text-anchor="middle">Erick</text>
+        <rect class="box2" x="190" y="16" width="130" height="44" rx="3"/><text class="t" x="255" y="44" text-anchor="middle">Agente de voz</text>
+        <rect class="box2" x="370" y="16" width="120" height="44" rx="3"/><text class="t" x="430" y="44" text-anchor="middle">Claude</text>
+        <rect class="box2" x="530" y="16" width="150" height="44" rx="3"/><text class="t" x="605" y="44" text-anchor="middle">MCP + servicio</text>
+        <rect class="box2" x="720" y="16" width="110" height="44" rx="3"/><text class="t" x="775" y="44" text-anchor="middle">Arduino</text>
+        <rect class="box2" x="870" y="16" width="110" height="44" rx="3"/><text class="t" x="925" y="44" text-anchor="middle">Pi Zero</text>
+      </g>
+      <path class="ll" d="M85 60 V680 M255 60 V680 M430 60 V680 M605 60 V680 M775 60 V680 M925 60 V680"/>
+
+      <g class="m">
+        <path class="arw" d="M85 92 H253" marker-end="url(#sq)"/><text x="94" y="86">"oye BB-8, ven acá"</text>
+        <path class="arw" d="M255 128 H428" marker-end="url(#sq)"/><text x="264" y="122">texto + "habla Erick"</text>
+        <path class="arw" d="M430 164 H603" marker-end="url(#sq)"/><text x="439" y="158">take_photo()</text>
+        <path class="arw" d="M605 200 H923" marker-end="url(#sq)"/><text x="614" y="194">GET /foto</text>
+        <path class="arw dash" d="M925 236 H607" marker-end="url(#sq)"/><text x="916" y="230" text-anchor="end">JPEG 640 px</text>
+        <path class="arw dash" d="M605 272 H432" marker-end="url(#sq)"/><text x="596" y="266" text-anchor="end">imagen</text>
+        <text x="439" y="296" class="s">"Erick a la izquierda, lejos"</text>
+        <path class="arw" d="M430 320 H603" marker-end="url(#sq)"/><text x="439" y="314">turn(-40)</text>
+        <path class="arw" d="M605 356 H773" marker-end="url(#sq)"/><text x="614" y="350">M -60 60 … M 0 0</text>
+        <path class="arw dash" d="M775 392 H607" marker-end="url(#sq)"/><text x="766" y="386" text-anchor="end">OK</text>
+        <path class="arw dash" d="M605 428 H432" marker-end="url(#sq)"/><text x="596" y="422" text-anchor="end">done · 1.2 s</text>
+        <path class="arw" d="M430 464 H603" marker-end="url(#sq)"/><text x="439" y="458">move(1.0)</text>
+        <path class="arw" d="M605 500 H773" marker-end="url(#sq)"/><text x="614" y="494">M 70 70</text>
+      </g>
+      <!-- reflex -->
+      <rect class="hot" x="700" y="516" width="150" height="50" rx="3"/>
+      <text class="mb" x="775" y="537" text-anchor="middle" style="fill:var(--accent)">ToF &lt; 25 cm</text>
+      <text class="m" x="775" y="555" text-anchor="middle">M 0 0 en &lt; 20 ms</text>
+      <g class="m">
+        <path class="arwa dash" d="M775 590 H607" marker-end="url(#sq)"/><text x="766" y="584" text-anchor="end" style="fill:var(--accent)">ERR obstacle al siguiente M</text>
+        <path class="arw dash" d="M605 626 H432" marker-end="url(#sq)"/><text x="596" y="620" text-anchor="end">blocked · 0.6 m</text>
+        <path class="arw dash" d="M430 662 H87" marker-end="url(#sq)"/><text x="421" y="656" text-anchor="end">"ya llegué" + pitido (Piper)</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>Flechas sólidas son peticiones, punteadas son respuestas. Claude solo decide entre movimientos ya acotados (máx. 2 m, 5 s, PWM 55 %); los límites viven en el servicio y en el firmware, no en el prompt.</figcaption>
+  </figure>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Capa</th><th>Dónde</th><th>Ciclo</th><th>Reacciona a</th></tr></thead>
+      <tbody>
+        <tr><td>Reflejos</td><td>Arduino</td><td class="mono">10 ms</td><td>ToF &lt; 25 cm, inclinación &gt; 35°, 500 ms sin órdenes</td></tr>
+        <tr><td>Servicio de movimiento</td><td>Pi, Python</td><td class="mono">50 ms</td><td>metros y grados a pulsos de encoder; mando contra LLM</td></tr>
+        <tr><td>"BB-8, alto"</td><td>Pi, segunda wake word</td><td class="mono">~300 ms</td><td>manda <code>stop</code> directo, sin pasar por Claude</td></tr>
+        <tr><td>Agente</td><td>Claude vía MCP</td><td class="mono">1–4 s</td><td>qué herramienta sigue, según lo que ve y oye</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 5 SIMULACION ============ -->
+<section id="simulacion">
+  <h2><span class="n">05</span>Simulación en el PC</h2>
+  <p>Sí se puede simular la visión antes de tener la cabeza. La idea es que el agente, el MCP y el servicio sean exactamente el mismo código; solo cambian los dos extremos, y se eligen con un ajuste de configuración.</p>
+  <figure>
+    <div class="scroll">
+    <svg viewBox="0 0 1000 330" role="img" aria-label="Simulación: el mismo código de agente, MCP y servicio arriba; abajo, a la izquierda el hardware real (Arduino por USB y Pi Zero por WiFi), a la derecha los sustitutos en el PC (Arduino falso que contesta OK y simula encoders, y una webcam del PC servida con la misma API HTTP).">
+      <defs>
+        <marker id="sm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker>
+      </defs>
+      <rect class="box" x="250" y="20" width="500" height="80" rx="3"/>
+      <text class="t" x="500" y="50" text-anchor="middle">Agente · servidor MCP · servicio de movimiento</text>
+      <text class="s" x="500" y="72" text-anchor="middle">mismo código en la Pi o en el PC</text>
+      <text class="s" x="500" y="88" text-anchor="middle">la configuración dice a qué puerto serial y a qué URL de cabeza hablar</text>
+
+      <rect class="zone" x="20" y="140" width="440" height="170" rx="4"/>
+      <text class="t" x="36" y="166">Robot real</text>
+      <rect class="box" x="40" y="190" width="190" height="96" rx="3"/>
+      <text class="t" x="54" y="214">Arduino</text>
+      <text class="s" x="54" y="232">USB serial</text>
+      <text class="s" x="54" y="248">motores y encoders reales</text>
+      <rect class="box" x="250" y="190" width="190" height="96" rx="3"/>
+      <text class="t" x="264" y="214">Pi Zero</text>
+      <text class="s" x="264" y="232">HTTP por WiFi</text>
+      <text class="s" x="264" y="248">cámara OV5647</text>
+
+      <rect class="zone" x="540" y="140" width="440" height="170" rx="4" style="stroke:var(--accent)"/>
+      <text class="t" x="556" y="166" style="fill:var(--accent)">En el PC, sin hardware</text>
+      <rect class="hot" x="560" y="190" width="190" height="96" rx="3"/>
+      <text class="t" x="574" y="214">Arduino falso</text>
+      <text class="s" x="574" y="232">socket://127.0.0.1:5555</text>
+      <text class="s" x="574" y="248">mismo protocolo, encoders</text>
+      <text class="s" x="574" y="264">y habitación simulada</text>
+      <rect class="hot" x="770" y="190" width="190" height="96" rx="3"/>
+      <text class="t" x="784" y="214">Cabeza falsa</text>
+      <text class="s" x="784" y="232">127.0.0.1:8080, mismas rutas</text>
+      <text class="s" x="784" y="248">/foto lee la webcam del PC</text>
+      <text class="s" x="784" y="264">/sim/empujar lo inclina</text>
+
+      <path class="arw" d="M380 100 V128 H135 V188" marker-end="url(#sm)"/>
+      <path class="arw" d="M380 128 H345 V188" marker-end="url(#sm)"/>
+      <path class="arwa" d="M620 100 V128 H655 V188" marker-end="url(#sm)"/>
+      <path class="arwa" d="M620 128 H865 V188" marker-end="url(#sm)"/>
+      <text class="m" x="150" y="122">config: robot</text>
+      <text class="m" x="680" y="122" style="fill:var(--accent)">config: simulación</text>
+    </svg>
+    </div>
+    <figcaption>Con la webcam, Claude ya puede ver la habitación, decidir "gira 40° a la izquierda" y probar todo el bucle de voz y herramientas. El Arduino falso responde por un socket que pyserial abre igual que <code>/dev/ttyACM0</code>, así que el servicio y el MCP se prueban antes de que llegue el pedido. <code>python lanzar_dummy.py</code> arranca el robot falso, el servicio y el MCP con la webcam como cámara.</figcaption>
+  </figure>
+</section>
+
+<footer>Fuentes: "Proyecto BB-8 con agente LLM" (doc técnico), pedido UNIT 377466 del 8 oct 2026 y el tracker de avance. Protocolo: <code>bb8/code/PROTOCOLO.md</code>.</footer>
+</div>
+
+</body></html>

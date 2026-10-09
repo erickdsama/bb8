@@ -1,0 +1,249 @@
+
+<title>Mecánica BB-8</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#F6F3EE; --panel:#FFFFFF; --ink:#1E2229; --muted:#6B7280; --line:#E3DED6;
+  --shell:#F3EDE4; --shell-edge:#C9C0B3; --orange:#E8792B; --steel:#5C6670; --steel-2:#8A939C;
+  --blue:#2F6FD6; --magnet:#C0398B; --ground:#D9D2C6; --accent:#E8792B;
+  --shadow:0 1px 2px rgba(30,34,41,.06),0 8px 24px rgba(30,34,41,.08);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  color-scheme:dark; --bg:#14171C; --panel:#1C2027; --ink:#EEF0F3; --muted:#9AA3AE; --line:#2C323B;
+  --shell:#E9E2D6; --shell-edge:#8E8677; --steel:#9AA3AE; --steel-2:#6B7480; --ground:#2C323B;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark; --bg:#14171C; --panel:#1C2027; --ink:#EEF0F3; --muted:#9AA3AE; --line:#2C323B;
+  --shell:#E9E2D6; --shell-edge:#8E8677; --steel:#9AA3AE; --steel-2:#6B7480; --ground:#2C323B;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 "Source Sans 3",system-ui,sans-serif;padding-block:28px 48px;padding-inline:20px}
+.wrap{max-width:1040px;margin:0 auto;display:grid;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px}
+h1{font:700 30px/1.1 Outfit,system-ui,sans-serif;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:var(--muted);margin:0;max-width:60ch}
+.stage{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+canvas{display:block;width:100%;height:auto}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:12px 16px;border-top:1px solid var(--line)}
+.phases{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:5px 12px;font:600 13px/1 "Source Sans 3",sans-serif;letter-spacing:.02em;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--orange);border-color:var(--orange);color:#fff}
+.chip:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.grow{flex:1}
+.ctl{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
+.ctl input[type=range]{width:110px;accent-color:var(--orange)}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:10px;padding:7px 14px;font:600 14px Outfit,sans-serif;cursor:pointer}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.card h3{font:700 15px Outfit,sans-serif;margin:0 0 6px;display:flex;align-items:center;gap:8px}
+.card p{margin:0;color:var(--muted);font-size:14.5px}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.now{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 18px;display:grid;grid-template-columns:auto 1fr;gap:4px 16px;align-items:baseline}
+.now b{font:700 18px Outfit,sans-serif}
+.now span{color:var(--muted)}
+.stats{display:flex;gap:18px;flex-wrap:wrap;font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted)}
+.stats strong{color:var(--ink);font-weight:600}
+@media (prefers-reduced-motion:reduce){ .chip,.btn{transition:none} }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Cómo se mueve el BB-8</h1>
+    <p class="sub">Corte transversal. Una plataforma con lastre cuelga dentro de la esfera; al subir por la pared interior, la esfera rueda. La cabeza sigue a un imán en el poste.</p>
+  </header>
+
+  <div class="stage">
+    <canvas id="c" width="1040" height="560" aria-label="Animación del mecanismo interno del BB-8"></canvas>
+    <div class="bar">
+      <div class="phases" id="phases" role="group" aria-label="Fase"></div>
+      <div class="grow"></div>
+      <label class="ctl"><input type="checkbox" id="vec" checked> Fuerzas</label>
+      <label class="ctl">Velocidad <input type="range" id="spd" min="0.4" max="1.6" step="0.1" value="1"></label>
+      <button class="btn primary" id="play" aria-pressed="true">Pausa</button>
+    </div>
+  </div>
+
+  <div class="now">
+    <b id="ph-title">Reposo</b><span id="ph-text">La plataforma cuelga vertical bajo el centro. El lastre abajo, los imanes arriba, nada se mueve.</span>
+    <div class="stats" style="grid-column:1/-1">
+      <span>Inclinación <strong id="s-th">0°</strong></span>
+      <span>Velocidad <strong id="s-v">0.00 m/s</strong></span>
+      <span>Esfera <strong id="s-phi">0°</strong></span>
+      <span>Ruedas PWM <strong id="s-pwm">0 %</strong></span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card"><h3><span class="dot" style="background:var(--steel)"></span>Gravedad hace de resorte</h3><p>El lastre mantiene la plataforma colgando. Cuando las ruedas empujan, la plataforma se inclina un ángulo θ y su peso, desplazado del centro, es el par que hace rodar la esfera. Sin lastre suficiente, la plataforma da la vuelta completa.</p></div>
+    <div class="card"><h3><span class="dot" style="background:var(--orange)"></span>Ruedas contra la pared</h3><p>Dos ruedas de goma tocan la pared interior; dos rodamientos de bola a 90° mantienen la plataforma centrada. Si los rodamientos tocan antes que las ruedas, la esfera no gira.</p></div>
+    <div class="card"><h3><span class="dot" style="background:var(--magnet)"></span>Imanes sostienen la cabeza</h3><p>Cuatro imanes en el poste y cuatro en la cabeza se atraen a través del casco. La cabeza rueda sobre tres ruedecitas y siempre queda encima del poste, gire lo que gire la esfera.</p></div>
+    <div class="card"><h3><span class="dot" style="background:var(--blue)"></span>El bamboleo al frenar</h3><p>Al detenerse, la plataforma oscila como un péndulo. La IMU lo mide y el firmware aplica un contra-par corto. El Instructable original no lo tenía y es lo primero que se nota.</p></div>
+  </div>
+</div>
+
+<script>
+(function(){
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const W=cv.width,H=cv.height;
+const R=170, cx=W*0.5, cy=H-R-70;               // esfera
+const Rin=R-9;                                   // pared interior
+const wheelR=22, baseDepth=Rin-wheelR-6;         // profundidad de la base bajo el centro
+const g=9.81, pxPerM=R/0.16;                     // esfera de 32 cm
+
+// ---------- fases ----------
+const PH=[
+ {k:'reposo',  n:'Reposo',   t:2.2, a:0,   txt:'La plataforma cuelga vertical bajo el centro. El lastre abajo, los imanes arriba, nada se mueve.'},
+ {k:'acelera', n:'Acelera',  t:2.6, a:0.5, txt:'Las ruedas empujan hacia adelante. La plataforma sube por la pared (θ crece), su peso queda adelante del centro y ese par hace rodar la esfera.'},
+ {k:'crucero', n:'Crucero',  t:2.6, a:0.08,txt:'A velocidad constante solo hay que vencer la fricción. La plataforma se inclina apenas; la cabeza sigue al poste y queda encima.'},
+ {k:'frena',   n:'Frena',    t:1.8, a:-1.0,txt:'Las ruedas frenan. La plataforma se va hacia atrás del centro y su peso frena la esfera. La cabeza se adelanta un poco por inercia.'},
+ {k:'bamboleo',n:'Bamboleo', t:3.0, a:0,   txt:'Al parar, la plataforma oscila como péndulo. La IMU lo mide y el firmware aplica un contra-par corto en cada oscilación hasta que se calma.'}
+];
+let ph=0,tph=0,running=true,speed=1;
+let v=0,x=0,phi=0,theta=0,thetaDot=0,headTilt=0,headTiltDot=0,wheelAng=0,pwm=0;
+
+const phEl=document.getElementById('phases');
+PH.forEach((p,i)=>{const b=document.createElement('button');b.className='chip';b.textContent=p.n;b.setAttribute('aria-pressed',i===0);b.onclick=()=>{ph=i;tph=0;if(i===0){v=0;theta=0;thetaDot=0;}if(i===4){v=0.05;thetaDot=-1.6;}sync();};phEl.appendChild(b);});
+function sync(){[...phEl.children].forEach((b,i)=>b.setAttribute('aria-pressed',i===ph));
+  document.getElementById('ph-title').textContent=PH[ph].n;document.getElementById('ph-text').textContent=PH[ph].txt;}
+document.getElementById('play').onclick=e=>{running=!running;e.currentTarget.textContent=running?'Pausa':'Reproducir';e.currentTarget.setAttribute('aria-pressed',running);};
+document.getElementById('spd').oninput=e=>speed=+e.target.value;
+const vecEl=document.getElementById('vec');
+if(matchMedia('(prefers-reduced-motion: reduce)').matches){running=false;document.getElementById('play').textContent='Reproducir';}
+
+// ---------- física simplificada ----------
+function step(dt){
+  const P=PH[ph]; tph+=dt;
+  let a=P.a;
+  if(P.k==='acelera') a=P.a*Math.min(1,tph/0.6);
+  if(P.k==='frena'&&v<=0.02){a=0;v=0;}
+  if(P.k==='bamboleo'){a=0;v=0;}
+  v=Math.max(0,v+a*dt); x+=v*dt; phi+=v*dt/0.16;
+  // inclinación objetivo: la plataforma se inclina hasta que su peso compensa la aceleración
+  const thTarget=Math.atan2(a,g)*6;             // el brazo es corto; se exagera para verse
+  const K=P.k==='bamboleo'?26:40, C=P.k==='bamboleo'?(tph<0.5?0.6:5.5):7;  // IMU entra a los 0.5 s
+  thetaDot+=(-K*(theta-thTarget)-C*thetaDot)*dt; theta+=thetaDot*dt;
+  // cabeza: imanes la jalan al poste, con retraso
+  const ht=-theta*0.35+(a*0.04);
+  headTiltDot+=(-60*(headTilt-ht)-9*headTiltDot)*dt; headTilt+=headTiltDot*dt;
+  wheelAng+=(v/0.032)*dt*1.15;                   // rueda 65 mm, algo de deslizamiento
+  pwm=Math.round(Math.max(-100,Math.min(100,(a*40+v*35))));
+  if(tph>P.t){ph=(ph+1)%PH.length;tph=0;sync();}
+}
+
+// ---------- dibujo ----------
+function arrow(x1,y1,x2,y2,col,label){ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  const an=Math.atan2(y2-y1,x2-x1);ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-11*Math.cos(an-0.45),y2-11*Math.sin(an-0.45));ctx.lineTo(x2-11*Math.cos(an+0.45),y2-11*Math.sin(an+0.45));ctx.closePath();ctx.fill();
+  if(label){ctx.font='600 13px "Source Sans 3"';ctx.fillText(label,x2+8,y2+4);}}
+function tag(tx,ty,text,col){ctx.font='600 12.5px "Source Sans 3"';const w=ctx.measureText(text).width+14;ctx.fillStyle=css('--panel');ctx.strokeStyle=col;ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.roundRect(tx-w/2,ty-11,w,22,6);ctx.fill();ctx.stroke();ctx.fillStyle=col;ctx.textAlign='center';ctx.fillText(text,tx,ty+4);ctx.textAlign='left';}
+
+function draw(){
+  const ink=css('--ink'),muted=css('--muted'),shell=css('--shell'),edge=css('--shell-edge'),orange=css('--orange'),steel=css('--steel'),steel2=css('--steel-2'),blue=css('--blue'),mag=css('--magnet'),ground=css('--ground'),panel=css('--panel');
+  ctx.clearRect(0,0,W,H);
+  // suelo con marcas que se desplazan
+  const gy=cy+R+2; ctx.fillStyle=ground;ctx.fillRect(0,gy,W,H-gy);
+  ctx.strokeStyle=edge;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();
+  const off=(x*pxPerM)%60; ctx.strokeStyle=muted;ctx.lineWidth=1.2;
+  for(let i=-1;i<W/60+2;i++){const tx=i*60-off;ctx.beginPath();ctx.moveTo(tx,gy+8);ctx.lineTo(tx-6,gy+22);ctx.stroke();}
+  ctx.font='600 12px "Source Sans 3"';ctx.fillStyle=muted;ctx.fillText('suelo · cada marca = 10 cm',16,gy+40);
+  // sombra
+  ctx.fillStyle='rgba(0,0,0,.14)';ctx.beginPath();ctx.ellipse(cx,gy+3,R*0.85,7,0,0,Math.PI*2);ctx.fill();
+
+  // ---- casco (sección: mitad transparente) ----
+  ctx.save();ctx.translate(cx,cy);
+  ctx.fillStyle=shell;ctx.beginPath();ctx.arc(0,0,R,0,Math.PI*2);ctx.fill();
+  // paneles naranjas que giran con phi (3 de los 6 círculos, vistos de canto)
+  ctx.save();ctx.rotate(phi);
+  for(let i=0;i<3;i++){const an=i*2*Math.PI/3;ctx.save();ctx.rotate(an);ctx.strokeStyle=orange;ctx.lineWidth=5;ctx.beginPath();ctx.arc(0,0,R-9,-0.42,0.42);ctx.stroke();
+    ctx.strokeStyle=steel2;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,R-22,-0.3,0.3);ctx.stroke();ctx.restore();}
+  ctx.restore();
+  // interior visible (corte)
+  ctx.fillStyle=panel;ctx.globalAlpha=0.55;ctx.beginPath();ctx.arc(0,0,Rin,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+  ctx.strokeStyle=edge;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,R,0,Math.PI*2);ctx.stroke();
+  ctx.strokeStyle=edge;ctx.lineWidth=1.5;ctx.setLineDash([4,5]);ctx.beginPath();ctx.arc(0,0,Rin,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+
+  // ---- plataforma interna, rota theta alrededor del centro ----
+  ctx.save();ctx.rotate(-theta);
+  // poste
+  ctx.strokeStyle=steel;ctx.lineWidth=9;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(0,baseDepth-8);ctx.lineTo(0,-(Rin-16));ctx.stroke();
+  // portaimanes arriba
+  ctx.fillStyle=mag;ctx.beginPath();ctx.roundRect(-20,-(Rin-12),40,12,3);ctx.fill();
+  // base
+  const bw=Math.sqrt(Math.max(0,(Rin-wheelR)**2-baseDepth**2))+wheelR*0.2;
+  ctx.fillStyle=steel;ctx.beginPath();ctx.roundRect(-bw,baseDepth-10,bw*2,14,4);ctx.fill();
+  // batería + lastre debajo
+  ctx.fillStyle=blue;ctx.beginPath();ctx.roundRect(-46,baseDepth+6,92,16,4);ctx.fill();
+  ctx.fillStyle=ink;ctx.beginPath();ctx.roundRect(-30,baseDepth+24,60,10,3);ctx.fill();
+  // electrónica arriba de la base
+  ctx.fillStyle=steel2;ctx.beginPath();ctx.roundRect(-36,baseDepth-34,26,20,3);ctx.fill();ctx.beginPath();ctx.roundRect(12,baseDepth-30,30,16,3);ctx.fill();
+  // ruedas motrices (tocan la pared interior)
+  [-1,1].forEach(s=>{const wx=s*Math.sqrt(Math.max(0,(Rin-wheelR)**2-baseDepth**2)),wy=baseDepth;
+    ctx.save();ctx.translate(wx,wy);ctx.rotate(wheelAng);
+    ctx.fillStyle=ink;ctx.beginPath();ctx.arc(0,0,wheelR,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=orange;ctx.beginPath();ctx.arc(0,0,wheelR-6,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=ink;ctx.lineWidth=3;for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo((wheelR-7)*Math.cos(i*2.094),(wheelR-7)*Math.sin(i*2.094));ctx.stroke();}
+    ctx.restore();});
+  // rodamientos de bola (apoyo), a 90°: aquí vistos de frente, uno delante
+  ctx.fillStyle=steel2;ctx.beginPath();ctx.arc(0,baseDepth+38,7,0,Math.PI*2);ctx.fill();
+  ctx.restore(); // fin plataforma
+
+  // ---- fuerzas ----
+  if(vecEl.checked){
+    const gx=-Math.sin(theta)*baseDepth,gyy=Math.cos(theta)*baseDepth;
+    arrow(gx,gyy+40,gx,gyy+84,steel,'peso');
+    if(Math.abs(pwm)>3){const dir=Math.sign(pwm),wx0=dir*Math.sqrt(Math.max(0,(Rin-wheelR)**2-baseDepth**2)),wy0=baseDepth+wheelR+4;
+      const px=wx0*Math.cos(theta)+wy0*Math.sin(theta),py=-wx0*Math.sin(theta)+wy0*Math.cos(theta);
+      arrow(px,py,px+dir*46,py,orange,'tracción');}
+    // ángulo theta
+    if(Math.abs(theta)>0.02){ctx.strokeStyle=blue;ctx.lineWidth=1.5;ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,baseDepth);ctx.stroke();ctx.setLineDash([]);
+      ctx.beginPath();ctx.arc(0,0,70,Math.PI/2,Math.PI/2-theta,theta>0);ctx.stroke();
+      ctx.fillStyle=blue;ctx.font='600 14px "Source Sans 3"';ctx.fillText('θ',-Math.sin(theta/2)*84-5,Math.cos(theta/2)*84+5);}
+  }
+  ctx.restore(); // fin esfera
+
+  // ---- cabeza (fuera del casco, sobre el poste) ----
+  const mastTop={x:cx-Math.sin(theta)*(R+2),y:cy-Math.cos(theta)*(R+2)};
+  // el punto de contacto sigue al imán pero la cabeza se mantiene casi vertical
+  ctx.save();ctx.translate(mastTop.x,mastTop.y);ctx.rotate(-(headTilt+theta*0.15));
+  // ruedecitas
+  [-34,0,34].forEach(dx=>{ctx.fillStyle=steel2;ctx.beginPath();ctx.arc(dx,-6,5,0,Math.PI*2);ctx.fill();});
+  // chasis + imanes cabeza
+  ctx.fillStyle=mag;ctx.beginPath();ctx.roundRect(-20,-22,40,10,3);ctx.fill();
+  // cúpula
+  const hr=64;ctx.fillStyle=shell;ctx.beginPath();ctx.arc(0,-22,hr,Math.PI,0);ctx.lineTo(hr,-14);ctx.lineTo(-hr,-14);ctx.closePath();ctx.fill();
+  ctx.strokeStyle=edge;ctx.lineWidth=3;ctx.stroke();
+  ctx.strokeStyle=orange;ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-hr+4,-30);ctx.lineTo(hr-4,-30);ctx.stroke();
+  // ojo
+  ctx.fillStyle=ink;ctx.beginPath();ctx.arc(-18,-58,15,0,Math.PI*2);ctx.fill();ctx.fillStyle=blue;ctx.beginPath();ctx.arc(-18,-58,6,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=steel2;ctx.beginPath();ctx.arc(14,-50,6,0,Math.PI*2);ctx.fill();
+  // antena
+  ctx.strokeStyle=steel;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(6,-86);ctx.lineTo(6,-112);ctx.stroke();
+  ctx.restore();
+  // línea de atracción magnética
+  ctx.strokeStyle=mag;ctx.lineWidth=1.5;ctx.setLineDash([2,4]);ctx.beginPath();
+  ctx.moveTo(cx-Math.sin(theta)*(Rin-18),cy-Math.cos(theta)*(Rin-18));ctx.lineTo(mastTop.x,mastTop.y-17);ctx.stroke();ctx.setLineDash([]);
+
+  // ---- etiquetas ----
+  tag(mastTop.x+120,mastTop.y-40,'imanes N42 · cabeza',mag);
+  tag(cx-R-92,cy-70,'poste con imanes',mag);
+  tag(cx-R-96,cy+baseDepth-4,'ruedas 65 mm',orange);
+  tag(cx+R+92,cy+baseDepth-22,'LiPo + lastre',blue);
+  tag(cx+R+88,cy+baseDepth+14,'ball transfer',steel);
+  tag(cx+R+80,cy-30,'casco 32 cm',edge);
+
+  // stats
+  document.getElementById('s-th').textContent=(theta*180/Math.PI).toFixed(0)+'°';
+  document.getElementById('s-v').textContent=v.toFixed(2)+' m/s';
+  document.getElementById('s-phi').textContent=((phi*180/Math.PI)%360).toFixed(0)+'°';
+  document.getElementById('s-pwm').textContent=pwm+' %';
+}
+
+let last=performance.now();
+function loop(t){const dt=Math.min(0.05,(t-last)/1000);last=t;if(running){let n=Math.max(1,Math.round(speed*4));for(let i=0;i<n;i++)step(dt*speed/n);}draw();requestAnimationFrame(loop);}
+sync();requestAnimationFrame(loop);
+})();
+</script>
+

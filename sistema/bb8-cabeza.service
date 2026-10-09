@@ -1,0 +1,14 @@
+# Va en la Pi Zero 2 W. Root por el NeoPixel en GPIO18.
+[Unit]
+Description=BB-8 cabeza (cámara, ToF, ojo, altavoz)
+After=network-online.target
+
+[Service]
+User=root
+WorkingDirectory=/home/bb8/bb8
+ExecStart=/home/bb8/bb8/.venv/bin/python -m head.server
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

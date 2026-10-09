@@ -1,0 +1,28 @@
+# Registra los paquetes de Python de cada parte para que `python -m <paquete>` funcione
+# desde cualquier carpeta. Se instala una vez, en modo editable:
+#
+#     pip install -r requirements.txt
+#     pip install -e .
+#
+# Las dependencias viven en los requirements*.txt (la Pi Zero no necesita las de la Pi principal).
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bb8"
+version = "0.2.0"
+description = "BB-8 de 30 cm controlado por un agente LLM (Claude) vía MCP"
+requires-python = ">=3.11"
+
+[tool.setuptools]
+packages = ["bb8", "calibrar", "bb8_mcp", "voz", "head", "energia", "dummy"]
+
+[tool.setuptools.package-dir]
+bb8 = "partes/3-base-andando/bb8"
+calibrar = "partes/3-base-andando/calibrar"
+bb8_mcp = "partes/4-agente-movimiento/bb8_mcp"
+voz = "partes/4-agente-movimiento/voz"
+head = "partes/5-cabeza/head"
+energia = "partes/6-esfera-baterias/energia"
+dummy = "simulador/dummy"

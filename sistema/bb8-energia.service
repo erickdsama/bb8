@@ -1,0 +1,15 @@
+[Unit]
+Description=BB-8 gestor de energía (reposo ligero y profundo)
+After=bb8-motion.service
+Requires=bb8-motion.service
+
+[Service]
+User=bb8
+WorkingDirectory=/home/bb8/bb8
+EnvironmentFile=-/etc/bb8.env
+ExecStart=/home/bb8/bb8/.venv/bin/python -m energia
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

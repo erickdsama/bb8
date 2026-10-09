@@ -1,0 +1,18 @@
+[Unit]
+Description=BB-8 agente de voz
+After=bb8-mcp.service sound.target
+Requires=bb8-mcp.service
+
+[Service]
+User=bb8
+SupplementaryGroups=audio
+WorkingDirectory=/home/bb8/bb8
+# ANTHROPIC_API_KEY=... y los BB8_* que quieras cambiar
+EnvironmentFile=/etc/bb8.env
+ExecStartPre=/bin/sleep 3
+ExecStart=/home/bb8/bb8/.venv/bin/python -m voz
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

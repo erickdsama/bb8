@@ -1,0 +1,8 @@
+# Pi Zero 2 W (cabeza). Además: sudo apt install python3-picamera2 python3-opencv alsa-utils
+# (crea el venv con --system-site-packages para ver picamera2 y opencv del sistema)
+starlette>=0.37
+uvicorn>=0.30
+pillow>=10
+adafruit-circuitpython-vl53l0x
+adafruit-circuitpython-vl53l1x
+adafruit-circuitpython-neopixel

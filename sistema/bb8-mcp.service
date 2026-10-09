@@ -1,0 +1,16 @@
+[Unit]
+Description=BB-8 servidor MCP bb8-motion
+After=bb8-motion.service
+Requires=bb8-motion.service
+
+[Service]
+User=bb8
+WorkingDirectory=/home/bb8/bb8
+EnvironmentFile=-/etc/bb8.env
+# --host 0.0.0.0 para conectarte desde el portátil (sin contraseña: solo WiFi de casa)
+ExecStart=/home/bb8/bb8/.venv/bin/python -m bb8_mcp
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
