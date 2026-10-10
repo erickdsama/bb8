@@ -34,6 +34,7 @@ Además:
 
 | Carpeta | Qué hay |
 | --- | --- |
+| [`cad/`](cad) | Piezas imprimibles en OpenSCAD paramétrico: esfera, base, poste y cabeza, con STL y renders |
 | [`simulador/`](simulador) | Robot dummy: Arduino y cabeza simulados para correr todo en el PC sin hardware, y la prueba de punta a punta |
 | [`sistema/`](sistema) | Servicios systemd, instaladores para la Pi y la Zero, ejemplo de `/etc/bb8.env` |
 | [`docs/`](docs) | Documento técnico original y los artefactos (diagramas, avance, mecánica, animación) |

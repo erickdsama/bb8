@@ -49,7 +49,8 @@ firmware, no en el prompt.
 | `look_at(grados)` | Gira la cabeza −90…90° con el servo del poste |
 | `take_photo()` | Foto de la cabeza, 640 px |
 | `set_eye_color(color, patron)` | Anillo NeoPixel |
-| `say(texto o sonido)` | Habla con Piper o pita |
+| `say(texto o sonido)` | Habla con Piper (con balbuceo de pitidos antes) o pita |
+| `express(emocion)` | Pitido de la emoción y el color de ojo que le toca (15 emociones, `head/personalidad.py`) |
 | `get_pose()` | Posición, rumbo, inclinación, batería, distancia al frente |
 
 ## Seguridad

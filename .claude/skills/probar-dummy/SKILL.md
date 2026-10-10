@@ -6,7 +6,8 @@ description: Levanta el robot dummy (Arduino y cabeza simulados + servicio de mo
 # Probar con el dummy
 
 La prueba del proyecto es `dummy.probar`: llama por MCP a las ocho herramientas como
-lo haría Claude y comprueba frenos, mando y errores. No hay pytest ni CI.
+lo haría Claude y comprueba frenos, mando y errores. No hay pytest; el CI
+(`.github/workflows/ci.yml`) corre esta misma prueba en cada push y PR.
 
 ## 1. Entorno (una vez)
 
@@ -36,7 +37,7 @@ comprobación de la silla depende de la habitación simulada.
 python -m dummy.probar
 ```
 
-Debe terminar en `Todo bien` con 17 líneas ✅. Guarda `foto_dummy.jpg` en la carpeta
+Debe terminar en `Todo bien` con 19 líneas ✅. Guarda `foto_dummy.jpg` en la carpeta
 actual (está en `.gitignore`; bórrala si cae en otro sitio).
 
 Si una falla, el log del dummy (`/tmp/bb8-dummy.log`) tiene los tres procesos

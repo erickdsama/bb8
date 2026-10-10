@@ -11,19 +11,25 @@ Código: [`partes/5-cabeza`](https://github.com/erickdsama/bb8/tree/main/partes/
 | `head/server.py` | API HTTP `:8080`: `/estado`, `/foto`, `/tof`, `/ojo`, `/hablar`, `/cara`, `/reposo` |
 | `head/backends_real.py` | picamera2, VL53L0X o VL53L1X (se detecta solo), NeoPixel, Piper. **Sin probar en hardware todavía** |
 | `head/backends_sim.py` | Webcam del PC o vista sintética, ToF simulado (lo usa el simulador) |
-| `head/colors.py`, `head/sounds.py` | Colores con nombre, patrones del ojo y pitidos |
+| `head/colors.py` | Colores con nombre y patrones del ojo |
+| `head/sounds.py` | Pitidos de droide sintetizados: 15 emociones y balbuceo para cada frase |
+| `head/personalidad.py` | Emoción → pitido + color de ojo, frases cortas y la sección de personalidad del system prompt |
 | `requirements-zero.txt` | Dependencias de la Pi Zero |
 
 ## Hardware
 
-Pi Zero 2 W con su propio power bank 18650, cámara OV5647 por CSI (cable de 15 pines
-para Zero), anillo WS2812 de 16 LED en **GPIO18**, PAM8403 + altavoz 4 Ω y, si se muda
+Pi Zero 2 W con su propio power bank 18650, cámara OV5647 por CSI (cable 15 → 22 pines,
+el conector de la Zero es más chico), anillo WS2812 de 16 LED en **GPIO18**, PAM8403 + altavoz 4 Ω y, si se muda
 a la cabeza, el VL53L0X por I2C.
 
 - Sin la cámara (va en otro pedido) la cabeza funciona igual: ojo, voz y ToF responden, `/foto` y `/cara` dan 503 y Claude avanza en tramos cortos. Pruébalo en el PC con `python simulador/lanzar_dummy.py --camara ninguna`.
 - La Zero no trae salida de audio: el PAM8403 necesita una tarjeta de sonido USB o PWM en GPIO13 con filtro RC (o un MAX98357 por I2S).
 - El anillo a blanco pleno pide ~1 A: aliméntalo del power bank. El brillo se limita a 0.3 en el código.
 - Alimenta el PAM8403 a 5 V, nunca a 11.1 V.
+
+El casco de la cabeza, el plato interior y los soportes del ojo (anillo + cámara) y de
+la bocina están en el [Diseño 3D](Diseno-3D.md#cabeza). En esa cabeza el VL53L0X va en
+el ojo chico, conectado a la Zero.
 
 ## Instalar en la Zero
 
@@ -53,9 +59,53 @@ curl http://bb8-head.local:8080/tof
 curl -X POST bb8-head.local:8080/ojo -d '{"color":"azul","patron":"respirar","brillo":0.3}'
 curl -X POST bb8-head.local:8080/hablar -d '{"texto":"hola, soy BB-8"}'
 curl -X POST bb8-head.local:8080/hablar -d '{"sonido":"feliz"}'
+curl -X POST bb8-head.local:8080/hablar -d '{"sonido":"curioso","texto":"¿qué es eso?"}'
 ```
 
 Detalle de cada ruta en [Protocolo § 3](Protocolo.md#3-http-de-la-cabeza-pi-zero-2-w-puerto-8080).
+
+## Sonidos y personalidad
+
+Los pitidos se generan con matemática pura en `head/sounds.py` (sin archivos WAV ni
+numpy): cada sonido es una serie de sílabas, cada una un barrido de frecuencia con
+vibrato y un timbre (`suave`, `brillante` o `zumbido`). Cada vez que suena cambia un poco
+el tono y el tempo, para que no parezca grabado. Un texto cualquiera da su propio
+balbuceo: mismo texto, mismos pitidos, y la entonación sigue la puntuación (`¿…?` sube al
+final, `¡…!` va más agudo y rápido). Es lo que suena antes de cada frase de Piper.
+
+| Emoción | Suena como | Ojo | Cuándo |
+| --- | --- | --- | --- |
+| `feliz` | chirridos que suben, saltarines | verde | algo salió bien |
+| `emocionado` | trino rápido que se dispara | amarillo parpadeo | algo nuevo y genial |
+| `saludo` | bi-du-íiip | cian | alguien llega o se va |
+| `curioso` | sube y baja, preguntándose | cian respirar | algo raro o nuevo |
+| `pregunta` | ¿eh? | cian | va a preguntar o no entendió |
+| `pensando` | blips suaves sin prisa | naranja respirar | mira o calcula |
+| `si` / `no` | dos blips que suben / dos notas gruñonas que bajan | verde / naranja | acepta / se niega |
+| `alerta` | tres pitidos secos | rojo parpadeo | obstáculo, batería baja |
+| `asustado` | grito tembloroso y trino nervioso | morado parpadeo | lo empujan, casi se cae |
+| `triste` | dos notas largas que caen | azul respirar | algo salió mal |
+| `error` | zumbido grave | rojo | falla una herramienta o la red |
+| `bostezo` | sube despacio y cae largo | azul respirar | a dormir |
+| `despertar` | barrido grave → agudo | blanco | al arrancar |
+| `risa` | ji-ji-ji que baja | amarillo | un chiste |
+
+`head/personalidad.py` une cada emoción con su pitido y su color de ojo (la herramienta
+MCP `express` hace las dos cosas en una llamada), guarda las frases fijas por situación
+(`frase("buenas_noches")` elige una distinta a la anterior) y arma la sección de
+personalidad que el servidor MCP agrega a sus instrucciones. Para agregar una emoción:
+sus sílabas en `SONIDOS` de `sounds.py` y su fila en `EMOCIONES` de `personalidad.py`
+(con el mismo nombre; un `assert` lo exige).
+
+Escuchar en el PC, sin el robot:
+
+```bash
+python -m head.sounds                        # todos, con su descripción
+python -m head.sounds curioso risa           # algunos
+python -m head.sounds --texto "¿Quién anda ahí?"
+python -m head.sounds --guardar sonidos/     # un WAV por sonido
+python -m head.sounds --html sonidos.html    # página con todos para el navegador
+```
 
 ## Conectarla al resto
 

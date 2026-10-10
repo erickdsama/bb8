@@ -8,7 +8,8 @@ head/
 ├── backends_real.py    picamera2 (opcional), VL53L0X/L1X, NeoPixel en GPIO18, Piper (sin probar en hardware)
 ├── backends_sim.py     webcam del PC o vista sintética (la usa el simulador)
 ├── colors.py           colores y patrones del ojo
-└── sounds.py           pitidos
+├── sounds.py           pitidos de droide sintetizados (15 emociones + balbuceo)
+└── personalidad.py     emoción → pitido + ojo, frases cortas y prompt de personalidad
 requirements-zero.txt
 ```
 
@@ -22,6 +23,16 @@ curl http://bb8-head.local:8080/estado
 
 En la Pi principal, `/etc/bb8.env`: `BB8_VOZ_SALIDA=cabeza` y `BB8_BUSCAR_CARA=1`.
 Si el ToF se muda a la cabeza, `USAR_TOF_LOCAL 0` en el firmware.
+
+Casco, plato y soportes impresos de la cabeza: [`cad/`](../../cad).
+Escuchar los pitidos en el PC (solo librería estándar):
+
+```bash
+python -m head.sounds                       # todos, con su descripción
+python -m head.sounds curioso risa          # algunos
+python -m head.sounds --texto "¿Quién anda ahí?"
+python -m head.sounds --html sonidos.html   # página para oírlos en el navegador
+```
 
 **Lista cuando** gira la cabeza hacia ti y describe lo que ve.
 

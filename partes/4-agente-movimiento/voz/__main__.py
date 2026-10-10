@@ -15,6 +15,8 @@ import re
 
 import httpx
 
+from head.personalidad import frase
+
 from . import config as V
 from .agente import Agente
 from .audio import Microfono
@@ -45,8 +47,9 @@ async def bucle(sin_registro: bool) -> None:
     voz = Voz(mic)
     agente = Agente()
     await agente.conectar()
+    voz.ojo("blanco")
+    voz.pitido("despertar")
     voz.ojo("azul", "respirar")
-    voz.pitido("feliz")
     log.info("✅ BB-8 escuchando (wake word: %s)", V.WAKEWORD)
     try:
         while True:
@@ -72,7 +75,8 @@ async def bucle(sin_registro: bool) -> None:
                 continue
             quien = "" if sin_registro or isinstance(ident, Exception) else ident[0]
             if A_DORMIR.search(texto) and quien is not None:
-                voz.decir("Bip. Buenas noches.")
+                voz.pitido("bostezo")
+                voz.decir(frase("buenas_noches"))
                 await _energia("/dormir")
                 continue
             try:
@@ -80,7 +84,8 @@ async def bucle(sin_registro: bool) -> None:
             except Exception as e:
                 log.exception("Claude")
                 voz.ojo("rojo")
-                respuesta = "Bip bip. No me llega la señal."
+                voz.pitido("error")
+                respuesta = frase("sin_senal")
                 if "connect" in str(e).lower():
                     await agente.cerrar()
                     agente = Agente()

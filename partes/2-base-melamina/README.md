@@ -9,6 +9,9 @@ Sin código nuevo: es el montaje mecánico de la base.
 5. Poste central (PVC 25 mm o varilla 1/4″) con el portaimanes.
 6. Repite `p2_motores_encoders` y `p4_mpu6050` de la [Parte 1](../1-protoboard): un cable flojo aparece ahí.
 
+Piezas impresas (soportes de motor, charola con lastre, soportes de ball transfer) y la
+plantilla 1:1 del disco: [`cad/`](../../cad).
+
 **Lista cuando** se levanta con una mano y nada se mueve.
 
 Guía completa: [wiki/Parte-2-Base-de-melamina.md](../../wiki/Parte-2-Base-de-melamina.md)

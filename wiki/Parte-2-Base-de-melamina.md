@@ -12,13 +12,21 @@ solo tiene esta lista.
 | Pieza | Nota |
 | --- | --- |
 | Melamina 12–15 mm, 30 × 30 cm | 3 mm de MDF se pandea con 1.5 kg encima |
-| 2 ruedas de goma 65 mm con **cople hexagonal para eje D de 6 mm** | La "llanta de 65 mm" de UNIT es para motor TT (eje 3 mm), no entra. Forrarlas con cinta de silicona |
+| 2 ruedas de goma 65 mm con **cople hexagonal para eje D de 6 mm** | La "Llanta de Goma 65 mm" de UNIT **con accesorios** sí entra (buje hex 12 mm); la de motor TT es otra. Forrarlas con cinta de silicona. Ver [Materiales](Materiales.md) |
 | 2 soportes de motor JGB37 | |
 | 2 ball transfers de 1″, bola metálica | Resbalan mejor sobre el casco que una rueda loca |
 | Tubo PVC 25 mm × 30 cm o varilla roscada 1/4″ + 4 tuercas | Poste central |
 | Separadores M3 de latón, tornillos M3, cinta doble cara, velcro, bridas | Los separadores y tornillos vienen en el pedido UNIT |
 
 Ninguno, salvo la tornillería, está todavía en el [pedido](Materiales.md).
+
+## Piezas impresas y plantilla
+
+El [Diseño 3D](Diseno-3D.md#base) tiene la plantilla 1:1 del disco con todos los
+agujeros (`cad/plantillas/plataforma.svg`), los soportes de motor colgantes, la charola
+de la LiPo con compartimentos de lastre y los soportes inclinados de los ball transfers.
+Con ellos la plataforma queda arriba y lo pesado cuelga debajo; los pasos de abajo
+siguen valiendo si prefieres armarla a mano.
 
 ## Pasos
 

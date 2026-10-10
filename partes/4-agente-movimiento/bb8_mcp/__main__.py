@@ -18,6 +18,7 @@ import httpx
 from mcp.server.fastmcp import FastMCP, Image
 
 from bb8 import config as C
+from head.personalidad import EMOCIONES, bloque_para_prompt
 
 log = logging.getLogger("bb8.mcp")
 
@@ -35,7 +36,11 @@ Reglas de movimiento:
 - Si es "manual_override", el piloto humano tiene el mando: di "el piloto manda" y espera.
 - Si get_pose marca inclinación alta o batería baja (< 10.5 V), avísalo y detente.
 - look_at gira solo la cabeza (±90°); turn gira todo el cuerpo.
-"""
+
+""" + bloque_para_prompt()
+
+# Las emociones (y sus pitidos) viven en head/personalidad.py y head/sounds.py.
+Emocion = Literal[tuple(EMOCIONES)]
 
 mcp = FastMCP("bb8-motion", instructions=INSTRUCTIONS)
 _motion = httpx.AsyncClient(base_url=C.MOTION_URL, timeout=20.0)
@@ -106,13 +111,25 @@ async def set_eye_color(
 
 
 @mcp.tool()
-async def say(
-    texto: str | None = None,
-    sonido: Literal["feliz", "triste", "alerta", "pregunta"] | None = None,
-) -> dict:
-    """Habla por el altavoz de la cabeza (texto corto, menos de 15 palabras) o hace un pitido de droide."""
+async def say(texto: str | None = None, sonido: Emocion | None = None) -> dict:
+    """Habla por el altavoz de la cabeza (texto corto, menos de 15 palabras) o hace un pitido de droide.
+
+    Con texto, BB-8 balbucea unos pitidos y luego lo dice; con texto y sonido, pita ese sonido
+    antes de hablar. Para reaccionar con el ojo también, usa express."""
     body = {k: v for k, v in (("texto", texto), ("sonido", sonido)) if v}
     return await _post(_head, "/hablar", body)
+
+
+@mcp.tool()
+async def express(emocion: Emocion) -> dict:
+    """Muestra una emoción: el pitido de droide de esa emoción y el color del ojo que le toca.
+    Úsala para reaccionar antes de hablar o de moverte (ver Personalidad en las instrucciones)."""
+    e = EMOCIONES[emocion]
+    ojo = await _post(_head, "/ojo", {"color": e.color, "patron": e.patron})
+    if ojo.get("ok") is not True:
+        return ojo
+    sonido = await _post(_head, "/hablar", {"sonido": emocion})
+    return {**sonido, "emocion": emocion, "ojo": f"{e.color} {e.patron}"}
 
 
 @mcp.tool()

@@ -16,7 +16,7 @@ y buck del servo. La cabeza sigue con su power bank.
 - **El Arduino come por VIN desde la batería** (después del interruptor), no solo por el USB de la Pi, para seguir vivo cuando corta la Pi.
 - Nunca bajar de 3.3 V por celda (~10 V); la alarma de voltaje (en el pedido) se pone a 3.5 V.
 - Divisor 10 kΩ / 4.7 kΩ de la batería a **A0** y `HAY_DIVISOR_BAT 1` en el firmware: así `?` reporta `V=` y el firmware rechaza `M` por debajo de 9.9 V.
-- Carga: tapa en uno de los círculos naranjas con un XT60 hembra y un JST-XH de panel; rocker apagado, iMAX B6AC en modo Balance a 2.6 A (~2 h). La batería nunca sale del robot.
+- Carga: el XT60 hembra, la extensión de balanceo JST-XH y el rocker van en un panel **en la base** (no en el casco: la esfera gira alrededor de la base y el cable se enredaría). Se alcanzan por la tapa de carga, uno de los círculos naranjas, girando la esfera con la mano. Rocker apagado, iMAX B6AC en modo Balance a 2.6 A (~2 h). La batería nunca sale del robot.
 
 Diagrama "banco contra LiPo" en el artefacto [Diagramas](Artefactos.md#diagramas), sección 2.
 
@@ -51,13 +51,16 @@ para `systemctl poweroff`.
 
 ## Esfera
 
-1. Modela en Fusion 360: 6 círculos naranjas + 8 piezas blancas, cortadas para la cama de tu impresora, con espigas de alineación.
+El modelo ya está hecho: [Diseño 3D](Diseno-3D.md#esfera) tiene los 14 gajos, los 6
+círculos, la tapa de carga y la bayoneta de la junta, en OpenSCAD paramétrico y en STL.
+
+1. Imprime los gajos de [`cad/stl`](https://github.com/erickdsama/bb8/tree/main/cad/stl) (6 círculos naranjas + 14 piezas blancas que forman los 8 gajos), con espigas de filamento de 1.75 mm.
 2. Imprime con capa de 0.28 mm y 10–15 % de relleno (~2–3 kg de PLA).
 3. Pega, **refuerza por dentro** (fibra de vidrio o segunda capa de resina), lija, primer, pinta y laca.
 4. Prueba que la base rueda dentro de la esfera **antes** de poner imanes y lastre; si las ruedas giran pero la esfera no, los ball transfers tocan primero.
 5. Recorta el poste para que los imanes queden a 2–3 mm de la pared.
 6. Lastre hasta 1–1.5 kg en total, lo más abajo posible; prueba que la base no vuelque al frenar.
-7. Cabeza: cúpula impresa con 3 ruedecitas para que los imanes no rocen la pintura. Imanes N42 20 × 5 mm: 4 en el poste cara N arriba, 4 en la cabeza cara S abajo.
+7. Cabeza: cúpula impresa con 3 bolas de acero de 1/2″ para que los imanes no rocen la pintura (unas ruedecitas solo ruedan en un sentido). Imanes N42 20 × 5 mm: 4 en el poste cara N arriba, 4 en la cabeza cara S abajo.
 
 Los N42 de 20 mm lastiman dedos y rompen piezas impresas: sepáralos con una cuña de
 madera, nunca deslizando.
