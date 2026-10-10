@@ -12,6 +12,7 @@ Código: [`simulador/`](https://github.com/erickdsama/bb8/tree/main/simulador).
 | `dummy/world.py` | Habitación de 4 × 3 m con una silla y una caja |
 | `dummy/arduino_sim.py` | Firmware simulado por TCP `:5555`: mismo protocolo, rampa, watchdog, frenos por ToF e inclinación |
 | `dummy/run_dummy.py` | Arranca el Arduino y la cabeza simulados |
+| `dummy/visor.py`, `dummy/visor.html` | Visor 2D en el navegador (`/sim`) |
 | `dummy/probar.py` | Prueba de punta a punta por MCP |
 | `lanzar_dummy.py` | Arranca dummy + servicio de movimiento + MCP con un solo comando |
 
@@ -48,7 +49,32 @@ Con `--camara sintetica` Claude ve paredes, una silla café a 1.6 m al frente y 
 caja verde: útil para probar "mira, esquiva y sigue". Con la webcam ve tu cuarto real
 aunque el robot se mueva por la habitación simulada.
 
-Para ver dónde está el robot "de verdad": <http://127.0.0.1:8080/sim/mundo>.
+## Ver al robot moverse
+
+Con el dummy corriendo, abre <http://127.0.0.1:8080/sim> en el navegador. Es una
+vista desde arriba de la habitación que se actualiza 10 veces por segundo mientras
+Claude (o `dummy.probar`) maneja el robot por el MCP:
+
+- El robot a escala, con una flecha hacia donde avanza y el ojo dibujado del lado
+  hacia donde mira la cabeza, en su color y con su patrón (fijo, respirar, parpadeo).
+- El rayo del ToF punteado hasta lo que toca; se pone rojo por debajo de 25 cm, la
+  distancia a la que el Arduino frena solo.
+- La estela del camino recorrido y un globo con lo último que dijo.
+- Al lado: pose, rumbo, ángulo de la cabeza, inclinación, distancia del ToF, PWM de
+  cada motor (actual → objetivo), frenos activos (obstáculo, inclinación, watchdog,
+  dormido, chocando) y la cámara de la cabeza una vez por segundo.
+- Botones para pausar la cámara, borrar la estela y "empujar 40°" (frena por
+  inclinación, como en la prueba).
+
+El visor solo mira: no manda órdenes de movimiento. Lee
+`GET /sim/mundo`, que también sirve para scripts:
+
+```bash
+curl http://127.0.0.1:8080/sim/mundo
+```
+
+Se sirve desde el mismo proceso de la cabeza simulada, así que no hay que instalar
+nada más ni abrir otro puerto.
 
 ## Probar que todo funciona
 
@@ -61,7 +87,7 @@ python -m dummy.probar
 Recorre las ocho herramientas, choca a propósito contra la silla (debe frenar solo a
 ~21 cm), comprueba que el mando gane al LLM, que `stop` cancele y que una inclinación
 de 40° frene. Guarda la foto en `foto_dummy.jpg` y termina con `Todo bien`
-(17 comprobaciones).
+(19 comprobaciones).
 
 ## Calibración contra el dummy
 

@@ -15,5 +15,5 @@
 
 ## Por confirmar
 
-- Modelo exacto del Arduino (se asume Uno o Nano).
-- Modelo de la Pi principal: una Pi 5 necesita un buck de 5 A.
+- Nada por ahora. Confirmado el 9 oct 2026: Arduino Uno, Pi principal Raspberry Pi 3,
+  y la cámara OV5647 todavía no se compra (está en el [carrito](Materiales.md)).

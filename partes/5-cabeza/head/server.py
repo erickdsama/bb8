@@ -17,9 +17,9 @@ from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
 from .colors import MAX_BRIGHTNESS, PATTERNS, parse_color
+from .sounds import SONIDOS
 
 log = logging.getLogger("bb8.head")
-SOUNDS = ("feliz", "triste", "alerta", "pregunta")
 
 
 def build_app(camera, tof, eye, speaker, extra_routes: list[Route] | None = None) -> Starlette:
@@ -55,8 +55,8 @@ def build_app(camera, tof, eye, speaker, extra_routes: list[Route] | None = None
     async def hablar(req: Request):
         d = await req.json()
         text, sound = d.get("texto"), d.get("sonido")
-        if sound and sound not in SOUNDS:
-            return JSONResponse({"ok": False, "error": f"sonido desconocido. Usa {', '.join(SOUNDS)}"}, 400)
+        if sound and sound not in SONIDOS:
+            return JSONResponse({"ok": False, "error": f"sonido desconocido. Usa {', '.join(SONIDOS)}"}, 400)
         if not text and not sound:
             return JSONResponse({"ok": False, "error": "manda 'texto' o 'sonido'"}, 400)
         secs = await asyncio.to_thread(speaker.say, text, sound)

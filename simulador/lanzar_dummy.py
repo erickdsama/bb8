@@ -59,7 +59,8 @@ def main() -> None:
         wait_http("http://127.0.0.1:8770/pose")
         procs.append(subprocess.Popen([py, "-m", "bb8_mcp"], cwd=RAIZ, env=ENV))
         time.sleep(1.5)
-        print("\n✅ BB-8 dummy listo. MCP en http://127.0.0.1:8765/mcp  (Ctrl+C para salir)\n", flush=True)
+        print("\n✅ BB-8 dummy listo. MCP en http://127.0.0.1:8765/mcp\n"
+              "   Míralo moverse en http://127.0.0.1:8080/sim  (Ctrl+C para salir)\n", flush=True)
         while all(p.poll() is None for p in procs):
             time.sleep(0.5)
         print("Un proceso terminó; cerrando los demás.")

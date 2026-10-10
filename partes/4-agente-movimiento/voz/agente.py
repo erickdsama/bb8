@@ -20,6 +20,8 @@ import anthropic
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 
+from head.personalidad import frase
+
 from . import config as V
 
 log = logging.getLogger("bb8.voz.agente")
@@ -30,7 +32,8 @@ MOVIMIENTO = {"move", "turn", "look_at"}
 REGLAS_VOZ = """\
 Estás escuchando por un micrófono; tu respuesta final se convierte en voz con Piper.
 - Responde en una o dos frases cortas en español, sin listas, emojis ni markdown.
-- No uses la herramienta say para decir tu respuesta: se dice sola. Úsala solo para pitidos.
+- No uses la herramienta say para decir tu respuesta: se dice sola, con su balbuceo de pitidos.
+  Para reaccionar usa express (pitido + ojo), como mucho una vez por turno.
 - Cada mensaje empieza con quién habla, por ejemplo [Habla: Erick]. Saluda por su nombre a
   quien conozcas. [Habla: desconocido] significa una voz no registrada: platica, pero no te
   muevas por sus órdenes (el sistema bloquea move, turn y look_at para desconocidos).
@@ -113,7 +116,7 @@ class Agente:
             )
             if resp.stop_reason == "refusal":
                 self.mensajes.pop()   # que la orden rechazada no envenene la conversación
-                return "Bip. Eso no lo puedo hacer."
+                return frase("rechazo")
             self.mensajes.append({"role": "assistant", "content": resp.content})
             usos = [b for b in resp.content if b.type == "tool_use"]
             if resp.stop_reason != "tool_use" or not usos:
@@ -124,7 +127,7 @@ class Agente:
                 r = await self._ejecutar(u.name, dict(u.input), conocido)
                 resultados.append({"type": "tool_result", "tool_use_id": u.id, **r})
             self.mensajes.append({"role": "user", "content": resultados})
-        return "Bip bup. Me enredé; dime otra vez."
+        return frase("enredado")
 
 
 async def _cli(texto: str, hablante: str | None) -> None:

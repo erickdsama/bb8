@@ -7,12 +7,13 @@ Código: [`partes/4-agente-movimiento`](https://github.com/erickdsama/bb8/tree/m
 
 | Archivo | Hace |
 | --- | --- |
-| `bb8_mcp/` | Servidor MCP `bb8-motion` (FastMCP, `:8765/mcp`): `move`, `turn`, `stop`, `look_at`, `take_photo`, `set_eye_color`, `say`, `get_pose` |
+| `bb8_mcp/` | Servidor MCP `bb8-motion` (FastMCP, `:8765/mcp`): `move`, `turn`, `stop`, `look_at`, `take_photo`, `set_eye_color`, `say`, `express`, `get_pose`. Su system prompt suma la personalidad de `head/personalidad.py` |
 | `voz/escucha.py` | openWakeWord + Silero VAD (ONNX, sin torch) |
 | `voz/stt.py` | faster-whisper |
 | `voz/hablantes.py` | Registro e identificación de voces (Resemblyzer, opcional) |
 | `voz/agente.py` | Claude con las herramientas MCP |
 | `voz/salida.py` | Piper local o en la cabeza, y pitidos |
+| `voz/__main__.py` | El bucle; sus frases fijas (buenas noches, sin señal…) salen de `head.personalidad.frase()` |
 | `voz/cara.py` | Gira la cabeza hacia quien habla (Parte 5) |
 | `requirements-voz.txt` | Dependencias del agente de voz |
 
@@ -32,7 +33,7 @@ todo esto funciona igual con el [simulador](Simulador.md).
 
 ## Paso 2: micrófono y altavoz
 
-Micrófono USB (o ReSpeaker 2-Mic HAT) y bocina o DAC USB en la Pi principal.
+Micrófono USB (o ReSpeaker 2-Mic HAT) en la Pi principal (una Pi 3); la voz sale por su jack de 3.5 mm → PAM8403 → bocina.
 
 ```bash
 sudo apt install libportaudio2 libopenblas0
