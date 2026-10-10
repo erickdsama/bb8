@@ -132,6 +132,7 @@ class SimSpeaker:
 
     def __init__(self, play: bool = True):
         self.play = play and os.environ.get("BB8_SIN_SONIDO") is None
+        self.ultimo: dict | None = None  # lo último que dijo, para el visor del simulador
 
     def say(self, text: str | None, sound: str | None) -> float:
         wav, secs = beep_wav(sound or text or "")
@@ -142,6 +143,7 @@ class SimSpeaker:
         else:
             log.info("🔊 Pitido: %s", sound)
             print(f"\n   🤖 BB-8: *pitido {sound}*\n", flush=True)
+        self.ultimo = {"texto": text, "sonido": sound, "t": time.time(), "segundos": round(secs, 2)}
         if self.play:
             threading.Thread(target=self._play, args=(wav,), daemon=True).start()
         return round(secs, 2)

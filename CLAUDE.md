@@ -19,7 +19,7 @@ La cabeza es una Pi Zero con `head.server` (:8080). Detalle: `wiki/Arquitectura.
 | `partes/4-agente-movimiento/` | `bb8_mcp` (servidor MCP), `voz` (agente de voz) | 4 |
 | `partes/5-cabeza/` | `head` (servidor de la Pi Zero, backends real y simulado) | 5 |
 | `partes/6-esfera-baterias/` | `energia` (reposo y batería) | 6 |
-| `simulador/` | `dummy` (Arduino y cabeza simulados, `probar.py`), `lanzar_dummy.py` | — |
+| `simulador/` | `dummy` (Arduino y cabeza simulados, `probar.py`, visor 2D en `:8080/sim`), `lanzar_dummy.py` | — |
 | `sistema/` | systemd, `instalar_pi.sh`, `instalar_zero.sh`, `bb8.env.ejemplo` | — |
 | `wiki/` | documentación (fuente de verdad del protocolo: `wiki/Protocolo.md`) | — |
 | `docs/` | documento técnico original y artefactos HTML (históricos) | — |

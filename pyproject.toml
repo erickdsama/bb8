@@ -26,3 +26,6 @@ voz = "partes/4-agente-movimiento/voz"
 head = "partes/5-cabeza/head"
 energia = "partes/6-esfera-baterias/energia"
 dummy = "simulador/dummy"
+
+[tool.setuptools.package-data]
+dummy = ["*.html"]   # visor 2D del simulador
