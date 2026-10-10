@@ -26,6 +26,10 @@ a la cabeza, el VL53L0X por I2C.
 - El anillo a blanco pleno pide ~1 A: aliméntalo del power bank. El brillo se limita a 0.3 en el código.
 - Alimenta el PAM8403 a 5 V, nunca a 11.1 V.
 
+El casco de la cabeza, el plato interior y los soportes del ojo (anillo + cámara) y de
+la bocina están en el [Diseño 3D](Diseno-3D.md#cabeza). En esa cabeza el VL53L0X va en
+el ojo chico, conectado a la Zero.
+
 ## Instalar en la Zero
 
 Hostname `bb8-head`, I2C y cámara activados en `sudo raspi-config`:

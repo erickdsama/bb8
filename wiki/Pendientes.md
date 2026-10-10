@@ -11,6 +11,7 @@
 - Detección de obstáculos con la cámara a 5 fps en el servicio de movimiento (hoy frena el ToF).
 - Modelo de wake word propio "oye BB-8" (hoy "hey Jarvis").
 - Base de carga inductiva (opcional, después de la Parte 6).
+- Imprimir y probar las piezas de [Diseño 3D](Diseno-3D.md): la bayoneta de la junta y el ajuste de los ball transfers no se han probado; las medidas marcadas MEDIR salen de hojas de vendedores.
 
 ## Por confirmar
 

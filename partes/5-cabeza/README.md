@@ -24,6 +24,7 @@ curl http://bb8-head.local:8080/estado
 En la Pi principal, `/etc/bb8.env`: `BB8_VOZ_SALIDA=cabeza` y `BB8_BUSCAR_CARA=1`.
 Si el ToF se muda a la cabeza, `USAR_TOF_LOCAL 0` en el firmware.
 
+Casco, plato y soportes impresos de la cabeza: [`cad/`](../../cad).
 Escuchar los pitidos en el PC (solo librería estándar):
 
 ```bash
