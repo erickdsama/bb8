@@ -10,13 +10,11 @@ import argparse
 import logging
 
 import uvicorn
-from starlette.requests import Request
-from starlette.responses import JSONResponse
-from starlette.routing import Route
 
 from head import backends_sim as HS
 from head.server import build_app
 
+from . import visor
 from .arduino_sim import ArduinoSim, serve
 from .world import World
 
@@ -50,17 +48,11 @@ def main() -> None:
         camera = HS.SyntheticCamera(world, head_deg, eye)
         log.info("Visión: vista sintética de la habitación simulada")
 
-    async def empujar(req: Request):
-        d = await req.json()
-        world.push(float(d.get("grados", 40)), float(d.get("segundos", 1.0)))
-        return JSONResponse({"ok": True})
-
-    async def mundo(req: Request):
-        return JSONResponse(world.snapshot() | {"cabeza_deg": round(arduino.head, 1)})
-
-    app = build_app(camera, HS.SimToF(world, head_deg), eye, HS.SimSpeaker(play=not a.sin_sonido),
-                    extra_routes=[Route("/sim/empujar", empujar, methods=["POST"]), Route("/sim/mundo", mundo)])
+    speaker = HS.SimSpeaker(play=not a.sin_sonido)
+    app = build_app(camera, HS.SimToF(world, head_deg), eye, speaker,
+                    extra_routes=visor.rutas(world, arduino, eye, speaker))
     log.info("Cabeza simulada en http://127.0.0.1:%d", a.puerto_cabeza)
+    log.info("Visor 2D en http://127.0.0.1:%d/sim", a.puerto_cabeza)
     uvicorn.run(app, host="127.0.0.1", port=a.puerto_cabeza, log_level="warning")
 
 

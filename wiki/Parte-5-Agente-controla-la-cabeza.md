@@ -18,11 +18,11 @@ Código: [`partes/5-cabeza`](https://github.com/erickdsama/bb8/tree/main/partes/
 
 ## Hardware
 
-Pi Zero 2 W con su propio power bank 18650, cámara OV5647 por CSI (cable de 15 pines
-para Zero), anillo WS2812 de 16 LED en **GPIO18**, PAM8403 + altavoz 4 Ω y, si se muda
+Pi Zero 2 W con su propio power bank 18650, cámara OV5647 por CSI (cable 15 → 22 pines,
+el conector de la Zero es más chico), anillo WS2812 de 16 LED en **GPIO18**, PAM8403 + altavoz 4 Ω y, si se muda
 a la cabeza, el VL53L0X por I2C.
 
-- La Zero no trae salida de audio: el PAM8403 necesita una tarjeta de sonido USB o PWM en GPIO13 con filtro RC (o un MAX98357 por I2S).
+- La Zero no trae salida de audio: el PAM8403 necesita una tarjeta de sonido USB o PWM en GPIO13 con filtro RC (o un MAX98357 por I2S, que es lo que recomienda la [cotización](Materiales.md) y mueve la bocina sin el PAM8403).
 - El anillo a blanco pleno pide ~1 A: aliméntalo del power bank. El brillo se limita a 0.3 en el código.
 - Alimenta el PAM8403 a 5 V, nunca a 11.1 V.
 

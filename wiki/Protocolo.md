@@ -209,4 +209,5 @@ Solo en el dummy:
 | Ruta | Para qué |
 | --- | --- |
 | `POST /sim/empujar` | `{"grados": 40}` simula que alguien lo inclina durante 1 s |
-| `GET /sim/mundo` | Posición real del robot en la habitación simulada |
+| `GET /sim/mundo` | Estado real del robot simulado: pose, cabeza, PWM, banderas, rayo del ToF, ojo y última frase |
+| `GET /sim` | Visor 2D en el navegador |
