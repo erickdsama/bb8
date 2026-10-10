@@ -108,7 +108,7 @@ Van en `/etc/bb8.env` (ejemplo en `sistema/bb8.env.ejemplo`).
 | `BB8_ENERGIA_URL` | `http://127.0.0.1:8771` | Gestor de energía |
 | `BB8_MODELO` | `claude-opus-5-5` | Modelo del agente de voz |
 | `BB8_ESFUERZO` | `low` | Esfuerzo del modelo; `medium` si planea mal los movimientos |
-| `BB8_WAKEWORD` | `hey_jarvis` | Nombre de un modelo preentrenado o ruta a tu `.onnx` |
+| `BB8_WAKEWORD` | `voz/modelos/oye_bb8.onnx` si existe, si no `hey_jarvis` | Nombre de un modelo preentrenado o ruta a un `.onnx` ([Wake word "oye BB-8"](Wake-word-oye-BB-8.md)) |
 | `BB8_WAKEWORD_UMBRAL` | `0.5` | Sensibilidad de la wake word |
 | `BB8_MICROFONO` | el de por defecto | Nombre o índice de `sounddevice` |
 | `BB8_STT` | `local`, o `nube` si hay `BB8_STT_API_KEY` | Dónde se transcribe |

@@ -10,7 +10,7 @@
 ## Por construir
 
 - Detección de obstáculos con la cámara a 5 fps en el servicio de movimiento (hoy frena el ToF).
-- Modelo de wake word propio "oye BB-8" (hoy "hey Jarvis").
+- Entrenar el modelo "oye BB-8" en Colab (el pipeline está listo, ver [Wake word "oye BB-8"](Wake-word-oye-BB-8.md)); hasta entonces despierta con "hey Jarvis".
 - Base de carga inductiva (opcional, después de la Parte 6).
 - Identificación de voz sin torch (un modelo ONNX), para que quepa en la Pi 3 con Whisper local.
 
