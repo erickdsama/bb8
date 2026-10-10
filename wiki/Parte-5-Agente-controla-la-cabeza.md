@@ -22,7 +22,8 @@ Pi Zero 2 W con su propio power bank 18650, cámara OV5647 por CSI (cable 15 →
 el conector de la Zero es más chico), anillo WS2812 de 16 LED en **GPIO18**, PAM8403 + altavoz 4 Ω y, si se muda
 a la cabeza, el VL53L0X por I2C.
 
-- La Zero no trae salida de audio: el PAM8403 necesita una tarjeta de sonido USB o PWM en GPIO13 con filtro RC (o un MAX98357 por I2S, que es lo que recomienda la [cotización](Materiales.md) y mueve la bocina sin el PAM8403).
+- Sin la cámara (va en otro pedido) la cabeza funciona igual: ojo, voz y ToF responden, `/foto` y `/cara` dan 503 y Claude avanza en tramos cortos. Pruébalo en el PC con `python simulador/lanzar_dummy.py --camara ninguna`.
+- La Zero no trae salida de audio: el PAM8403 necesita una tarjeta de sonido USB o PWM en GPIO13 con filtro RC (o un MAX98357 por I2S).
 - El anillo a blanco pleno pide ~1 A: aliméntalo del power bank. El brillo se limita a 0.3 en el código.
 - Alimenta el PAM8403 a 5 V, nunca a 11.1 V.
 

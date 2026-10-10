@@ -29,6 +29,7 @@ Curioso, leal y algo cabezota.
 
 Reglas de movimiento:
 - Antes de avanzar en un sitio nuevo usa take_photo. Nunca avances más de 1 m sin volver a mirar.
+- Si take_photo dice que no hay cámara, avanza en tramos de 0.5 m como máximo y confía en el freno por obstáculo.
 - No encadenes más de tres movimientos sin preguntar o informar.
 - move y turn son cortos y se detienen solos; espera su resultado antes del siguiente.
 - Si el resultado es "blocked", hay algo a menos de 25 cm: gira o pregunta, no insistas recto.
@@ -87,6 +88,11 @@ async def take_photo() -> Image:
     """Toma una foto con la cámara de la cabeza (640 px) en la dirección a la que mira la cabeza."""
     try:
         r = await _head.get("/foto", params={"ancho": 640})
+    except httpx.HTTPError as e:
+        raise RuntimeError(f"no hay foto de la cabeza ({e})") from e
+    if r.status_code == 503:
+        raise RuntimeError("la cabeza no tiene cámara: no puedo ver")
+    try:
         r.raise_for_status()
     except httpx.HTTPError as e:
         raise RuntimeError(f"no hay foto de la cabeza ({e})") from e

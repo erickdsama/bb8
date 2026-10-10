@@ -3,6 +3,7 @@
     python -m dummy.run_dummy                    # webcam 0, o vista sintética si no hay
     python -m dummy.run_dummy --camara sintetica # ve la habitación simulada
     python -m dummy.run_dummy --camara 1         # otra webcam
+    python -m dummy.run_dummy --camara ninguna   # cabeza sin cámara (/foto responde 503)
 """
 from __future__ import annotations
 
@@ -23,7 +24,7 @@ log = logging.getLogger("dummy")
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="BB-8 dummy: Arduino y Pi Zero simulados")
-    ap.add_argument("--camara", default="webcam", help="webcam | sintetica | índice de cámara (0, 1…)")
+    ap.add_argument("--camara", default="webcam", help="webcam | sintetica | ninguna | índice de cámara (0, 1…)")
     ap.add_argument("--puerto-serial", type=int, default=5555)
     ap.add_argument("--puerto-cabeza", type=int, default=8080)
     ap.add_argument("--sin-sonido", action="store_true", help="no reproducir pitidos en el PC")
@@ -37,7 +38,12 @@ def main() -> None:
     head_deg = lambda: arduino.head  # noqa: E731
     eye = HS.SimEye()
     camera = None
-    if a.camara != "sintetica":
+    if a.camara == "ninguna":
+        from head.backends_real import SinCamara
+
+        camera = SinCamara()
+        log.info("Visión: sin cámara, como la cabeza antes de que llegue la OV5647")
+    elif a.camara != "sintetica":
         idx = 0 if a.camara == "webcam" else int(a.camara)
         try:
             camera = HS.WebcamCamera(idx)

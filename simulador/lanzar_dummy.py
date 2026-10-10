@@ -2,6 +2,7 @@
 
     python simulador/lanzar_dummy.py                     # webcam del PC como cámara de la cabeza
     python simulador/lanzar_dummy.py --camara sintetica  # vista de la habitación simulada
+    python simulador/lanzar_dummy.py --camara ninguna    # cabeza sin cámara
 Ctrl+C detiene los tres procesos.
 """
 import os

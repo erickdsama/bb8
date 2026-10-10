@@ -36,7 +36,7 @@ firmware, no en el prompt.
 | --- | --- | --- |
 | Raspberry Pi principal | `bb8.motion_api` (:8770), `bb8_mcp` (:8765), `voz`, `energia` (:8771) | partes 3, 4 y 6 |
 | Raspberry Pi Zero 2 W (cabeza) | `head.server` (:8080): cámara OV5647, ToF, anillo WS2812, altavoz | parte 5 |
-| Arduino Uno/Nano | `bb8_firmware`: L298N, encoders, servo MG996R, MPU6050, VL53L0X | parte 1 |
+| Arduino Uno | `bb8_firmware`: L298N, encoders, servo MG996R, MPU6050, VL53L0X | parte 1 |
 | Tu PC | El simulador reemplaza al Arduino y a la Zero; el resto es el mismo código | `simulador/` |
 
 ## Herramientas que ve Claude

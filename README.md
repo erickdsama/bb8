@@ -70,7 +70,7 @@ carpeta. `simulador/lanzar_dummy.py` funciona incluso sin ese paso.
 
 ## Estado
 
-Partes 1–6 tienen código; el firmware compila para Uno y Nano y todo se ha probado
+Partes 1–6 tienen código; el firmware compila para el Arduino Uno y todo se ha probado
 contra el simulador, todavía no en el hardware real. Lo que falta está en
 [Pendientes](wiki/Pendientes.md) y el avance en el
 [tracker](docs/artefactos/avance-del-proyecto.html).

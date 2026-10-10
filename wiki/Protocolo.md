@@ -96,7 +96,7 @@ del sondeo no mantiene vivos los motores. Por eso el servicio reenvía `M` cada
 
 ### Arranque
 
-Abrir el puerto reinicia el Uno/Nano (~2 s). La Pi espera 2 s, vacía la entrada,
+Abrir el puerto reinicia el Uno (~2 s). La Pi espera 2 s, vacía la entrada,
 manda `I` y comprueba que la respuesta empiece por `OK BB8`.
 
 ### Ejemplo de sesión
@@ -125,7 +125,7 @@ los 300 ms y el freno por ToF deja de actuar; el watchdog y la IMU siguen.
 
 El documento técnico asumía DRV8871 (2 pines PWM por motor). Con el L298N cada
 motor usa 1 PWM (`EN`) + 2 de dirección (`IN`). El protocolo no cambia; solo el
-firmware. Pinout acordado con el hilo de diagramas (Uno/Nano, un L298N para los
+firmware. Pinout acordado con el hilo de diagramas (Arduino Uno, un L298N para los
 dos motores, jumpers ENA/ENB quitados):
 
 | Pin | Función |
@@ -193,12 +193,12 @@ Pose:
 
 | Método y ruta | Cuerpo / parámetros | Respuesta |
 | --- | --- | --- |
-| `GET /estado` | — | `{"ok":true,"camara":"picamera2"\|"webcam"\|"sintetica","tof":"vl53l0x"\|"vl53l1x"\|"ninguno"\|"sim"}` |
-| `GET /foto` | `?ancho=640` | `image/jpeg`, lado mayor = `ancho` |
+| `GET /estado` | — | `{"ok":true,"camara":"picamera2"\|"webcam"\|"sintetica"\|"ninguna","tof":"vl53l0x"\|"vl53l1x"\|"ninguno"\|"sim"}` |
+| `GET /foto` | `?ancho=640` | `image/jpeg`, lado mayor = `ancho`. 503 `{"ok":false,"error":…}` si la cabeza no tiene cámara |
 | `GET /tof` | — | `{"mm": 1830, "t": 1760000000.12}`; `mm = 0` sin lectura |
 | `POST /ojo` | `{"color":"#3080ff" o "azul","patron":"fijo"\|"respirar"\|"parpadeo"\|"apagado","brillo":0.3}` | `{"ok":true}` |
-| `POST /hablar` | `{"texto":"hola"}`, `{"sonido":"feliz"}` o los dos (pita y luego habla). Sonidos: `feliz, emocionado, saludo, curioso, pregunta, pensando, si, no, alerta, asustado, triste, error, bostezo, despertar, risa` (`head/sounds.py`). Solo con texto, balbucea pitidos antes de hablar | `{"ok":true,"segundos":1.2}` al terminar; 400 con un sonido desconocido |
-| `GET /cara` | — | `{"ok":true,"caras":[{"x":0.21,"y":-0.1,"area":0.034}]}`, de mayor a menor; `x` −1…1 de izquierda a derecha de la foto. 501 sin OpenCV |
+| `POST /hablar` | `{"texto":"hola"}` o `{"sonido":"feliz"\|"triste"\|"alerta"\|"pregunta"}` | `{"ok":true,"segundos":1.2}` al terminar |
+| `GET /cara` | — | `{"ok":true,"caras":[{"x":0.21,"y":-0.1,"area":0.034}]}`, de mayor a menor; `x` −1…1 de izquierda a derecha de la foto. 501 sin OpenCV, 503 sin cámara |
 | `POST /reposo` | `{"activo": false}` | Reposo ligero: cámara pausada y ojo con respiración azul al 3 %. `{"activo": true}` lo revierte |
 
 Colores con nombre aceptados: `rojo, verde, azul, blanco, naranja, amarillo,

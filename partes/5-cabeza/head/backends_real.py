@@ -1,6 +1,6 @@
 """Hardware real de la cabeza en la Pi Zero 2 W. Sin probar todavía (Parte 5).
 
-- Cámara OV5647 con picamera2 (sudo apt install python3-picamera2)
+- Cámara OV5647 con picamera2 (sudo apt install python3-picamera2); sin ella arranca igual
 - ToF VL53L0X (el del pedido; pip install adafruit-circuitpython-vl53l0x) o VL53L1X, se detecta solo
 - Anillo NeoPixel de 16 LED en GPIO18 (pip install adafruit-circuitpython-neopixel; requiere root)
 - Altavoz: Piper para voz (si está instalado) y aplay para pitidos
@@ -51,6 +51,28 @@ class PiCamera:
         buf = io.BytesIO()
         img.save(buf, "JPEG", quality=80)
         return buf.getvalue()
+
+
+class SinCamara:
+    """Sin OV5647 (o sin picamera2): la cabeza arranca igual; /foto y /cara responden 503."""
+    name = "ninguna"
+
+    def pausar(self) -> None:
+        pass
+
+    def reanudar(self) -> None:
+        pass
+
+    def capture_jpeg(self, width: int) -> bytes:
+        raise RuntimeError("la cabeza no tiene cámara conectada")
+
+
+def camara_auto():
+    try:
+        return PiCamera()
+    except Exception as e:
+        log.warning("Sin cámara (%s): /foto y /cara no estarán disponibles", e)
+        return SinCamara()
 
 
 class VL53L1X:

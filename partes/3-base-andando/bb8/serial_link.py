@@ -29,7 +29,7 @@ class SerialLink:
     def open(self) -> str:
         self._ser = serial.serial_for_url(self.url, baudrate=self.baud, timeout=REPLY_TIMEOUT_S)
         if not self.url.startswith("socket://"):
-            time.sleep(2.0)  # abrir el puerto reinicia el Uno/Nano
+            time.sleep(2.0)  # abrir el puerto reinicia el Uno
         self._ser.reset_input_buffer()
         self.ident = "OK " + self.send(protocol.CMD_IDENT)
         if not self.ident.startswith("OK BB8"):

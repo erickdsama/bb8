@@ -23,7 +23,7 @@ from .audio import Microfono
 from .escucha import Escucha
 from .hablantes import Hablantes
 from .salida import Voz
-from .stt import Transcriptor
+from .stt import crear_transcriptor
 
 log = logging.getLogger("bb8.voz")
 
@@ -42,7 +42,7 @@ async def _energia(ruta: str) -> None:
 async def bucle(sin_registro: bool) -> None:
     mic = Microfono()
     escucha = Escucha(mic)
-    stt = Transcriptor()
+    stt = crear_transcriptor()
     hablantes = Hablantes()
     voz = Voz(mic)
     agente = Agente()
