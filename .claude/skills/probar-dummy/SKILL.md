@@ -37,7 +37,7 @@ comprobación de la silla depende de la habitación simulada.
 python -m dummy.probar
 ```
 
-Debe terminar en `Todo bien` con 17 líneas ✅. Guarda `foto_dummy.jpg` en la carpeta
+Debe terminar en `Todo bien` con 19 líneas ✅. Guarda `foto_dummy.jpg` en la carpeta
 actual (está en `.gitignore`; bórrala si cae en otro sitio).
 
 Si una falla, el log del dummy (`/tmp/bb8-dummy.log`) tiene los tres procesos

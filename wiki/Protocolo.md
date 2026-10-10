@@ -197,7 +197,7 @@ Pose:
 | `GET /foto` | `?ancho=640` | `image/jpeg`, lado mayor = `ancho` |
 | `GET /tof` | — | `{"mm": 1830, "t": 1760000000.12}`; `mm = 0` sin lectura |
 | `POST /ojo` | `{"color":"#3080ff" o "azul","patron":"fijo"\|"respirar"\|"parpadeo"\|"apagado","brillo":0.3}` | `{"ok":true}` |
-| `POST /hablar` | `{"texto":"hola"}` o `{"sonido":"feliz"\|"triste"\|"alerta"\|"pregunta"}` | `{"ok":true,"segundos":1.2}` al terminar |
+| `POST /hablar` | `{"texto":"hola"}`, `{"sonido":"feliz"}` o los dos (pita y luego habla). Sonidos: `feliz, emocionado, saludo, curioso, pregunta, pensando, si, no, alerta, asustado, triste, error, bostezo, despertar, risa` (`head/sounds.py`). Solo con texto, balbucea pitidos antes de hablar | `{"ok":true,"segundos":1.2}` al terminar; 400 con un sonido desconocido |
 | `GET /cara` | — | `{"ok":true,"caras":[{"x":0.21,"y":-0.1,"area":0.034}]}`, de mayor a menor; `x` −1…1 de izquierda a derecha de la foto. 501 sin OpenCV |
 | `POST /reposo` | `{"activo": false}` | Reposo ligero: cámara pausada y ojo con respiración azul al 3 %. `{"activo": true}` lo revierte |
 

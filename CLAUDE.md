@@ -35,7 +35,7 @@ los mapea. **Cuando agregues un paquete nuevo, agrégalo a `packages` y
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt && pip install -e .
 python simulador/lanzar_dummy.py --camara sintetica --sin-sonido   # dummy + servicio + MCP
-python -m dummy.probar                                             # prueba de punta a punta (17 checks)
+python -m dummy.probar                                             # prueba de punta a punta (19 checks)
 python -m compileall -q partes simulador                           # chequeo rápido de sintaxis
 ```
 

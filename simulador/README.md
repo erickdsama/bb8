@@ -6,8 +6,7 @@ servicio de movimiento, el MCP y el agente de voz en el PC, sin hardware.
 ```bash
 pip install -r requirements.txt && pip install -e .     # desde la raíz del repo
 python simulador/lanzar_dummy.py --camara sintetica
-python -m dummy.probar                                  # en otra terminal: 17 comprobaciones
-# y abre http://127.0.0.1:8080/sim para verlo moverse
+python -m dummy.probar                                  # en otra terminal: 19 comprobaciones
 ```
 
 | Archivo | Hace |

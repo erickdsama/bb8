@@ -87,7 +87,7 @@ python -m dummy.probar
 Recorre las ocho herramientas, choca a propósito contra la silla (debe frenar solo a
 ~21 cm), comprueba que el mando gane al LLM, que `stop` cancele y que una inclinación
 de 40° frene. Guarda la foto en `foto_dummy.jpg` y termina con `Todo bien`
-(17 comprobaciones).
+(19 comprobaciones).
 
 ## Calibración contra el dummy
 
