@@ -14,11 +14,13 @@ La cabeza es una Pi Zero con `head.server` (:8080). Detalle: `wiki/Arquitectura.
 | Carpeta | Paquete / contenido | Parte |
 | --- | --- | --- |
 | `partes/1-protoboard/arduino/` | `pruebas/p1…p5`, `bb8_firmware/bb8_firmware.ino` | 1 |
+| `partes/1-protoboard/wokwi/` | firmware en el simulador Wokwi (`diagram.json`, `wokwi.toml`) | 1 |
 | `partes/2-base-melamina/` | solo README (montaje) | 2 |
 | `partes/3-base-andando/` | `bb8` (config, protocol, serial_link, motion, motion_api, gamepad), `calibrar` | 3 |
 | `partes/4-agente-movimiento/` | `bb8_mcp` (servidor MCP), `voz` (agente de voz), `wakeword/` (scripts para entrenar "oye BB-8", no es paquete) | 4 |
 | `partes/5-cabeza/` | `head` (servidor de la Pi Zero, backends real y simulado) | 5 |
 | `partes/6-esfera-baterias/` | `energia` (reposo y batería) | 6 |
+| `cad/` | OpenSCAD paramétrico: esfera, base, poste, cabeza; `exportar.sh` → `stl/`, `png/`, `plantillas/` | 2, 5, 6 |
 | `simulador/` | `dummy` (Arduino y cabeza simulados, `probar.py`), `lanzar_dummy.py` | — |
 | `sistema/` | systemd, `instalar_pi.sh`, `instalar_zero.sh`, `bb8.env.ejemplo` | — |
 | `wiki/` | documentación (fuente de verdad del protocolo: `wiki/Protocolo.md`) | — |
@@ -34,13 +36,21 @@ los mapea. **Cuando agregues un paquete nuevo, agrégalo a `packages` y
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt && pip install -e .
 python simulador/lanzar_dummy.py --camara sintetica --sin-sonido   # dummy + servicio + MCP
-python -m dummy.probar                                             # prueba de punta a punta (17 checks)
+python -m dummy.probar                                             # prueba de punta a punta (19 checks)
 python -m compileall -q partes simulador                           # chequeo rápido de sintaxis
+bash cad/exportar.sh png                                           # renders del CAD (apt install openscad xvfb)
 ```
+
+CAD: todas las medidas viven en `cad/parametros.scad`; si cambias una, vuelve a correr
+`bash cad/exportar.sh` y sube los STL y PNG regenerados.
 
 No hay suite de pytest ni CI todavía: **`python -m dummy.probar` contra el dummy es la
 prueba**. Córrela después de tocar `bb8`, `bb8_mcp`, `head` o `dummy` (skill
 `probar-dummy`). El firmware no se puede probar aquí; si lo cambias, cambia también
+No hay suite de pytest: **`python -m dummy.probar` contra el dummy es la prueba**. El CI
+(`.github/workflows/ci.yml`) la corre en cada push y PR, y compila el firmware y las
+pruebas p1…p5 para el Arduino Uno. Córrela después de tocar `bb8`, `bb8_mcp`, `head` o `dummy` (skill
+`probar-dummy`). El firmware no se puede probar en hardware aquí (sí en Wokwi a mano); si lo cambias, cambia también
 `dummy/arduino_sim.py` para que el simulador lo imite.
 
 ## Reglas que no se rompen
@@ -60,10 +70,11 @@ prueba**. Córrela después de tocar `bb8`, `bb8_mcp`, `head` o `dummy` (skill
 
 ## Hardware (para entender el código)
 
-Arduino Uno/Nano, un L298N (ENA D5, IN1 D7, IN2 D8, ENB D6, IN3 D11, IN4 D12),
+Arduino Uno, un L298N (ENA D5, IN1 D7, IN2 D8, ENB D6, IN3 D11, IN4 D12),
 encoders en D2/D4 y D3/D10, servo MG996R en D9, MPU6050 + VL53L0X por I2C (A4/A5),
 INT del MPU en A2, corte de la Pi en A3, divisor de batería en A0. Motores JGB37-520B
-12 V 319 RPM. Nada se ha probado aún en hardware real: todo se validó contra el dummy.
+12 V 319 RPM. Pi principal: Raspberry Pi 3 (1 GB, OS de 64 bits); cámara OV5647
+pendiente de compra (la cabeza arranca sin ella). Nada se ha probado aún en hardware real: todo se validó contra el dummy.
 
 ## MCP del robot
 

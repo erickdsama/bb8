@@ -8,7 +8,7 @@ Código: [`partes/1-protoboard/arduino`](https://github.com/erickdsama/bb8/tree/
 
 ## Materiales
 
-Arduino Uno o Nano, 1 L298N (el segundo queda de repuesto), 2 motorreductores
+Arduino Uno, 1 L298N (el segundo queda de repuesto), 2 motorreductores
 JGB37-520B 12 V 319 RPM con encoder, servo MG996R, MPU6050, VL53L0X, buck LM2596,
 condensador 1000 µF 16 V, adaptador de 12 V 2 A con jack, protoboard + cables, Raspberry
 Pi con su cargador. Todo viene en el [pedido UNIT 377466](Materiales.md).
@@ -81,10 +81,18 @@ arduino-cli compile --fqbn arduino:avr:uno partes/1-protoboard/arduino/bb8_firmw
 arduino-cli upload -p /dev/ttyACM0 --fqbn arduino:avr:uno partes/1-protoboard/arduino/bb8_firmware
 ```
 
-(Nano: `arduino:avr:nano`, o `arduino:avr:nano:cpu=atmega328old` si es un clon con bootloader viejo.)
-
 El robot tiene que estar **quieto el primer segundo** mientras calibra el giroscopio.
 Si `?` responde `F=imu`, el MPU6050 no contestó al arrancar.
+
+## Probar el firmware en Wokwi
+
+Antes de cablear, el firmware corre en el simulador [Wokwi](https://wokwi.com) con el
+MPU6050, el servo, dos encoders KY-040 y LEDs en lugar del L298N. El VL53L0X no existe
+en Wokwi; el obstáculo se simula con la orden `D`. Instrucciones y qué probar en
+[`partes/1-protoboard/wokwi/`](https://github.com/erickdsama/bb8/blob/main/partes/1-protoboard/wokwi/README.md).
+
+El CI compila el firmware para el Arduino Uno en cada push; el `.hex` queda como
+artefacto `firmware-uno` de la corrida.
 
 ## Probar el firmware a mano
 

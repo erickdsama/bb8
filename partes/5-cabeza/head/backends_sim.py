@@ -4,10 +4,7 @@ from __future__ import annotations
 import logging
 import math
 import os
-import platform
-import subprocess
 import sys
-import tempfile
 import threading
 import time
 from typing import Callable
@@ -16,7 +13,7 @@ import cv2
 import numpy as np
 
 from .colors import parse_color
-from .sounds import beep_wav
+from .sounds import SONIDOS, beep_wav, reproducir
 
 log = logging.getLogger("dummy.head")
 
@@ -132,6 +129,7 @@ class SimSpeaker:
 
     def __init__(self, play: bool = True):
         self.play = play and os.environ.get("BB8_SIN_SONIDO") is None
+        self.ultimo: dict | None = None  # lo último que dijo, para el visor del simulador
 
     def say(self, text: str | None, sound: str | None) -> float:
         wav, secs = beep_wav(sound or text or "")
@@ -140,24 +138,9 @@ class SimSpeaker:
             print(f"\n   🤖 BB-8: «{text}»\n", flush=True)
             secs += 0.06 * len(text)  # tiempo aproximado de Piper
         else:
-            log.info("🔊 Pitido: %s", sound)
+            log.info("🔊 Pitido: %s (%s)", sound, SONIDOS[sound][0])
             print(f"\n   🤖 BB-8: *pitido {sound}*\n", flush=True)
+        self.ultimo = {"texto": text, "sonido": sound, "t": time.time(), "segundos": round(secs, 2)}
         if self.play:
-            threading.Thread(target=self._play, args=(wav,), daemon=True).start()
+            threading.Thread(target=reproducir, args=(wav,), daemon=True).start()
         return round(secs, 2)
-
-    @staticmethod
-    def _play(wav: bytes) -> None:
-        try:
-            if sys.platform == "win32":
-                import winsound
-                winsound.PlaySound(wav, winsound.SND_MEMORY)
-                return
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-                f.write(wav)
-            player = ["afplay", f.name] if platform.system() == "Darwin" else ["aplay", "-q", f.name]
-            subprocess.run(player, check=False, timeout=5,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            os.unlink(f.name)
-        except Exception:
-            pass

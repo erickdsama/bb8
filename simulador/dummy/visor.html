@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BB-8 dummy · visor</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --fondo: #f4f1ea; --panel: #ffffff; --tinta: #1f2328; --tenue: #6b6f76; --linea: #d9d4c9;
+    --piso: #ebe5d8; --rejilla: #ddd5c4; --pared: #8a8172;
+    --naranja: #e8742a; --rojo: #d23c3c; --verde: #2e9a5b; --azul: #2f6fd6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fondo: #15171a; --panel: #1e2125; --tinta: #e8e6e1; --tenue: #9aa0a8; --linea: #33373d;
+      --piso: #23262b; --rejilla: #2d3137; --pared: #6e675c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fondo); color: var(--tinta);
+         font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; align-items: baseline; gap: 12px; padding: 14px 16px 6px; flex-wrap: wrap; }
+  h1 { font-size: 18px; margin: 0; }
+  #conexion { font-size: 12px; color: var(--tenue); }
+  #conexion.mal { color: var(--rojo); }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; padding: 8px 16px 16px; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  .tarjeta { background: var(--panel); border: 1px solid var(--linea); border-radius: 10px; padding: 12px; }
+  #lienzo { width: 100%; display: block; border-radius: 6px; }
+  aside { display: flex; flex-direction: column; gap: 12px; }
+  .fila { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; }
+  .fila span:first-child { color: var(--tenue); }
+  .valor { font-variant-numeric: tabular-nums; font-weight: 600; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--tenue); margin: 0 0 6px; }
+  .barra { position: relative; height: 10px; background: var(--rejilla); border-radius: 5px; overflow: hidden; margin: 2px 0 6px; }
+  .barra i { position: absolute; top: 0; bottom: 0; background: var(--azul); }
+  .barra.centrada::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--tenue); }
+  #ojo { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--linea); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; min-height: 22px; }
+  .chip { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: var(--rojo); color: #fff; }
+  .chip.ok { background: var(--rejilla); color: var(--tenue); }
+  #voz { min-height: 1.4em; font-style: italic; }
+  #camara { width: 100%; border-radius: 6px; display: block; background: #000; aspect-ratio: 4 / 3; }
+  .botones { display: flex; gap: 8px; flex-wrap: wrap; }
+  button { font: inherit; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--linea);
+           background: var(--fondo); color: var(--tinta); cursor: pointer; }
+  button:hover { border-color: var(--tenue); }
+  .nota { font-size: 12px; color: var(--tenue); margin: 6px 0 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>BB-8 dummy</h1>
+  <span id="conexion">conectando…</span>
+</header>
+<main>
+  <section class="tarjeta">
+    <canvas id="lienzo" width="1000" height="750" aria-label="Vista cenital de la habitación simulada"></canvas>
+    <p class="nota">Vista desde arriba. La línea punteada es el rayo del ToF; se pone roja por debajo de la distancia de freno.
+      La estela muestra el camino recorrido.</p>
+  </section>
+  <aside>
+    <div class="tarjeta">
+      <h2>Pose</h2>
+      <div class="fila"><span>x, y</span><span class="valor" id="xy">–</span></div>
+      <div class="fila"><span>Rumbo (+ derecha)</span><span class="valor" id="rumbo">–</span></div>
+      <div class="fila"><span>Cabeza (+ derecha)</span><span class="valor" id="cabeza">–</span></div>
+      <div class="fila"><span>Inclinación</span><span class="valor" id="incl">–</span></div>
+    </div>
+    <div class="tarjeta">
+      <h2>ToF</h2>
+      <div class="fila"><span id="tofobj">distancia</span><span class="valor" id="tof">–</span></div>
+      <div class="barra"><i id="tofbarra" style="left:0;width:0"></i></div>
+    </div>
+    <div class="tarjeta">
+      <h2>Motores (PWM)</h2>
+      <div class="fila"><span>Izquierdo</span><span class="valor" id="pwml">–</span></div>
+      <div class="barra centrada"><i id="pwmlb"></i></div>
+      <div class="fila"><span>Derecho</span><span class="valor" id="pwmr">–</span></div>
+      <div class="barra centrada"><i id="pwmrb"></i></div>
+      <div class="chips" id="banderas"></div>
+    </div>
+    <div class="tarjeta">
+      <h2>Ojo y voz</h2>
+      <div class="fila" style="align-items:center"><span id="ojotxt">–</span><div id="ojo"></div></div>
+      <div id="voz">&nbsp;</div>
+    </div>
+    <div class="tarjeta">
+      <h2>Cámara</h2>
+      <img id="camara" alt="Lo que ve la cámara de la cabeza">
+      <div class="botones" style="margin-top:8px">
+        <button id="btncam">Pausar cámara</button>
+        <button id="btnestela">Borrar estela</button>
+        <button id="btnempujar" title="Simula que lo empujan 40° durante 1 s">Empujar 40°</button>
+      </div>
+    </div>
+  </aside>
+</main>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const lienzo = $("lienzo"), ctx = lienzo.getContext("2d");
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const estela = [];
+let ultimo = null, camaraActiva = true;
+
+// --- dibujo -----------------------------------------------------------------
+
+function dibujar(e) {
+  const [W, H] = e.habitacion_m;
+  const margen = 30;
+  const esc = Math.min((lienzo.width - 2 * margen) / W, (lienzo.height - 2 * margen) / H);
+  // mundo (m, y hacia arriba) → lienzo (px, y hacia abajo)
+  const px = (x) => margen + x * esc, py = (y) => lienzo.height - margen - y * esc;
+
+  ctx.clearRect(0, 0, lienzo.width, lienzo.height);
+  ctx.fillStyle = css("--piso");
+  ctx.fillRect(px(0), py(H), W * esc, H * esc);
+
+  // rejilla cada 0.5 m, con etiquetas cada metro
+  ctx.strokeStyle = css("--rejilla"); ctx.lineWidth = 1;
+  ctx.fillStyle = css("--tenue"); ctx.font = "12px system-ui";
+  for (let x = 0; x <= W + 1e-6; x += 0.5) {
+    ctx.beginPath(); ctx.moveTo(px(x), py(0)); ctx.lineTo(px(x), py(H)); ctx.stroke();
+    if (Number.isInteger(x)) ctx.fillText(x + " m", px(x) - 8, py(0) + 18);
+  }
+  for (let y = 0; y <= H + 1e-6; y += 0.5) {
+    ctx.beginPath(); ctx.moveTo(px(0), py(y)); ctx.lineTo(px(W), py(y)); ctx.stroke();
+    if (Number.isInteger(y) && y > 0) ctx.fillText(y + " m", px(0) - 28, py(y) + 4);
+  }
+  ctx.strokeStyle = css("--pared"); ctx.lineWidth = 4;
+  ctx.strokeRect(px(0), py(H), W * esc, H * esc);
+
+  // obstáculos
+  const colores = { silla: "#a8642a", caja: "#3f8c3f" };
+  for (const o of e.obstaculos) {
+    ctx.fillStyle = colores[o.nombre] || "#888";
+    const [x0, x1] = o.x, [y0, y1] = o.y;
+    ctx.fillRect(px(x0), py(y1), (x1 - x0) * esc, (y1 - y0) * esc);
+    ctx.fillStyle = "#fff"; ctx.font = "bold 13px system-ui"; ctx.textAlign = "center";
+    ctx.fillText(o.nombre, px((x0 + x1) / 2), py((y0 + y1) / 2) + 4);
+    ctx.textAlign = "start";
+  }
+
+  // estela
+  if (estela.length > 1) {
+    ctx.strokeStyle = css("--naranja"); ctx.globalAlpha = 0.45; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(px(estela[0][0]), py(estela[0][1]));
+    for (const [x, y] of estela) ctx.lineTo(px(x), py(y));
+    ctx.stroke(); ctx.globalAlpha = 1;
+  }
+
+  // rayo del ToF
+  const t = e.tof, cerca = t.mm > 0 && t.mm < t.freno_mm;
+  ctx.setLineDash([6, 5]); ctx.lineWidth = 2;
+  ctx.strokeStyle = cerca ? css("--rojo") : css("--azul");
+  ctx.beginPath(); ctx.moveTo(px(t.desde[0]), py(t.desde[1])); ctx.lineTo(px(t.hasta[0]), py(t.hasta[1])); ctx.stroke();
+  ctx.setLineDash([]);
+  if (t.mm > 0) {
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.beginPath(); ctx.arc(px(t.hasta[0]), py(t.hasta[1]), 4, 0, 2 * Math.PI); ctx.fill();
+  }
+
+  // robot: cuerpo (esfera vista desde arriba) y cabeza
+  const cx = px(e.x_m), cy = py(e.y_m), r = e.radio_m * esc;
+  const th = e.theta_deg * Math.PI / 180;              // rumbo del cuerpo (antihorario, mundo)
+  const hc = th - e.cabeza_deg * Math.PI / 180;        // hacia dónde mira la cabeza
+  ctx.fillStyle = "#f7f5f0"; ctx.strokeStyle = e.chocando ? css("--rojo") : "#555";
+  ctx.lineWidth = e.chocando ? 4 : 2;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = css("--naranja"); ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(cx, cy, r * 0.72, 0, 2 * Math.PI); ctx.stroke();
+  // flecha de avance del cuerpo
+  ctx.strokeStyle = "#555"; ctx.lineWidth = 2;
+  flecha(cx, cy, cx + Math.cos(th) * r * 1.35, cy - Math.sin(th) * r * 1.35);
+  // cabeza: domo con el ojo hacia donde mira
+  const rc = r * 0.55;
+  ctx.fillStyle = "#ece8df"; ctx.strokeStyle = "#555"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx, cy, rc, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+  const [er, eg, eb] = e.ojo.rgb, f = intensidadOjo(e.ojo.patron);
+  const ex = cx + Math.cos(hc) * rc * 0.62, ey = cy - Math.sin(hc) * rc * 0.62;
+  if (er + eg + eb > 0 && f > 0.05) {
+    ctx.fillStyle = `rgba(${er},${eg},${eb},${0.35 * f})`;
+    ctx.beginPath(); ctx.arc(ex, ey, rc * 0.75, 0, 2 * Math.PI); ctx.fill();
+  }
+  ctx.fillStyle = er + eg + eb > 0 ? `rgb(${er},${eg},${eb})` : "#222";
+  ctx.globalAlpha = 0.35 + 0.65 * f;
+  ctx.beginPath(); ctx.arc(ex, ey, rc * 0.32, 0, 2 * Math.PI); ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // globo con lo último que dijo (unos segundos)
+  if (e.voz && e.voz.hace_s < Math.max(3, e.voz.segundos + 1.5)) {
+    globo(cx, cy - r - 10, e.voz.texto ? `«${e.voz.texto}»` : `*pitido ${e.voz.sonido}*`);
+  }
+}
+
+function flecha(x0, y0, x1, y1) {
+  const a = Math.atan2(y1 - y0, x1 - x0), p = 8;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1);
+  ctx.lineTo(x1 - p * Math.cos(a - 0.45), y1 - p * Math.sin(a - 0.45));
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - p * Math.cos(a + 0.45), y1 - p * Math.sin(a + 0.45));
+  ctx.stroke();
+}
+
+function globo(x, y, texto) {
+  ctx.font = "15px system-ui";
+  const recorte = texto.length > 60 ? texto.slice(0, 57) + "…" : texto;
+  const w = ctx.measureText(recorte).width + 20, h = 28;
+  let bx = Math.min(Math.max(x - w / 2, 4), lienzo.width - w - 4), by = Math.max(y - h, 4);
+  ctx.fillStyle = css("--panel"); ctx.strokeStyle = css("--tenue"); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect(bx, by, w, h, 8); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = css("--tinta"); ctx.fillText(recorte, bx + 10, by + 19);
+}
+
+// patrón del anillo: fijo, respirar (seno de 3 s), parpadeo (2 Hz), apagado
+function intensidadOjo(patron) {
+  const s = performance.now() / 1000;
+  if (patron === "apagado") return 0;
+  if (patron === "respirar") return 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(s * 2 * Math.PI / 3));
+  if (patron === "parpadeo") return (s * 2) % 1 < 0.5 ? 1 : 0.1;
+  return 1;
+}
+
+// --- panel ------------------------------------------------------------------
+
+const NOMBRES = { obstacle: "obstáculo", tilt: "inclinación", watchdog: "watchdog", sleep: "dormido" };
+
+function panel(e) {
+  $("xy").textContent = `${e.x_m.toFixed(2)}, ${e.y_m.toFixed(2)} m`;
+  $("rumbo").textContent = `${e.rumbo_deg.toFixed(0)}°`;
+  $("cabeza").textContent = `${e.cabeza_deg.toFixed(0)}°`;
+  $("incl").textContent = `${e.inclinacion_deg.toFixed(1)}°`;
+
+  const t = e.tof;
+  $("tof").textContent = t.mm ? `${t.mm} mm` : "fuera de rango";
+  $("tofobj").textContent = t.objeto ? `hasta la ${t.objeto}` : (t.mm ? "hasta la pared" : "distancia");
+  const b = $("tofbarra");
+  b.style.width = `${Math.min(100, (t.mm || 4000) / 40)}%`;
+  b.style.background = t.mm && t.mm < t.freno_mm ? css("--rojo") : css("--azul");
+
+  for (const [i, lado] of [[0, "l"], [1, "r"]]) {
+    const v = e.pwm[i], meta = e.pwm_objetivo[i];
+    $("pwm" + lado).textContent = meta !== v ? `${v} → ${meta}` : `${v}`;
+    const barra = $("pwm" + lado + "b"), ancho = Math.abs(v) / 255 * 50;
+    barra.style.width = ancho + "%";
+    barra.style.left = (v >= 0 ? 50 : 50 - ancho) + "%";
+    barra.style.background = v >= 0 ? css("--verde") : css("--naranja");
+  }
+
+  const chips = $("banderas");
+  chips.replaceChildren(...(e.banderas.length ? e.banderas : ["sin frenos"]).map((f) => {
+    const c = document.createElement("span");
+    c.className = "chip" + (e.banderas.length ? "" : " ok");
+    c.textContent = NOMBRES[f] || f;
+    return c;
+  }));
+  if (e.chocando) {
+    const c = document.createElement("span"); c.className = "chip"; c.textContent = "chocando";
+    chips.append(c);
+  }
+
+  const [r, g, bl] = e.ojo.rgb;
+  $("ojo").style.background = r + g + bl ? `rgb(${r},${g},${bl})` : "#222";
+  $("ojotxt").textContent = `${e.ojo.patron}, brillo ${Math.round(e.ojo.brillo * 100)} %`;
+  if (e.voz) {
+    const que = e.voz.texto ? `«${e.voz.texto}»` : `*pitido ${e.voz.sonido}*`;
+    $("voz").textContent = `${que} · hace ${formatoHace(e.voz.hace_s)}`;
+  }
+}
+
+function formatoHace(s) {
+  if (s < 60) return `${Math.round(s)} s`;
+  return `${Math.round(s / 60)} min`;
+}
+
+// --- bucle ------------------------------------------------------------------
+
+async function pedir() {
+  try {
+    const r = await fetch("/sim/mundo", { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    ultimo = await r.json();
+    const p = estela[estela.length - 1];
+    if (!p || Math.hypot(p[0] - ultimo.x_m, p[1] - ultimo.y_m) > 0.01) {
+      estela.push([ultimo.x_m, ultimo.y_m]);
+      if (estela.length > 2000) estela.shift();
+    }
+    panel(ultimo);
+    $("conexion").textContent = "en vivo · " + new Date().toLocaleTimeString();
+    $("conexion").className = "";
+  } catch {
+    $("conexion").textContent = "sin conexión con el dummy (¿está corriendo lanzar_dummy.py?)";
+    $("conexion").className = "mal";
+  }
+  setTimeout(pedir, 100);
+}
+
+function cuadro() {
+  if (ultimo) dibujar(ultimo);
+  requestAnimationFrame(cuadro);
+}
+
+function refrescarCamara() {
+  if (camaraActiva) {
+    const img = new Image();
+    img.onload = () => { const vieja = $("camara").src; $("camara").src = img.src; if (vieja.startsWith("blob:")) URL.revokeObjectURL(vieja); };
+    fetch("/foto?ancho=320", { cache: "no-store" }).then((r) => r.ok ? r.blob() : null)
+      .then((b) => { if (b) img.src = URL.createObjectURL(b); }).catch(() => {});
+  }
+  setTimeout(refrescarCamara, 1000);
+}
+
+$("btncam").onclick = () => {
+  camaraActiva = !camaraActiva;
+  $("btncam").textContent = camaraActiva ? "Pausar cámara" : "Reanudar cámara";
+};
+$("btnestela").onclick = () => { estela.length = 0; };
+$("btnempujar").onclick = () => fetch("/sim/empujar", {
+  method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ grados: 40, segundos: 1 }),
+});
+
+pedir();
+refrescarCamara();
+requestAnimationFrame(cuadro);
+</script>
+</body>
+</html>

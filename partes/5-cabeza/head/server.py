@@ -17,16 +17,20 @@ from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
 from .colors import MAX_BRIGHTNESS, PATTERNS, parse_color
+from .sounds import SONIDOS
 
 log = logging.getLogger("bb8.head")
-SOUNDS = ("feliz", "triste", "alerta", "pregunta")
 
 
 def build_app(camera, tof, eye, speaker, extra_routes: list[Route] | None = None) -> Starlette:
     async def estado(req: Request):
         return JSONResponse({"ok": True, "camara": camera.name, "tof": tof.name})
 
+    sin_camara = JSONResponse({"ok": False, "error": "la cabeza no tiene cámara"}, status_code=503)
+
     async def foto(req: Request):
+        if camera.name == "ninguna":
+            return sin_camara
         width = max(64, min(1920, int(req.query_params.get("ancho", 640))))
         try:
             jpg = await asyncio.to_thread(camera.capture_jpeg, width)
@@ -55,8 +59,8 @@ def build_app(camera, tof, eye, speaker, extra_routes: list[Route] | None = None
     async def hablar(req: Request):
         d = await req.json()
         text, sound = d.get("texto"), d.get("sonido")
-        if sound and sound not in SOUNDS:
-            return JSONResponse({"ok": False, "error": f"sonido desconocido. Usa {', '.join(SOUNDS)}"}, 400)
+        if sound and sound not in SONIDOS:
+            return JSONResponse({"ok": False, "error": f"sonido desconocido. Usa {', '.join(SONIDOS)}"}, 400)
         if not text and not sound:
             return JSONResponse({"ok": False, "error": "manda 'texto' o 'sonido'"}, 400)
         secs = await asyncio.to_thread(speaker.say, text, sound)
@@ -64,6 +68,8 @@ def build_app(camera, tof, eye, speaker, extra_routes: list[Route] | None = None
 
     async def cara(req: Request):
         """Caras en la foto actual: x de −1 (izquierda) a 1 (derecha), area relativa. Parte 5."""
+        if camera.name == "ninguna":
+            return sin_camara
         try:
             caras = await asyncio.to_thread(_detectar_caras, camera)
         except ImportError:
@@ -122,7 +128,7 @@ def main() -> None:
     ap.add_argument("--port", type=int, default=8080)
     a = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
-    app = build_app(R.PiCamera(), R.tof_auto(), R.NeoPixelEye(), R.Speaker())
+    app = build_app(R.camara_auto(), R.tof_auto(), R.NeoPixelEye(), R.Speaker())
     uvicorn.run(app, host="0.0.0.0", port=a.port, log_level="warning")
 
 

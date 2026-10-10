@@ -1,0 +1,81 @@
+# CI del BB-8: compila el firmware y los sketches de prueba del Arduino, y corre la
+# prueba de punta a punta contra el dummy (los mismos 17 checks de `python -m dummy.probar`).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  firmware:
+    name: Firmware (Arduino Uno)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: arduino/setup-arduino-cli@v2
+
+      - name: Instalar el core AVR y las librerías
+        run: |
+          arduino-cli core update-index
+          arduino-cli core install arduino:avr
+          arduino-cli lib install Servo VL53L0X
+
+      - name: Compilar el firmware y los sketches de prueba
+        run: |
+          set -e
+          for sketch in partes/1-protoboard/arduino/bb8_firmware partes/1-protoboard/arduino/pruebas/*/; do
+            echo "::group::$sketch"
+            arduino-cli compile --warnings default --fqbn arduino:avr:uno \
+              --export-binaries "$sketch"
+            echo "::endgroup::"
+          done
+
+      # El .hex y el .elf sirven para subirlos sin compilar o para abrirlos en Wokwi.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware-uno
+          path: partes/1-protoboard/arduino/bb8_firmware/build/
+          if-no-files-found: error
+
+  dummy:
+    name: Prueba con el dummy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: |
+          pip install -r requirements.txt
+          pip install -e .
+          pip show mcp | grep '^Version: 1\.'   # FastMCP vive en mcp 1.x
+
+      - name: Chequeo de sintaxis
+        run: python -m compileall -q partes simulador
+
+      - name: Arrancar el dummy
+        run: |
+          python simulador/lanzar_dummy.py --camara sintetica --sin-sonido > dummy.log 2>&1 &
+          for i in $(seq 60); do
+            grep -q "dummy listo" dummy.log && exit 0
+            sleep 1
+          done
+          echo "El dummy no arrancó en 60 s"; cat dummy.log; exit 1
+
+      - name: Correr la prueba de punta a punta
+        run: python -m dummy.probar
+
+      - name: Log del dummy
+        if: always()
+        run: cat dummy.log || true

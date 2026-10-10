@@ -18,7 +18,7 @@ Código: [`partes/3-base-andando`](https://github.com/erickdsama/bb8/tree/main/p
 
 ## Preparar la Pi
 
-Raspberry Pi OS Lite de 64 bits, Arduino por USB con el firmware de la Parte 1.
+Raspberry Pi 3 con Raspberry Pi OS Lite de 64 bits, Arduino Uno por USB con el firmware de la Parte 1.
 
 ```bash
 git clone https://github.com/erickdsama/bb8 && cd bb8

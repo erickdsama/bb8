@@ -34,6 +34,7 @@ Además:
 
 | Carpeta | Qué hay |
 | --- | --- |
+| [`cad/`](cad) | Piezas imprimibles en OpenSCAD paramétrico: esfera, base, poste y cabeza, con STL y renders |
 | [`simulador/`](simulador) | Robot dummy: Arduino y cabeza simulados para correr todo en el PC sin hardware, y la prueba de punta a punta |
 | [`sistema/`](sistema) | Servicios systemd, instaladores para la Pi y la Zero, ejemplo de `/etc/bb8.env` |
 | [`docs/`](docs) | Documento técnico original y los artefactos (diagramas, avance, mecánica, animación) |
@@ -69,7 +70,7 @@ carpeta. `simulador/lanzar_dummy.py` funciona incluso sin ese paso.
 
 ## Estado
 
-Partes 1–6 tienen código; el firmware compila para Uno y Nano y todo se ha probado
+Partes 1–6 tienen código; el firmware compila para el Arduino Uno y todo se ha probado
 contra el simulador, todavía no en el hardware real. Lo que falta está en
 [Pendientes](wiki/Pendientes.md) y el avance en el
 [tracker](docs/artefactos/avance-del-proyecto.html).

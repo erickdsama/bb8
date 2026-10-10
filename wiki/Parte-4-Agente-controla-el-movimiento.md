@@ -7,12 +7,13 @@ Código: [`partes/4-agente-movimiento`](https://github.com/erickdsama/bb8/tree/m
 
 | Archivo | Hace |
 | --- | --- |
-| `bb8_mcp/` | Servidor MCP `bb8-motion` (FastMCP, `:8765/mcp`): `move`, `turn`, `stop`, `look_at`, `take_photo`, `set_eye_color`, `say`, `get_pose` |
+| `bb8_mcp/` | Servidor MCP `bb8-motion` (FastMCP, `:8765/mcp`): `move`, `turn`, `stop`, `look_at`, `take_photo`, `set_eye_color`, `say`, `express`, `get_pose`. Su system prompt suma la personalidad de `head/personalidad.py` |
 | `voz/escucha.py` | openWakeWord + Silero VAD (ONNX, sin torch) |
 | `voz/stt.py` | faster-whisper |
 | `voz/hablantes.py` | Registro e identificación de voces (Resemblyzer, opcional) |
 | `voz/agente.py` | Claude con las herramientas MCP |
 | `voz/salida.py` | Piper local o en la cabeza, y pitidos |
+| `voz/__main__.py` | El bucle; sus frases fijas (buenas noches, sin señal…) salen de `head.personalidad.frase()` |
 | `voz/cara.py` | Gira la cabeza hacia quien habla (Parte 5) |
 | `requirements-voz.txt` | Dependencias del agente de voz |
 | `wakeword/` | Entrenamiento de la wake word "oye BB-8" (Colab o PC, no en la Pi) |
@@ -33,7 +34,7 @@ todo esto funciona igual con el [simulador](Simulador.md).
 
 ## Paso 2: micrófono y altavoz
 
-Micrófono USB (o ReSpeaker 2-Mic HAT) y bocina o DAC USB en la Pi principal.
+Micrófono USB (o ReSpeaker 2-Mic HAT) en la Pi principal (una Pi 3); la voz sale por su jack de 3.5 mm → PAM8403 → bocina.
 
 ```bash
 sudo apt install libportaudio2 libopenblas0
@@ -63,8 +64,8 @@ las herramientas MCP → Piper.
 - **Wake word:** "hey Jarvis" de fábrica. Para "oye BB-8" entrena tu modelo con el cuaderno de `wakeword/` en Colab y copia `oye_bb8.onnx` a `voz/modelos/`: el agente lo usa solo. Ver [Wake word "oye BB-8"](Wake-word-oye-BB-8.md).
 - **Modelo:** `claude-opus-5-5` con esfuerzo `low` para que conteste rápido (`BB8_MODELO`, `BB8_ESFUERZO`). Lleva activado el respaldo del servidor: si un clasificador rechaza una petición, la API la reintenta con otro modelo.
 - **Voces desconocidas:** pueden platicar, pero `move`, `turn` y `look_at` se bloquean en el código, no solo en el prompt. Mientras no registres ninguna voz, obedece a todos. No es biometría segura.
-- **Whisper:** `small` tarda 2–4 s en una Pi 4; `BB8_WHISPER=base` es más rápido.
-- **Identificación de voz:** `resemblyzer` instala torch (~1 GB); descoméntalo en `requirements-voz.txt` si lo quieres.
+- **Transcripción:** en la Pi 3, Whisper `base` local tarda ~4–8 s por frase (estimado). Con `BB8_STT_API_KEY` (Groq) se transcribe en la nube en ~1 s. Comparación y memoria en [Instalación en la Pi](Instalacion-en-la-Pi.md#transcripción-local-o-en-la-nube).
+- **Identificación de voz:** `resemblyzer` instala torch (~1 GB de disco, ~350 MB de RAM). En la Pi 3 solo cabe con la transcripción en la nube; descoméntalo en `requirements-voz.txt` si lo quieres.
 - **Dormir:** "BB-8, a dormir" pasa al reposo (profundo si está habilitado, Parte 6).
 
 Todas las variables en [Instalación en la Pi](Instalacion-en-la-Pi.md#variables-de-entorno).

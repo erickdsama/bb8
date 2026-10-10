@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "author": "Erick",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-arduino-uno", "id": "uno", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-mpu6050", "id": "imu", "top": 280, "left": 60, "attrs": {} },
+    { "type": "wokwi-servo", "id": "servo", "top": -170, "left": 300, "attrs": {} },
+    { "type": "wokwi-ky-040", "id": "encIzq", "top": -150, "left": -260, "attrs": {} },
+    { "type": "wokwi-ky-040", "id": "encDer", "top": -40, "left": -260, "attrs": {} },
+    { "type": "wokwi-led", "id": "ledEna", "top": -140, "left": 20, "attrs": { "color": "green", "label": "ENA izq" } },
+    { "type": "wokwi-led", "id": "ledIn1", "top": -140, "left": 60, "attrs": { "color": "blue", "label": "IN1 adelante" } },
+    { "type": "wokwi-led", "id": "ledIn2", "top": -140, "left": 100, "attrs": { "color": "red", "label": "IN2 atrás" } },
+    { "type": "wokwi-led", "id": "ledEnb", "top": -140, "left": 150, "attrs": { "color": "green", "label": "ENB der" } },
+    { "type": "wokwi-led", "id": "ledIn3", "top": -140, "left": 190, "attrs": { "color": "blue", "label": "IN3 adelante" } },
+    { "type": "wokwi-led", "id": "ledIn4", "top": -140, "left": 230, "attrs": { "color": "red", "label": "IN4 atrás" } },
+    { "type": "wokwi-led", "id": "ledCorte", "top": 300, "left": 300, "attrs": { "color": "yellow", "label": "A3 corte Pi" } },
+    { "type": "wokwi-potentiometer", "id": "bateria", "top": 280, "left": 400, "attrs": { "label": "Batería (A0)" } }
+  ],
+  "connections": [
+    [ "imu:VCC", "uno:5V", "red", [] ],
+    [ "imu:GND", "uno:GND.2", "black", [] ],
+    [ "imu:SDA", "uno:A4", "blue", [] ],
+    [ "imu:SCL", "uno:A5", "yellow", [] ],
+    [ "imu:INT", "uno:A2", "purple", [] ],
+
+    [ "servo:V+", "uno:5V", "red", [] ],
+    [ "servo:GND", "uno:GND.1", "black", [] ],
+    [ "servo:PWM", "uno:9", "orange", [] ],
+
+    [ "encIzq:VCC", "uno:5V", "red", [] ],
+    [ "encIzq:GND", "uno:GND.1", "black", [] ],
+    [ "encIzq:CLK", "uno:2", "green", [] ],
+    [ "encIzq:DT", "uno:4", "white", [] ],
+    [ "encDer:VCC", "uno:5V", "red", [] ],
+    [ "encDer:GND", "uno:GND.1", "black", [] ],
+    [ "encDer:CLK", "uno:3", "green", [] ],
+    [ "encDer:DT", "uno:10", "white", [] ],
+
+    [ "ledEna:A", "uno:5", "green", [] ],
+    [ "ledIn1:A", "uno:7", "blue", [] ],
+    [ "ledIn2:A", "uno:8", "red", [] ],
+    [ "ledEnb:A", "uno:6", "green", [] ],
+    [ "ledIn3:A", "uno:11", "blue", [] ],
+    [ "ledIn4:A", "uno:12", "red", [] ],
+    [ "ledEna:C", "uno:GND.1", "black", [] ],
+    [ "ledIn1:C", "uno:GND.1", "black", [] ],
+    [ "ledIn2:C", "uno:GND.1", "black", [] ],
+    [ "ledEnb:C", "uno:GND.1", "black", [] ],
+    [ "ledIn3:C", "uno:GND.1", "black", [] ],
+    [ "ledIn4:C", "uno:GND.1", "black", [] ],
+
+    [ "ledCorte:A", "uno:A3", "yellow", [] ],
+    [ "ledCorte:C", "uno:GND.3", "black", [] ],
+
+    [ "bateria:VCC", "uno:5V", "red", [] ],
+    [ "bateria:GND", "uno:GND.3", "black", [] ],
+    [ "bateria:SIG", "uno:A0", "green", [] ],
+
+    [ "uno:0", "$serialMonitor:TX", "", [] ],
+    [ "uno:1", "$serialMonitor:RX", "", [] ]
+  ],
+  "serialMonitor": { "display": "terminal", "newline": "lf" },
+  "dependencies": {}
+}

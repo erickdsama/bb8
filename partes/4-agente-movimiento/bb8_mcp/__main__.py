@@ -18,6 +18,7 @@ import httpx
 from mcp.server.fastmcp import FastMCP, Image
 
 from bb8 import config as C
+from head.personalidad import EMOCIONES, bloque_para_prompt
 
 log = logging.getLogger("bb8.mcp")
 
@@ -28,13 +29,18 @@ Curioso, leal y algo cabezota.
 
 Reglas de movimiento:
 - Antes de avanzar en un sitio nuevo usa take_photo. Nunca avances más de 1 m sin volver a mirar.
+- Si take_photo dice que no hay cámara, avanza en tramos de 0.5 m como máximo y confía en el freno por obstáculo.
 - No encadenes más de tres movimientos sin preguntar o informar.
 - move y turn son cortos y se detienen solos; espera su resultado antes del siguiente.
 - Si el resultado es "blocked", hay algo a menos de 25 cm: gira o pregunta, no insistas recto.
 - Si es "manual_override", el piloto humano tiene el mando: di "el piloto manda" y espera.
 - Si get_pose marca inclinación alta o batería baja (< 10.5 V), avísalo y detente.
 - look_at gira solo la cabeza (±90°); turn gira todo el cuerpo.
-"""
+
+""" + bloque_para_prompt()
+
+# Las emociones (y sus pitidos) viven en head/personalidad.py y head/sounds.py.
+Emocion = Literal[tuple(EMOCIONES)]
 
 mcp = FastMCP("bb8-motion", instructions=INSTRUCTIONS)
 _motion = httpx.AsyncClient(base_url=C.MOTION_URL, timeout=20.0)
@@ -82,6 +88,11 @@ async def take_photo() -> Image:
     """Toma una foto con la cámara de la cabeza (640 px) en la dirección a la que mira la cabeza."""
     try:
         r = await _head.get("/foto", params={"ancho": 640})
+    except httpx.HTTPError as e:
+        raise RuntimeError(f"no hay foto de la cabeza ({e})") from e
+    if r.status_code == 503:
+        raise RuntimeError("la cabeza no tiene cámara: no puedo ver")
+    try:
         r.raise_for_status()
     except httpx.HTTPError as e:
         raise RuntimeError(f"no hay foto de la cabeza ({e})") from e
@@ -100,13 +111,25 @@ async def set_eye_color(
 
 
 @mcp.tool()
-async def say(
-    texto: str | None = None,
-    sonido: Literal["feliz", "triste", "alerta", "pregunta"] | None = None,
-) -> dict:
-    """Habla por el altavoz de la cabeza (texto corto, menos de 15 palabras) o hace un pitido de droide."""
+async def say(texto: str | None = None, sonido: Emocion | None = None) -> dict:
+    """Habla por el altavoz de la cabeza (texto corto, menos de 15 palabras) o hace un pitido de droide.
+
+    Con texto, BB-8 balbucea unos pitidos y luego lo dice; con texto y sonido, pita ese sonido
+    antes de hablar. Para reaccionar con el ojo también, usa express."""
     body = {k: v for k, v in (("texto", texto), ("sonido", sonido)) if v}
     return await _post(_head, "/hablar", body)
+
+
+@mcp.tool()
+async def express(emocion: Emocion) -> dict:
+    """Muestra una emoción: el pitido de droide de esa emoción y el color del ojo que le toca.
+    Úsala para reaccionar antes de hablar o de moverte (ver Personalidad en las instrucciones)."""
+    e = EMOCIONES[emocion]
+    ojo = await _post(_head, "/ojo", {"color": e.color, "patron": e.patron})
+    if ojo.get("ok") is not True:
+        return ojo
+    sonido = await _post(_head, "/hablar", {"sonido": emocion})
+    return {**sonido, "emocion": emocion, "ojo": f"{e.color} {e.patron}"}
 
 
 @mcp.tool()

@@ -6,7 +6,7 @@ description: Editar, compilar o subir el firmware del Arduino (bb8_firmware) o l
 # Firmware del Arduino
 
 Archivo: `partes/1-protoboard/arduino/bb8_firmware/bb8_firmware.ino` (la carpeta y
-el `.ino` deben llamarse igual). Placa: Uno o Nano (ATmega328P), 2 KB de RAM.
+el `.ino` deben llamarse igual). Placa: Arduino Uno (ATmega328P), 2 KB de RAM.
 
 ## Antes de editar
 
@@ -24,13 +24,16 @@ Con `arduino-cli` (librería VL53L0X de Pololu):
 ```bash
 arduino-cli core install arduino:avr
 arduino-cli lib install VL53L0X
-arduino-cli compile --fqbn arduino:avr:uno  partes/1-protoboard/arduino/bb8_firmware
-arduino-cli compile --fqbn arduino:avr:nano partes/1-protoboard/arduino/bb8_firmware
+arduino-cli compile --fqbn arduino:avr:uno partes/1-protoboard/arduino/bb8_firmware
 ```
 
-Compila para las dos placas y fíjate en el uso de RAM que imprime: por encima del
+Fíjate en el uso de RAM que imprime: por encima del
 ~75 % empiezan los cuelgues raros. Si `arduino-cli` no está disponible, dilo en vez de
 afirmar que compila.
+
+El CI compila el firmware y `pruebas/p1…p5` para el Uno en cada push y PR; si agregas
+un sketch o una librería, cámbialo también en `.github/workflows/ci.yml`. Si cambias
+pines, actualiza `partes/1-protoboard/wokwi/diagram.json`.
 
 ## Subir (solo con la placa conectada)
 

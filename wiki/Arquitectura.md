@@ -36,7 +36,7 @@ firmware, no en el prompt.
 | --- | --- | --- |
 | Raspberry Pi principal | `bb8.motion_api` (:8770), `bb8_mcp` (:8765), `voz`, `energia` (:8771) | partes 3, 4 y 6 |
 | Raspberry Pi Zero 2 W (cabeza) | `head.server` (:8080): cámara OV5647, ToF, anillo WS2812, altavoz | parte 5 |
-| Arduino Uno/Nano | `bb8_firmware`: L298N, encoders, servo MG996R, MPU6050, VL53L0X | parte 1 |
+| Arduino Uno | `bb8_firmware`: L298N, encoders, servo MG996R, MPU6050, VL53L0X | parte 1 |
 | Tu PC | El simulador reemplaza al Arduino y a la Zero; el resto es el mismo código | `simulador/` |
 
 ## Herramientas que ve Claude
@@ -49,7 +49,8 @@ firmware, no en el prompt.
 | `look_at(grados)` | Gira la cabeza −90…90° con el servo del poste |
 | `take_photo()` | Foto de la cabeza, 640 px |
 | `set_eye_color(color, patron)` | Anillo NeoPixel |
-| `say(texto o sonido)` | Habla con Piper o pita |
+| `say(texto o sonido)` | Habla con Piper (con balbuceo de pitidos antes) o pita |
+| `express(emocion)` | Pitido de la emoción y el color de ojo que le toca (15 emociones, `head/personalidad.py`) |
 | `get_pose()` | Posición, rumbo, inclinación, batería, distancia al frente |
 
 ## Seguridad

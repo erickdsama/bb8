@@ -36,8 +36,16 @@ GRABACION_MAX_S = 10.0
 ESPERA_VOZ_S = 4.0            # si no empieza a hablar en 4 s tras la wake word, vuelve a esperar
 
 # --- Transcripción -----------------------------------------------------------
-WHISPER = os.environ.get("BB8_WHISPER", "small")   # base es más rápido en Pi 4; small entiende mejor
-WHISPER_HILOS = int(os.environ.get("BB8_WHISPER_HILOS", "4"))
+# "local": faster-whisper en la Pi. "nube": API de transcripción compatible con OpenAI
+# (Groq, OpenAI o whisper.cpp en tu PC). Con BB8_STT_API_KEY puesta, nube por defecto.
+STT_API_KEY = os.environ.get("BB8_STT_API_KEY", "")
+STT = os.environ.get("BB8_STT") or ("nube" if STT_API_KEY else "local")
+STT_URL = os.environ.get("BB8_STT_URL", "https://api.groq.com/openai/v1/audio/transcriptions")
+STT_MODELO = os.environ.get("BB8_STT_MODELO", "whisper-large-v3-turbo")
+# Pi 3 (1 GB): base cabe en RAM y entiende español aceptable; small no cabe junto a lo demás.
+WHISPER = os.environ.get("BB8_WHISPER", "base")
+# 3 de 4 núcleos: el cuarto queda para el ciclo de 50 ms del servicio de movimiento.
+WHISPER_HILOS = int(os.environ.get("BB8_WHISPER_HILOS", "3"))
 
 # --- Quién habla -------------------------------------------------------------
 VOCES_JSON = Path(os.environ.get("BB8_VOCES", AQUI / "voces.json"))

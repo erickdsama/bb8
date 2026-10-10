@@ -1,4 +1,4 @@
-// BB-8 · firmware del Arduino Uno/Nano (partes 2, 3 y 6)
+// BB-8 · firmware del Arduino Uno (partes 2, 3 y 6)
 //
 // Implementa PROTOCOLO.md, sección 1: M, S, H, D, ?, Z, W, I y P (apagado).
 // Reflejos cada 10 ms que no esperan a la Pi: rampa, PID con encoders,
