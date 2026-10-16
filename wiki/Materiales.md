@@ -30,6 +30,29 @@ El VL53L0X de este pedido va en el I2C del Arduino durante las Partes 1–4
 calienta, el respaldo es un BTS7960. El L298N tira ~2 V, así que el motor ve ~10 V
 (~0.9 m/s máx.). Pinout en [Protocolo](Protocolo.md#cambio-por-el-l298n).
 
+## Ya comprado: Electrozone (16 oct 2026)
+
+Tienda física (sucursales Tecnológico y Torres). Buscador: `uv run tools/electrozone.py <palabras>`.
+
+| Clave | Pieza | Cant. | MXN | Parte |
+| --- | --- | --- | --- | --- |
+| AR-CARGA12 | Buck XL4015 5 A ajustable (para la Pi 3) | 1 | 75 | 3 |
+| 699-927 | Cable USB a micro USB 1 m (se corta y se suelda al XL4015) | 1 | 40 | 3 |
+| RL4 | Rueda loca con bola de ~1″, base 50 × 70 mm, 32 mm de alto | 2 | 140 | 2 |
+| PM15 | Puntas de multímetro con caimanes | 1 | 30 | 1 |
+| JUMPER-EXT20 / JUMPER-H20 | Jumpers macho-hembra y hembra-hembra 20 cm | 10 + 10 | 45 | 1 |
+| R330E-1/4W, 4.7 kΩ, 10 kΩ, 100 kΩ | Resistencias | 5 + 2 + 2 + 2 | ~12 | 5, 6 |
+| RL7 | Rueda loca mini, 16 mm de alto (ruedecitas de la cabeza) | 3 | 90 | 5 |
+| IMAN-ND20x2 | Imán de neodimio 20 × 2 mm, para la prueba magnética | 4 | 100 | 5 |
+| AR-GROVE4 | Cable Grove 4 pines a Dupont hembra (ReSpeaker) | 2 | 40 | 5 |
+| SH12RO | Interruptor de balancín con foco, 12 V DC | 1 | 22 | 6 |
+| PF19-3 | Portafusible europeo + fusibles 5 A 5 × 20 | 1 | ~20 | 6 |
+| — | Tiras de pines macho ×2 y hembra ×1, borneras de 2 pines ×4, cinchos, cinta de aislar, desarmador de precisión | — | ~125 | 2 |
+
+**Comprado también:** cautín 40 W, soldadura 60/40 con flux, base y multímetro (Home Depot, 15 oct).
+
+**Sigue faltando para la Parte 1:** el cable de los motores. El kit "PH 2.0 Connector Pre-Crimped Cable Kit" (Amazon, B08T89ZK2Q) trae varios conectores hembra de 6P y 90 cables con terminal; alcanza para los dos motores.
+
 ## Ya tienes (no se compran)
 
 Revisado el 15 oct 2026 entrando por SSH a las dos Pi.
@@ -62,8 +85,8 @@ consultada (tienda física o sin precio visible). Nada de esto se ha comprado.
 | Pieza | Cant. | Tienda | MXN | Nota |
 | --- | --- | --- | --- | --- |
 | Cable JST PH 2.0 mm de 6 pines a Dupont hembra, 20 cm | 2 | Mercado Libre / UNIT | 50–80 | El motor trae el conector (M1, GND, C2, C1, VCC, M2) pero no el cable |
-| Cautín 60 W con control de temperatura + estaño con flux + base | 1 | Mercado Libre / Amazon | 250–350 | El MPU6050 y el VL53L0X vienen con los pines sueltos; sin soldar el escáner I2C no los ve |
-| Multímetro básico | 1 | Mercado Libre / Steren | ~200 | Para ajustar el LM2596 a 5.1 V antes de conectar el servo |
+| ~~Cautín 60 W con control de temperatura + estaño con flux + base~~ | 1 | Mercado Libre / Amazon | 250–350 | El MPU6050 y el VL53L0X vienen con los pines sueltos; sin soldar el escáner I2C no los ve. **Comprado (Home Depot, 15 oct): cautín 40 W, soldadura 60/40 con flux, base** |
+| ~~Multímetro básico~~ | 1 | Mercado Libre / Steren | ~200 | Para ajustar el LM2596 a 5.1 V antes de conectar el servo. **Comprado (Home Depot, 15 oct)** |
 
 ### Carrito recomendado, ahora (Partes 2, 4 y 5)
 
@@ -73,7 +96,7 @@ Se puede pedir ya; nada depende del tamaño final de la esfera.
 | --- | --- | --- | --- | --- |
 | Llantas RC 1:10 de 65 × 26 mm con hexágono de 12 mm (paquete de 4) + acoplamiento hexagonal de latón WEFEINO (4 pzs, opción **6 mm**: barreno 6 mm, hexágono 12 mm, 18 mm de largo, prisionero y rosca M4) | 1 + 1 | Amazon | llantas + 253 | La llanta con accesorios de UNIT se agotó. Las RC miden lo mismo que el CAD (65 × 26 mm): nada cambia en `cad/` ni en `config.py`. El acoplamiento entra en el eje D de 6 mm con su prisionero y un tornillo M4 con rondana detiene la llanta. Sobran 2 llantas de repuesto. Respaldo sin hexágono: [brida de 6 mm](https://www.amazon.com.mx/Acoplamiento-Aluminio-Cojinete-Accesorio-Acoplador/dp/B0DB4WXRR9) atornillada a cualquier llanta de 65 mm |
 | [Soporte en L para motor 37 mm](https://articulo.mercadolibre.com.mx/MLM-652432552-soporte-motorreductor-bracket-37d-37gb-en-l-_JM) | 2 | Mercado Libre | ~40 c/u (est.) | Ya no es opcional: la llanta nueva no trae escuadra. Se atornilla abajo de la melamina en lugar del soporte impreso del CAD. Alternativa: [uxcell, 4 pzs](https://www.amazon.com.mx/uxcell-Soporte-reductor-engranajes-unidades/dp/B07QX82WS2) en Amazon |
-| Ball transfer 1″ de acero, montaje de 2 tornillos ([TruePower, 6 pzs](https://www.amazon.com.mx/TruePower-Roller-Ball-Transfer-Bearings/dp/B009KASQZW)) | 2 | Amazon | ~120 (est.) | Vienen en paquete; sobran para la cabeza o repuesto |
+| ~~Ball transfer 1″ de acero, montaje de 2 tornillos ([TruePower, 6 pzs](https://www.amazon.com.mx/TruePower-Roller-Ball-Transfer-Bearings/dp/B009KASQZW))~~ | 2 | Amazon | ~120 (est.) | Vienen en paquete; sobran para la cabeza o repuesto. **Reemplazado: 2 ruedas locas RL4 compradas en Electrozone (16 oct). Van sobre cuña de ~45°** |
 | Melamina 12–15 mm 30 × 30 cm + varilla roscada 1/4″ de 30 cm con 4 tuercas y 4 rondanas | 1 | Maderería, ferretería | ~120 (est.) | La varilla es el poste: va de pie en el centro de la melamina, apretada con 2 tuercas arriba y 2 abajo. Así no hace falta imprimir el pie del poste |
 | ReSpeaker 2-Mic Pi HAT **v2.0** (Seeed) | 1 | Amazon / Mercado Libre | ~450 (est.) | Reemplaza al micrófono USB: con dos micrófonos se calcula de dónde viene la voz (`listen`, ver [Simulador](Simulador.md)). **Va sobre el GPIO de la Zero W, en la cabeza** (ver [pines](#pines-de-la-zero-w-con-el-respeaker)): la cabeza detecta la voz y le manda solo ese audio al cuerpo. Trae su propia salida de audio (JST y jack), así que el MAX98357A ya no hace falta. Comprar la **v2.0**: la v1 depende del driver `seeed-voicecard`, que se rompe con kernels nuevos; confirmar soporte para el kernel de trixie antes de pagar. No cancela eco por hardware |
 | Cámara OV5647 5 MP **gran angular** (120–160°) | 1 | Amazon / Mercado Libre | ~200–300 (est.) | Confirmado: no la tienes. En el simulador, con la lente normal (54°) y a 35 cm del piso, una pared o un marco de puerta llena la foto; con 90–120° se ve el cuarto. Confirmar que traiga cable **15 → 22 pines** (la Zero W usa el de 22). Respaldo: [Arducam OV5647 normal](https://www.amazon.com.mx/Arducam-megap%C3%ADxeles-Sensor-OV5647-Raspberry/dp/B012V1HEP4), 134, trae los dos cables |
@@ -81,8 +104,8 @@ Se puede pedir ya; nada depende del tamaño final de la esfera.
 | Memoria USB 3.0 o microSD A1 de 32 GB | 1 | Steren / Amazon | ~120 (est.) | La Pi 3 arranca de una USB de 8 GB con 3.8 GB libres; la voz (Whisper, wake word, Piper) y el venv no caben con holgura |
 | Raspberry Pi Zero 2 W (opcional) | 1 | UNIT / Amazon | ~400 (est.) | Solo si quieres la voz saliendo de la cabeza (Piper no corre en la Zero W) y caras más rápidas. Mismo tamaño y cable de cámara |
 | [Power bank 1 × 18650, 2600 mAh](https://www.mercadolibre.com.mx/cargador-tipo-power-bank-para-bateria-18650-2600mah-incluida/up/MLMU3701037772) | 1 | Mercado Libre | ~250 (est.) | 97 × 26 mm, 63 g, salida 5 V 1 A, batería incluida. Para la cabeza |
-| Imanes neodimio disco 20 × 5 mm, [paquete de 10](https://listado.mercadolibre.com.mx/imanes-de-neodimio-20x5) | 1 | Mercado Libre | ~607 | Hacen falta 8 (4 en el poste, 4 en la cabeza). Revisar que la ficha diga N42; 2 paquetes de 5 salen en ~568 |
-| [Rueda loca mini, bola de nylon 1″](https://uelectronics.com/producto/mini-rueda-universal-con-bola-de-nylon/) | 3 | UNIT | 37–51 c/u | Las 3 "ruedecitas" de la cabeza; el nylon no raya la pintura del casco |
+| Imanes neodimio disco 20 × 5 mm, [paquete de 10](https://listado.mercadolibre.com.mx/imanes-de-neodimio-20x5) | 1 | Mercado Libre | ~607 | Hacen falta 8 (4 en el poste, 4 en la cabeza). Revisar que la ficha diga N42; 2 paquetes de 5 salen en ~568. **Para la prueba se compraron 4 imanes 20 × 2 mm (IMAN-ND20x2, Electrozone): dos apilados = 20 × 4. Si aguantan, comprar 12 más ahí** |
+| ~~[Rueda loca mini, bola de nylon 1″](https://uelectronics.com/producto/mini-rueda-universal-con-bola-de-nylon/)~~ | 3 | UNIT | 37–51 c/u | Las 3 "ruedecitas" de la cabeza; el nylon no raya la pintura del casco. **Comprado: 3 RL7 en Electrozone (16 oct)** |
 
 **Subtotal ahora: ~$2,465** sin la Zero 2 W opcional (~$2,315 si el punto de acceso va en la
 WiFi integrada). Bajó $85 al quitar el MAX98357A.
@@ -96,12 +119,12 @@ consumo real de los motores.
 | --- | --- | --- | --- | --- |
 | [LiPo 3S 11.1 V 5200 mAh 80C XT60, Hilldow (2 pzs)](https://www.amazon.com.mx/Hilldow-conector-veh%C3%ADculos-Camiones-paquetes/dp/B0FW4WPFNT) | 1 paquete | Amazon | 813 | ~407 por batería: más barato que una sola de [PCEONAMP](https://www.amazon.com.mx/PCEONAMP-capacidad-Quadcopter-Helic%C3%B3ptero-almacenamiento/dp/B0CHJHHK9V) (710). La segunda es repuesto |
 | [Cargador balanceador iMAX B6AC 80 W](https://www.mercadolibre.com.mx/cargador-balanceador-imax-b6-b6ac-80w/p/MLM47578491) | 1 | Mercado Libre | 600–750 | La versión **AC** trae fuente interna; la B6 sin AC necesita una fuente de 12 V aparte. [HetPro](https://hetpro-store.com/cargador-de-baterias-lipo-80w/) la tiene en 850 |
-| [Switch de balancín con piloto 12 Vcc, 16 A](https://www.steren.com.mx/switch-de-balancin-de-1-polo-1-tiro-2-posiciones-on-off-con-piloto-12-vcc.html) | 1 | Steren | 19 | |
-| [Portafusible europeo de cartucho 5 × 20](https://www.steren.com.mx/porta-fusible-europeo-de-cartucho.html) + 3 fusibles 5 A 5 × 20 | 1 | Steren | 15 + ~12 | |
-| Buck XL4015 5 A ajustable, para la Pi 3 ([Mercado Libre](https://listado.mercadolibre.com.mx/xl4015)) | 1 | Mercado Libre / UNIT | ~60 | La Pi 3 pide 5.1 V 2.5 A y el LM2596 da ~2 A reales: el XL4015 deja margen. El LM2596 del pedido 377466 se queda solo para el servo. [Versión con medidores en UNIT](https://uelectronics.com/producto/modulo-de-carga-reductor-xl4015-5a-con-medidores/): 140 |
+| ~~[Switch de balancín con piloto 12 Vcc, 16 A](https://www.steren.com.mx/switch-de-balancin-de-1-polo-1-tiro-2-posiciones-on-off-con-piloto-12-vcc.html)~~ | 1 | Steren | 19 | . **Comprado: SH12RO en Electrozone (16 oct)** |
+| ~~[Portafusible europeo de cartucho 5 × 20](https://www.steren.com.mx/porta-fusible-europeo-de-cartucho.html) + 3 fusibles 5 A 5 × 20~~ | 1 | Steren | 15 + ~12 | . **Comprado: PF19-3 + fusibles 5 A en Electrozone (16 oct)** |
+| ~~Buck XL4015 5 A ajustable, para la Pi 3 ([Mercado Libre](https://listado.mercadolibre.com.mx/xl4015))~~ | 1 | Mercado Libre / UNIT | ~60 | La Pi 3 pide 5.1 V 2.5 A y el LM2596 da ~2 A reales: el XL4015 deja margen. El LM2596 del pedido 377466 se queda solo para el servo. [Versión con medidores en UNIT](https://uelectronics.com/producto/modulo-de-carga-reductor-xl4015-5a-con-medidores/): 140. **Comprado: AR-CARGA12 en Electrozone (16 oct), con cable USB–micro USB 699-927. Se usa ya, por el bajo voltaje de la Pi** |
 | Cable micro-USB corto y grueso (o pigtail micro-USB macho) | 1 | Steren | ~50 (est.) | Del buck a la Pi 3. Un cable delgado provoca avisos de bajo voltaje; no alimentar por los pines GPIO |
 | P-MOSFET AO3401 (SOT-23) | 2 | Mercado Libre | ~80 | Reposo profundo de la Pi; el IRF520 no sirve. Necesita placa adaptadora SOT-23 o soldar fino |
-| Resistencias 100 kΩ, 10 kΩ y 4.7 kΩ | — | UNIT / Steren | ~30 (est.) | Pull-up del MOSFET y divisor de batería en A0 |
+| ~~Resistencias 100 kΩ, 10 kΩ y 4.7 kΩ~~ | — | UNIT / Steren | ~30 (est.) | Pull-up del MOSFET y divisor de batería en A0. **Comprado: 330 Ω ×5, 4.7 kΩ ×2, 10 kΩ ×2, 100 kΩ ×2 en Electrozone (16 oct)** |
 | XT60 hembra de panel + extensión JST-XH 4 pines | 1 | Amazon / UNIT | ~140 (est.) | Puerto de carga en la tapa del casco |
 | Impresión 3D por servicio (gajos de la esfera y cabeza) | 1 | Servicio local | ~2,000–3,000 (est.) | No hay impresora: se manda a imprimir con los STL de `cad/stl` (~1.6 kg de PLA). Los soportes de motor se compran y el poste es varilla roscada |
 | Primer, pintura blanca/naranja/plata, laca, lijas | 1 | Tlapalería | 300–500 (est.) | |

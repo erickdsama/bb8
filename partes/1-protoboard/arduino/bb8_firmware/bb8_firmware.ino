@@ -33,6 +33,9 @@
 // Rumbo: + derecha. El giroscopio Z del MPU6050 montado con el chip arriba da +
 // a la izquierda, por eso -1. Si "turn 90" gira a la izquierda, ponlo en 1.
 #define SIGNO_GIRO_Z      (-1)
+// 1 si el MPU6050 va de cabeza (chip hacia abajo): voltea Y y Z para que la
+// inclinación en reposo sea ~0. El signo del rumbo lo fija SIGNO_GIRO_Z (mídelo con p4).
+#define MPU_INVERTIDO      0
 #define SERVO_INVERTIDO    0
 
 // Velocidad: pulsos de encoder en 10 ms a PWM 255. 0.9 m/s × 6464 pulsos/m ≈ 58.
@@ -235,6 +238,7 @@ void leerImu(float dt) {
   int16_t ax, ay, az, gx, gy, gz;
   if (!imuOk || !mpuMuestras(&ax, &ay, &az, &gx, &gy, &gz)) { imuOk = false; return; }
   const float G = 65.5;
+  if (MPU_INVERTIDO) { ay = -ay; az = -az; gy = -gy; }
   float accPitch = atan2(-(float)ax, sqrt((float)ay * ay + (float)az * az)) * RAD_TO_DEG;
   float accRoll = atan2((float)ay, (float)az) * RAD_TO_DEG;
   // Filtro complementario: giroscopio a corto plazo, acelerómetro a largo plazo.
