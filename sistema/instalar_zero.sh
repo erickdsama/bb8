@@ -1,27 +1,40 @@
 #!/bin/bash
-# Instala la cabeza en la Pi Zero 2 W. Hostname: bb8-head (sudo raspi-config).
-# Clona el repo en /home/bb8/bb8 (git clone https://github.com/erickdsama/bb8 /home/bb8/bb8).
-# Activa I2C y la cámara en raspi-config. Luego:  sudo bash sistema/instalar_zero.sh
+# Installs the head on the Pi Zero W (armv6, Raspberry Pi OS Lite 32-bit). Hostname: bb8-head.
+# No Python: one Go binary. Built on the PC and copied over:
+#   PC:    make zero && scp dist/linux-armv6/bb8-head sistema/{instalar_zero.sh,bb8-head.service} bb8-head.local:/tmp/
+#   Pi 3:  scp /etc/bb8/pki/{ca.crt,bb8-head.crt,bb8-head.key} bb8-head.local:/tmp/
+#   Zero:  sudo bash /tmp/instalar_zero.sh [bb8.local]       # body address, default bb8.local
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")"
+BODY="${1:-bb8.local}"
+BIN=bb8-head; [ -x "$BIN" ] || BIN=../dist/linux-armv6/bb8-head
+[ -x "$BIN" ] || { echo "Missing bb8-head (make zero on the PC)" >&2; exit 1; }
+UNIT=bb8-head.service; [ -f "$UNIT" ] || UNIT=../sistema/bb8-head.service
+
 id bb8 &>/dev/null || useradd -m bb8
-apt-get install -y python3-venv python3-picamera2 python3-opencv alsa-utils
-python3 -m venv --system-site-packages .venv
-.venv/bin/pip install -r partes/5-cabeza/requirements-zero.txt
-.venv/bin/pip install --no-deps -e .   # registra el paquete head
-# Piper para la voz en la cabeza (binario arm64)
-if ! command -v piper >/dev/null; then
-  .venv/bin/pip install piper-tts
-  ln -sf "$PWD/.venv/bin/piper" /usr/local/bin/piper
-fi
-mkdir -p /opt/piper
-for ext in onnx onnx.json; do
-  [ -f /opt/piper/es_ES-davefx-medium.$ext ] || curl -fsSL -o /opt/piper/es_ES-davefx-medium.$ext \
-    "https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_ES/davefx/medium/es_ES-davefx-medium.$ext"
+for g in spi i2c video audio gpio; do getent group $g >/dev/null && usermod -aG $g bb8; done
+install -m 755 "$BIN" /usr/local/bin/bb8-head
+
+# Certs from 'bb8-body pair' (on the main Pi).
+install -d -m 750 -o bb8 -g bb8 /etc/bb8/pki
+for f in ca.crt bb8-head.crt bb8-head.key; do
+  [ -f /etc/bb8/pki/$f ] || install -m 600 -o bb8 /tmp/$f /etc/bb8/pki/$f
 done
-# Ahorro en reposo: sin Bluetooth ni HDMI, CPU en powersave. El WiFi se queda (es como la despiertan).
-grep -q "dtoverlay=disable-bt" /boot/firmware/config.txt || echo "dtoverlay=disable-bt" >> /boot/firmware/config.txt
-cp sistema/bb8-cabeza.service /etc/systemd/system/
+echo "BB8_BODY_ADDR=$BODY:8772" > /etc/bb8.env
+
+# Camera (rpicam-jpeg), speaker (aplay), speech (espeak-ng: Piper does not run on armv6).
+apt-get install -y --no-install-recommends rpicam-apps-lite alsa-utils espeak-ng || \
+  apt-get install -y --no-install-recommends libcamera-apps-lite alsa-utils espeak-ng
+# SPI for the NeoPixel ring (data on GPIO10 / pin 19), I2C for the VL53L0X.
+raspi-config nonint do_spi 0
+raspi-config nonint do_i2c 0
+# Power saving: no Bluetooth. WiFi stays (it is how the body reaches it).
+CONFIG=/boot/firmware/config.txt; [ -f "$CONFIG" ] || CONFIG=/boot/config.txt
+grep -q "dtoverlay=disable-bt" "$CONFIG" || echo "dtoverlay=disable-bt" >> "$CONFIG"
+
+systemctl disable --now bb8-cabeza 2>/dev/null || true   # old Python head
+rm -f /etc/systemd/system/bb8-cabeza.service
+cp "$UNIT" /etc/systemd/system/bb8-head.service
 systemctl daemon-reload
-systemctl enable --now bb8-cabeza
-echo "Listo: curl http://bb8-head.local:8080/estado"
+systemctl enable --now bb8-head
+echo "Done. Logs: journalctl -fu bb8-head  (it should say 'link: connected to body')"

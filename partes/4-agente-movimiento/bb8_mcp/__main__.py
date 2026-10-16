@@ -37,6 +37,22 @@ Reglas de movimiento:
 - Si get_pose marca inclinación alta o batería baja (< 10.5 V), avísalo y detente.
 - look_at gira solo la cabeza (±90°); turn gira todo el cuerpo.
 
+Plano de la casa:
+- get_map dice en qué cuarto estás y, para cada cuarto, puerta y mueble, cuánto girar
+  (girar_deg, para turn) y a qué distancia está. Úsalo antes de ir a otro cuarto.
+- Solo ve en línea recta si directo es true. Si no, sigue la ruta de puertas del cuarto
+  destino, una puerta a la vez, y vuelve a pedir get_map en cada una.
+- Tu posición sale de las ruedas y se desvía. Si posicion.incierta es true, o una foto
+  te dice que estás en otro sitio, mira alrededor y corrígela con set_position.
+- Si algo te bloquea donde el plano dice que hay paso (una puerta cerrada, una silla
+  movida), confírmalo con take_photo y anótalo con update_map.
+
+Oído (micrófono de dos cápsulas en el cuerpo):
+- listen dice lo último que se oyó y de dónde vino. No distingue adelante de atrás:
+  da dos candidatos_deg (respecto a tu frente actual, + derecha).
+- Para ir hacia quien te llama: gira (turn) al primer candidato, toma foto;
+  si no hay nadie, gira al segundo. Si el nivel_db es bajo, está lejos o tras una pared.
+
 """ + bloque_para_prompt()
 
 # Las emociones (y sus pitidos) viven en head/personalidad.py y head/sounds.py.
@@ -130,6 +146,78 @@ async def express(emocion: Emocion) -> dict:
         return ojo
     sonido = await _post(_head, "/hablar", {"sonido": emocion})
     return {**sonido, "emocion": emocion, "ojo": f"{e.color} {e.patron}"}
+
+
+@mcp.tool()
+async def listen(espera_s: float = 0) -> dict:
+    """Lo último que oyó el micrófono del cuerpo (ReSpeaker 2-Mic) y de dónde vino la voz.
+
+    espera_s (0 a 10): si es mayor que 0, espera a que alguien hable antes de responder.
+    Devuelve oido (false si no se ha oído nada), texto, nivel_db (60+ cerca, < 40 lejos o
+    tras una pared), hace_s, angulo_deg (−90 a 90, + derecha, respecto al frente que
+    tenías al oírlo) y candidatos_deg: los dos rumbos posibles respecto a tu frente
+    actual, ya corregidos por lo que giraste después (giro_desde_deg). Con dos
+    micrófonos no se sabe si vino de adelante (el primero) o de atrás (el segundo).
+    """
+    try:
+        r = await _motion.get("/oido", params={"espera_s": max(0.0, min(10.0, espera_s))},
+                              timeout=15.0)
+        return r.json()
+    except httpx.HTTPError as e:
+        return {"resultado": "error", "motivo": f"sin servicio de movimiento: {e}"}
+
+
+@mcp.tool()
+async def get_map() -> dict:
+    """Plano de la casa y dónde estás en él.
+
+    Ejes: x al este (derecha del croquis), y al norte (arriba), en metros. robot trae
+    x, y, rumbo_deg (horario desde el este: 0 este, 90 sur, -90 norte, 180 oeste) y el
+    cuarto (o en_puerta si estás en un hueco). posicion dice si es incierta y cuánto
+    has rodado desde la última corrección. Cada cuarto, puerta y mueble trae distancia_m,
+    girar_deg (lo que girarías con turn, + derecha, para quedar de frente) y directo
+    (true si no hay muro ni puerta cerrada en medio). Cada cuarto trae ruta: las puertas
+    a cruzar para llegar. croquis es un dibujo con norte arriba, una letra cada 25 cm:
+    # muro, m mueble, . piso, = puerta cerrada, la flecha eres tú.
+    """
+    try:
+        return (await _motion.get("/mapa")).json()
+    except httpx.HTTPError as e:
+        return {"resultado": "error", "motivo": f"sin servicio de movimiento: {e}"}
+
+
+@mcp.tool()
+async def set_position(x: float, y: float, rumbo_deg: float | None = None) -> dict:
+    """Corrige dónde crees estar en el plano (no mueve el robot).
+
+    x, y en metros con los ejes de get_map; rumbo_deg horario desde el este, o null
+    para dejar el rumbo como está. Úsalo cuando una foto te diga que no estás donde
+    get_map cree.
+    """
+    body = {"x": x, "y": y} | ({} if rumbo_deg is None else {"rumbo_deg": rumbo_deg})
+    return await _post(_motion, "/mapa/posicion", body)
+
+
+@mcp.tool()
+async def update_map(
+    accion: Literal["agregar_mueble", "mover_mueble", "quitar_mueble", "cerrar_puerta", "abrir_puerta"],
+    nombre: str,
+    x: float | None = None,
+    y: float | None = None,
+    ancho_m: float | None = None,
+    largo_m: float | None = None,
+    alto_m: float | None = None,
+) -> dict:
+    """Cambia el plano de la casa y lo guarda (no mueve el robot).
+
+    agregar_mueble: nombre nuevo, x, y del centro, ancho_m (este-oeste), largo_m
+    (norte-sur) y alto_m. mover_mueble: nombre y el centro nuevo x, y. quitar_mueble:
+    nombre. cerrar_puerta / abrir_puerta: nombre "sala-cocina" (los dos cuartos).
+    Úsalo solo con lo que confirmaste con take_photo.
+    """
+    body = {"accion": accion, "nombre": nombre, "x": x, "y": y,
+            "ancho_m": ancho_m, "largo_m": largo_m, "alto_m": alto_m}
+    return await _post(_motion, "/mapa/cambiar", {k: v for k, v in body.items() if v is not None})
 
 
 @mcp.tool()

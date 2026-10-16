@@ -129,20 +129,20 @@ def rutina(url: str) -> None:
         return r
 
     p0 = cli.get("/pose").json()
-    paso("/move", {"metros": 0.5})
-    paso("/turn", {"grados": 90})
-    paso("/turn", {"grados": -90})
-    paso("/move", {"metros": -0.5})
+    paso("/tools/move", {"meters": 0.5})
+    paso("/tools/turn", {"degrees": 90})
+    paso("/tools/turn", {"degrees": -90})
+    paso("/tools/move", {"meters": -0.5})
     time.sleep(0.5)
     p1 = cli.get("/pose").json()
-    deriva = p1["rumbo_deg"] - p0["rumbo_deg"]
+    deriva = p1["heading_deg"] - p0["heading_deg"]
     dist = math.hypot(p1["x_m"] - p0["x_m"], p1["y_m"] - p0["y_m"])
     print("\nDebería volver al inicio con el mismo rumbo.")
     print(f"  Rumbo final − inicial: {deriva:+.1f}°  (bien si |x| < 5°)")
     print(f"  Distancia al inicio según odometría: {dist * 100:.0f} cm")
     print("  Mide con cinta dónde quedó de verdad. Si avanzó menos de lo ordenado,")
-    print("  SLIP_FACTOR = metros_ordenados / metros_reales en bb8/config.py.")
-    print(f"  Inclinación máx. vista: revisa que nunca pasara de ~15°; si cabecea, baja PWM_CRUISE ({C.PWM_CRUISE}).")
+    print("  motion.slip_factor = metros_ordenados / metros_reales en la página de configuración.")
+    print("  Inclinación máx. vista: revisa que nunca pasara de ~15°; si cabecea, baja motion.pwm_cruise.")
 
 
 def main() -> None:

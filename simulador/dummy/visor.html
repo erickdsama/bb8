@@ -41,7 +41,10 @@
   .chip { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: var(--rojo); color: #fff; }
   .chip.ok { background: var(--rejilla); color: var(--tenue); }
   #voz { min-height: 1.4em; font-style: italic; }
-  #camara { width: 100%; border-radius: 6px; display: block; background: #000; aspect-ratio: 4 / 3; }
+  #camara { width: 100%; max-width: 760px; border-radius: 6px; display: block; background: #000; aspect-ratio: 4 / 3; }
+  .columna { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  #formvoz input { flex: 1; min-width: 0; font: inherit; padding: 6px 8px; border-radius: 6px;
+                   border: 1px solid var(--linea); background: var(--fondo); color: var(--tinta); }
   .botones { display: flex; gap: 8px; flex-wrap: wrap; }
   button { font: inherit; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--linea);
            background: var(--fondo); color: var(--tinta); cursor: pointer; }
@@ -55,11 +58,24 @@
   <span id="conexion">conectando…</span>
 </header>
 <main>
+  <div class="columna">
   <section class="tarjeta">
-    <canvas id="lienzo" width="1000" height="750" aria-label="Vista cenital de la habitación simulada"></canvas>
+    <canvas id="lienzo" width="1000" height="750" aria-label="Vista cenital del mundo simulado"></canvas>
     <p class="nota">Vista desde arriba. La línea punteada es el rayo del ToF; se pone roja por debajo de la distancia de freno.
-      La estela muestra el camino recorrido.</p>
+      En el mundo «casa» puedes arrastrar a la persona.
+      La estela muestra el camino recorrido. Los anillos son una voz; las dos líneas, lo que oyó el ReSpeaker
+      (continua adelante, punteada atrás: con dos micrófonos no sabe cuál).</p>
   </section>
+  <section class="tarjeta">
+    <h2>Cámara de la cabeza</h2>
+    <img id="camara" alt="Lo que ve la cámara de la cabeza">
+    <div class="botones" style="margin-top:8px">
+      <button id="btncam">Pausar cámara</button>
+      <button id="btnestela">Borrar estela</button>
+      <button id="btnempujar" title="Simula que lo empujan 40° durante 1 s">Empujar 40°</button>
+    </div>
+  </section>
+  </div>
   <aside>
     <div class="tarjeta">
       <h2>Pose</h2>
@@ -87,13 +103,16 @@
       <div id="voz">&nbsp;</div>
     </div>
     <div class="tarjeta">
-      <h2>Cámara</h2>
-      <img id="camara" alt="Lo que ve la cámara de la cabeza">
-      <div class="botones" style="margin-top:8px">
-        <button id="btncam">Pausar cámara</button>
-        <button id="btnestela">Borrar estela</button>
-        <button id="btnempujar" title="Simula que lo empujan 40° durante 1 s">Empujar 40°</button>
-      </div>
+      <h2>Oído (ReSpeaker 2-Mic)</h2>
+      <form id="formvoz" class="botones">
+        <input id="textovoz" value="¡BB-8, ven!" aria-label="Lo que dice la persona" autocomplete="off">
+        <button>Hablar</button>
+      </form>
+      <p class="nota">Habla la persona (en «casa»); el robot lo oye por el micrófono simulado y Claude lo lee con <code>listen</code>.</p>
+      <div class="fila"><span>Oyó</span><span class="valor" id="oyo">–</span></div>
+      <div class="fila"><span>Ángulo (adelante / atrás)</span><span class="valor" id="oang">–</span></div>
+      <div class="fila"><span>Real (solo el simulador)</span><span class="valor" id="oreal">–</span></div>
+      <div class="fila"><span>Nivel</span><span class="valor" id="onivel">–</span></div>
     </div>
   </aside>
 </main>
@@ -104,6 +123,7 @@ const lienzo = $("lienzo"), ctx = lienzo.getContext("2d");
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const estela = [];
 let ultimo = null, camaraActiva = true;
+let aMundo = null, arrastrando = false, enviando = false;
 
 // --- dibujo -----------------------------------------------------------------
 
@@ -111,8 +131,9 @@ function dibujar(e) {
   const [W, H] = e.habitacion_m;
   const margen = 30;
   const esc = Math.min((lienzo.width - 2 * margen) / W, (lienzo.height - 2 * margen) / H);
-  // mundo (m, y hacia arriba) → lienzo (px, y hacia abajo)
+  // mundo (m, y hacia arriba) → lienzo (px, y hacia abajo); la inversa la usa el arrastre
   const px = (x) => margen + x * esc, py = (y) => lienzo.height - margen - y * esc;
+  aMundo = (cx, cy) => [(cx - margen) / esc, (lienzo.height - margen - cy) / esc];
 
   ctx.clearRect(0, 0, lienzo.width, lienzo.height);
   ctx.fillStyle = css("--piso");
@@ -132,15 +153,37 @@ function dibujar(e) {
   ctx.strokeStyle = css("--pared"); ctx.lineWidth = 4;
   ctx.strokeRect(px(0), py(H), W * esc, H * esc);
 
-  // obstáculos
+  // nombres de los cuartos, en el piso
+  ctx.fillStyle = css("--tenue"); ctx.font = "italic 15px system-ui"; ctx.textAlign = "center";
+  for (const z of e.zonas || []) ctx.fillText(z.nombre, px(z.x), py(z.y));
+  ctx.textAlign = "start";
+
+  // obstáculos: muros interiores, muebles y la persona
   const colores = { silla: "#a8642a", caja: "#3f8c3f" };
   for (const o of e.obstaculos) {
-    ctx.fillStyle = colores[o.nombre] || "#888";
     const [x0, x1] = o.x, [y0, y1] = o.y;
+    if (o.tipo === "pared") {
+      ctx.fillStyle = css("--pared");
+      ctx.fillRect(px(x0), py(y1), (x1 - x0) * esc, (y1 - y0) * esc);
+      continue;
+    }
+    if (o.tipo === "persona") {
+      const pcx = px((x0 + x1) / 2), pcy = py((y0 + y1) / 2), pr = (x1 - x0) / 2 * esc;
+      ctx.fillStyle = o.color; ctx.strokeStyle = arrastrando ? css("--naranja") : "#333"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(pcx, pcy, pr, (y1 - y0) / 2 * esc, 0, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#d7a578";
+      ctx.beginPath(); ctx.arc(pcx, pcy, pr * 0.45, 0, 2 * Math.PI); ctx.fill();
+      ctx.fillStyle = css("--tinta"); ctx.font = "bold 13px system-ui"; ctx.textAlign = "center";
+      ctx.fillText("tú (arrástrame)", pcx, pcy - (y1 - y0) / 2 * esc - 6);
+      ctx.textAlign = "start";
+      continue;
+    }
+    ctx.fillStyle = colores[o.nombre] || o.color || "#888";
     ctx.fillRect(px(x0), py(y1), (x1 - x0) * esc, (y1 - y0) * esc);
-    ctx.fillStyle = "#fff"; ctx.font = "bold 13px system-ui"; ctx.textAlign = "center";
+    ctx.fillStyle = "#fff"; ctx.font = "bold 12px system-ui"; ctx.textAlign = "center";
+    ctx.shadowColor = "#000"; ctx.shadowBlur = 3;
     ctx.fillText(o.nombre, px((x0 + x1) / 2), py((y0 + y1) / 2) + 4);
-    ctx.textAlign = "start";
+    ctx.shadowBlur = 0; ctx.textAlign = "start";
   }
 
   // estela
@@ -160,6 +203,33 @@ function dibujar(e) {
   if (t.mm > 0) {
     ctx.fillStyle = ctx.strokeStyle;
     ctx.beginPath(); ctx.arc(px(t.hasta[0]), py(t.hasta[1]), 4, 0, 2 * Math.PI); ctx.fill();
+  }
+
+  // voz: anillos que salen de quien habló y las dos direcciones que oyó el ReSpeaker
+  const o = e.oido;
+  if (o && o.hace_s < 6) {
+    const [fx, fy] = o.fuente;
+    if (o.hace_s < 1.5) {
+      ctx.strokeStyle = css("--azul"); ctx.lineWidth = 2;
+      for (let k = 0; k < 3; k++) {
+        const fase = (o.hace_s * 1.2 + k / 3) % 1;
+        ctx.globalAlpha = 1 - fase;
+        ctx.beginPath(); ctx.arc(px(fx), py(fy), (0.15 + fase * 0.9) * esc, 0, 2 * Math.PI); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+    if (o.oido) {
+      const base = o.theta_deg * Math.PI / 180, largo = 1.6 * esc;
+      const atras = o.angulo_deg >= 0 ? 180 - o.angulo_deg : -180 - o.angulo_deg;
+      ctx.strokeStyle = css("--verde"); ctx.lineWidth = 3; ctx.globalAlpha = Math.max(0.2, 1 - o.hace_s / 6);
+      [[o.angulo_deg, []], [atras, [8, 6]]].forEach(([a, guion]) => {
+        const ang = base - a * Math.PI / 180;   // + derecha → horario en el mundo
+        ctx.setLineDash(guion);
+        ctx.beginPath(); ctx.moveTo(px(e.x_m), py(e.y_m));
+        ctx.lineTo(px(e.x_m) + Math.cos(ang) * largo, py(e.y_m) - Math.sin(ang) * largo); ctx.stroke();
+      });
+      ctx.setLineDash([]); ctx.globalAlpha = 1;
+    }
   }
 
   // robot: cuerpo (esfera vista desde arriba) y cabeza
@@ -261,6 +331,15 @@ function panel(e) {
     chips.append(c);
   }
 
+  const o = e.oido;
+  if (o) {
+    $("oyo").textContent = o.oido ? `«${o.texto}» · hace ${formatoHace(o.hace_s)}` : `nada (muy bajo) · hace ${formatoHace(o.hace_s)}`;
+    const atras = o.angulo_deg >= 0 ? 180 - o.angulo_deg : -180 - o.angulo_deg;
+    $("oang").textContent = o.oido ? `${o.angulo_deg.toFixed(0)}° / ${atras.toFixed(0)}°` : "–";
+    $("oreal").textContent = `${o.real_deg.toFixed(0)}°`;
+    $("onivel").textContent = `${o.nivel_db.toFixed(0)} dB` + (o.muros ? ` · ${o.muros} muro${o.muros > 1 ? "s" : ""}` : "");
+  }
+
   const [r, g, bl] = e.ojo.rgb;
   $("ojo").style.background = r + g + bl ? `rgb(${r},${g},${bl})` : "#222";
   $("ojotxt").textContent = `${e.ojo.patron}, brillo ${Math.round(e.ojo.brillo * 100)} %`;
@@ -302,14 +381,18 @@ function cuadro() {
   requestAnimationFrame(cuadro);
 }
 
+// pide el siguiente cuadro cuando llega el anterior: la vista 3D tarda ~0.4 s en la casa
 function refrescarCamara() {
-  if (camaraActiva) {
-    const img = new Image();
-    img.onload = () => { const vieja = $("camara").src; $("camara").src = img.src; if (vieja.startsWith("blob:")) URL.revokeObjectURL(vieja); };
-    fetch("/foto?ancho=320", { cache: "no-store" }).then((r) => r.ok ? r.blob() : null)
-      .then((b) => { if (b) img.src = URL.createObjectURL(b); }).catch(() => {});
-  }
-  setTimeout(refrescarCamara, 1000);
+  if (!camaraActiva) { setTimeout(refrescarCamara, 500); return; }
+  fetch("/foto?ancho=640", { cache: "no-store" }).then((r) => r.ok ? r.blob() : null)
+    .then((b) => {
+      if (!b) return;
+      const vieja = $("camara").src;
+      $("camara").src = URL.createObjectURL(b);
+      if (vieja.startsWith("blob:")) URL.revokeObjectURL(vieja);
+    })
+    .catch(() => {})
+    .finally(() => setTimeout(refrescarCamara, 250));
 }
 
 $("btncam").onclick = () => {
@@ -320,6 +403,38 @@ $("btnestela").onclick = () => { estela.length = 0; };
 $("btnempujar").onclick = () => fetch("/sim/empujar", {
   method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ grados: 40, segundos: 1 }),
 });
+
+// --- arrastrar a la persona (mundo "casa") ------------------------------------
+
+function puntero(ev) {
+  const r = lienzo.getBoundingClientRect();
+  return aMundo((ev.clientX - r.left) * lienzo.width / r.width, (ev.clientY - r.top) * lienzo.height / r.height);
+}
+
+lienzo.addEventListener("pointerdown", (ev) => {
+  const p = ultimo && aMundo && ultimo.obstaculos.find((o) => o.tipo === "persona");
+  if (!p) return;
+  const [x, y] = puntero(ev);
+  if (x > p.x[0] - 0.15 && x < p.x[1] + 0.15 && y > p.y[0] - 0.15 && y < p.y[1] + 0.15) {
+    arrastrando = true; lienzo.setPointerCapture(ev.pointerId);
+  }
+});
+lienzo.addEventListener("pointermove", (ev) => {
+  if (!arrastrando || enviando) return;
+  const [x, y] = puntero(ev);
+  enviando = true;
+  fetch("/sim/mover", { method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ nombre: "persona", x, y }) })
+    .finally(() => { enviando = false; });
+});
+for (const t of ["pointerup", "pointercancel"]) lienzo.addEventListener(t, () => { arrastrando = false; });
+
+$("formvoz").onsubmit = (ev) => {
+  ev.preventDefault();
+  fetch("/sim/hablar", { method: "POST", headers: { "Content-Type": "application/json" },
+                         body: JSON.stringify({ texto: $("textovoz").value }) })
+    .then((r) => r.json()).then((d) => { if (!d.ok) alert(d.error); });
+};
 
 pedir();
 refrescarCamara();

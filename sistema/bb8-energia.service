@@ -1,7 +1,7 @@
 [Unit]
-Description=BB-8 gestor de energía (reposo ligero y profundo)
-After=bb8-motion.service
-Requires=bb8-motion.service
+Description=BB-8 power manager (light and deep sleep)
+After=bb8-body.service
+Requires=bb8-body.service
 
 [Service]
 User=bb8

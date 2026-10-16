@@ -1,14 +1,14 @@
 [Unit]
-Description=BB-8 agente de voz
-After=bb8-mcp.service sound.target
-Requires=bb8-mcp.service
+Description=BB-8 voice front end (wake word, STT, speaker id → bb8-body agent)
+After=bb8-body.service sound.target
+Requires=bb8-body.service
 
 [Service]
 User=bb8
 SupplementaryGroups=audio
 WorkingDirectory=/home/bb8/bb8
-# ANTHROPIC_API_KEY=... y los BB8_* que quieras cambiar
-EnvironmentFile=/etc/bb8.env
+# BB8_* settings for the microphone side; the agent key lives in the config page.
+EnvironmentFile=-/etc/bb8.env
 ExecStartPre=/bin/sleep 3
 ExecStart=/home/bb8/bb8/.venv/bin/python -m voz
 # Con 1 GB (Pi 3), si falta memoria muere la voz y no el movimiento; systemd la reinicia.

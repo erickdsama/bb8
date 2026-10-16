@@ -1,29 +1,29 @@
 # Parte 3 · Base andando desde la Pi
 
-El servicio de movimiento de la Pi principal y la herramienta de calibración.
+En la Pi principal corre `bb8-body`, un binario de Go
+([`go/cmd/bb8-body`](../../go/cmd/bb8-body); movimiento en
+[`go/internal/motion`](../../go/internal/motion)). Esta carpeta tiene la calibración y
+los planos.
 
 ```
-bb8/                  paquete del servicio de movimiento
-├── config.py         constantes a calibrar, límites y direcciones
-├── protocol.py       líneas seriales (lo comparten la Pi y el dummy)
-├── serial_link.py    una orden, una respuesta; /dev/ttyACM0 o socket://
-├── motion.py         árbitro mando/LLM; move/turn con encoders y giroscopio
-├── motion_api.py     API HTTP 127.0.0.1:8770
-└── gamepad.py        mando Bluetooth con evdev (solo Linux)
-calibrar/             consola, ticks, velocidad, rutina
+calibrar/             consola, ticks, velocidad, rutina (Python)
+mapas/                planos de ejemplo (ejemplo_casa.json = mundo «casa» del dummy; claves en inglés)
+bb8/                  servicio anterior en Python (lo usan calibrar y lanzar_dummy.py --python)
 ```
-
-Desde la raíz del repo, con el venv activo:
 
 ```bash
-pip install -r requirements.txt evdev && pip install -e .
-python -m calibrar ticks          # pulsos por vuelta (detén antes bb8.motion_api)
-python -m calibrar velocidad      # ruedas en el aire
-python -m bb8.motion_api --mando  # el servicio, con el mando Bluetooth
-python -m calibrar rutina         # en el piso: avanza, gira 90°, vuelve
+make pi                                   # en el PC: dist/linux-arm64/bb8-body
+sudo bash sistema/instalar_pi.sh --sin-voz   # en la Pi (ver wiki/Instalacion-en-la-Pi.md)
+uv venv && uv pip install -r requirements.txt && uv pip install -e .   # para calibrar
+sudo systemctl stop bb8-body              # calibrar abre el serial directo
+python -m calibrar ticks                  # pulsos por vuelta
+python -m calibrar velocidad              # ruedas en el aire
+sudo systemctl start bb8-body             # con BB8_GAMEPAD=1 lee el mando
+python -m calibrar rutina                 # en el piso: avanza, gira 90°, vuelve
 ```
 
-Copia los números a `bb8/config.py` y `PULSOS_MAX_CICLO` al firmware.
+Los números van a la página de configuración (`http://bb8.local:8765/`, sección
+`motion`, se aplican al momento) y `PULSOS_MAX_CICLO` al firmware.
 
 **Lista cuando** avanza, gira 90° y vuelve con deriva < 5°.
 

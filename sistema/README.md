@@ -1,16 +1,16 @@
 # Sistema
 
-Servicios systemd e instaladores. Ambos instaladores esperan el repo en `/home/bb8/bb8`.
+systemd units and installers. The Go binaries are built on the PC (`make pi`, `make zero`)
+and copied to the Pis; neither Pi needs Go.
 
-| Archivo | Va en | Hace |
+| File | Goes on | Does |
 | --- | --- | --- |
-| `instalar_pi.sh` | Pi principal (Pi 3, OS de 64 bits) | Usuario `bb8`, venv, dependencias, `pip install -e .`, voz de Piper, zram y `gpu_mem=16` con 1 GB, servicios |
-| `instalar_zero.sh` | Pi Zero 2 W | picamera2, venv, Piper, servicio de la cabeza |
-| `bb8-motion.service` | Pi principal | `python -m bb8.motion_api --mando` (Parte 3) |
-| `bb8-mcp.service` | Pi principal | `python -m bb8_mcp` (Parte 4) |
-| `bb8-voz.service` | Pi principal | `python -m voz` (Parte 4) |
-| `bb8-energia.service` | Pi principal | `python -m energia` (Parte 6) |
-| `bb8-cabeza.service` | Pi Zero | `python -m head.server` (Parte 5) |
-| `bb8.env.ejemplo` | `/etc/bb8.env` | API key y ajustes `BB8_*` |
+| `instalar_pi.sh` | Main Pi (Pi 3 B+, 64-bit OS) | Installs `bb8-body`, pairs the head link (`/etc/bb8/pki`), creates the token (`/etc/bb8/token`), zram; with voice: venv, Piper, `bb8-voz` and `bb8-energia` |
+| `instalar_zero.sh` | Pi Zero W (armv6, 32-bit OS) | Installs `bb8-head`, the head certs, rpicam, espeak-ng, SPI and I2C. No Python |
+| `bb8-body.service` | Main Pi | `bb8-body`: serial, motion, map, MCP + config web (:8765), local API (127.0.0.1:8770), head link (:8772) |
+| `bb8-head.service` | Pi Zero W | `bb8-head`: dials the body over mutual TLS, opens no ports |
+| `bb8-voz.service` | Main Pi | `python -m voz`: wake word, STT, speaker id → `POST /agent/ask` |
+| `bb8-energia.service` | Main Pi | `python -m energia` (part 6) |
+| `bb8.env.ejemplo` | `/etc/bb8.env` | `BB8_*` settings of the services (agent and limits live in the config page) |
 
-Guía: [wiki/Instalacion-en-la-Pi.md](../wiki/Instalacion-en-la-Pi.md)
+Guide: [wiki/Instalacion-en-la-Pi.md](../wiki/Instalacion-en-la-Pi.md)

@@ -1,0 +1,17 @@
+# Pi Zero W: dials bb8-body over mutual TLS; opens no ports.
+[Unit]
+Description=BB-8 head (camera, eye, speaker, ToF)
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+User=bb8
+SupplementaryGroups=spi i2c video audio gpio
+EnvironmentFile=-/etc/bb8.env
+ExecStart=/usr/local/bin/bb8-head --pki /etc/bb8/pki
+Restart=always
+RestartSec=2
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

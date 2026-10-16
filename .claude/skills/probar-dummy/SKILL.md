@@ -1,56 +1,55 @@
 ---
 name: probar-dummy
-description: Levanta el robot dummy (Arduino y cabeza simulados + servicio de movimiento + MCP) y corre la prueba de punta a punta. Úsalo después de cambiar bb8, bb8_mcp, head, dummy o voz, o cuando haya que verificar que el proyecto sigue funcionando.
+description: Start the dummy robot (simulated Arduino and head + bb8-body + bb8-head --sim, both Go) and run the end-to-end test. Use it after changing go/, the dummy, voz or energia, or whenever you need to check the project still works.
 ---
 
-# Probar con el dummy
+# Test with the dummy
 
-La prueba del proyecto es `dummy.probar`: llama por MCP a las ocho herramientas como
-lo haría Claude y comprueba frenos, mando y errores. No hay pytest; el CI
-(`.github/workflows/ci.yml`) corre esta misma prueba en cada push y PR.
+The project's end-to-end test is `dummy.probar`. It calls the tools over MCP the way a model would, and checks:
+- the brakes, the gamepad and the errors;
+- the floor plan and hearing;
+- two-way config sync (agent → web SSE → head ack; web PATCH with a stale rev → 409).
 
-## 1. Entorno (una vez)
+It has **30 checks**. The Go unit tests (`make test`) cover the rest. CI runs both on every push and PR.
+
+## 1. Environment (once)
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt && pip install -e .
+uv venv && uv pip install -r requirements.txt && uv pip install -e .
 ```
 
-Comprueba `pip show mcp`: debe ser 1.x. Con mcp 2.x falla el import de FastMCP.
+You also need Go 1.25+ in PATH or `~/.local/go`. `lanzar_dummy.py` builds `bin/` itself.
 
-## 2. Arrancar el dummy en segundo plano
+## 2. Start the dummy in the background
 
-Antes, que los puertos 5555, 8080, 8770 y 8765 estén libres (un dummy anterior los
-ocupa):
+Ports 5555, 8080, 8770, 8772 and 8765 must be free (a previous dummy holds them).
 
 ```bash
 python simulador/lanzar_dummy.py --camara sintetica --sin-sonido > /tmp/bb8-dummy.log 2>&1 &
 ```
 
-Espera a que el log diga `✅ BB-8 dummy listo` (no basta "Servicio de movimiento
-listo": el MCP arranca después). Usa `--camara sintetica` siempre en la prueba: la
-comprobación de la silla depende de la habitación simulada.
+- Wait for the log to say `✅ BB-8 dummy listo`. That line appears once the head has connected to the body over the link.
+- Always use `--camara sintetica` for the test: the chair check depends on the simulated room.
+- If 8765 is taken, prefix both commands with `BB8_MCP_PORT=8775`.
 
-## 3. Correr la prueba
+## 3. Run the test
 
 ```bash
-python -m dummy.probar
+PYTHONPATH=simulador python -m dummy.probar
 ```
 
-Debe terminar en `Todo bien` con 19 líneas ✅. Guarda `foto_dummy.jpg` en la carpeta
-actual (está en `.gitignore`; bórrala si cae en otro sitio).
+- It must end in `Todo bien` with 30 ✅ lines.
+- **It needs a fresh dummy:** the move checks assume the start pose. Restart the dummy before running it again.
+- It saves `foto_dummy.jpg` in the current folder (it is in `.gitignore`; delete it if it lands elsewhere).
+- `make probar` does steps 2–4 in one go.
+- If a check fails, the dummy log has every process mixed: `dummy.*` lines are Python, `level=… msg=…` lines are Go.
 
-Si una falla, el log del dummy (`/tmp/bb8-dummy.log`) tiene los tres procesos
-mezclados con su prefijo (`dummy.arduino`, `bb8.api`, `bb8.mcp`).
+## 4. Stop
 
-## 4. Apagar
+Kill the `lanzar_dummy.py` process by its PID (Ctrl+C in the foreground); it closes the others.
 
-Mata el proceso de `lanzar_dummy.py` por su PID (Ctrl+C si está en primer plano);
-cierra los otros tres. Ojo: `pkill -f lanzar_dummy` también mata a la shell cuyo
-comando contiene ese texto; busca el PID con `pgrep -f "simulador/lanzar_dummy.py"`
-en un comando aparte.
+Careful: `pkill -f lanzar_dummy` also kills the shell whose command contains that text. Find the PID in a separate command, or kill by port: `ss -ltnp 'sport = :8770'`.
 
-## Si agregaste algo
+## If you added something
 
-Si el cambio agrega una herramienta, una ruta o un reflejo, agrega su comprobación a
-`simulador/dummy/probar.py` con `check(nombre, ok, detalle)`, en el mismo estilo.
+If the change adds a tool, a route or a reflex, add its check to `simulador/dummy/probar.py` with `check(name, ok, detail)`, in the same style.

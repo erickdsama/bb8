@@ -7,6 +7,7 @@ cabeza como D <mm>. Ver PROTOCOLO.md, secciones 1 y 2.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import math
 import time
@@ -15,6 +16,7 @@ import httpx
 
 from . import config as C
 from . import protocol as P
+from .mapa import Mapa
 from .serial_link import SerialLink
 
 log = logging.getLogger("bb8.motion")
@@ -22,6 +24,12 @@ log = logging.getLogger("bb8.motion")
 
 def _clamp(v: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, v))
+
+
+def _norm180(deg: float) -> float:
+    """Ángulo en (−180, 180]."""
+    deg = (deg + 180) % 360 - 180
+    return 180.0 if deg == -180 else deg
 
 
 class MotionService:
@@ -42,11 +50,16 @@ class MotionService:
         self._tasks: list[asyncio.Task] = []
         self._http: httpx.AsyncClient | None = None
         self._head_ok = True
+        self._oido: dict | None = None        # lo último que oyó el micrófono (POST /oido)
+        self.mapa = Mapa(C.MAPA_PATH, C.MAPA_ESTADO)
+        self.recorrido_m = 0.0   # camino total de las ruedas, para saber cuánto se pudo desviar
+        self._oido_nuevo = asyncio.Event()
 
     # --- arranque y lazos de fondo -------------------------------------------
 
     async def start(self) -> None:
         await asyncio.to_thread(self.link.open)
+        self.mapa.cargar()  # fija el ancla (inicio o la pose guardada) antes de moverse
         await self._send(P.cmd_head(0))
         self._http = httpx.AsyncClient(timeout=0.3)
         self._tasks = [asyncio.create_task(self._poll_loop()),
@@ -93,7 +106,13 @@ class MotionService:
             yaw = math.radians(st.yaw_deg)
             self.x_m += d * math.cos(yaw)
             self.y_m += d * math.sin(yaw)  # y positivo a la derecha, como el rumbo
+            self.recorrido_m += abs(d)
         self._prev_enc = enc
+        if "tilt" in st.flags:
+            self.mapa.incierta = "me inclinaron de más: quizá me cargaron o me empujaron"
+        elif "imu" in st.flags:
+            self.mapa.incierta = "la IMU no responde: el rumbo no es confiable"
+        self.mapa.guardar_pose((self.x_m, self.y_m, st.yaw_deg))
 
     async def _tof_loop(self) -> None:
         assert self._http
@@ -186,6 +205,62 @@ class MotionService:
             "dormido": self.asleep, "arduino": self.link.ident,
             "estado_hace_s": round(time.monotonic() - self.status_t, 2),
         }
+
+    # --- plano: dónde está el robot en la casa --------------------------------------
+
+    def _odo(self) -> tuple[float, float, float]:
+        return self.x_m, self.y_m, self.status.yaw_deg
+
+    async def plano(self) -> dict:
+        return self.mapa.describir(self._odo(), self.recorrido_m)
+
+    async def fijar_posicion(self, d: dict) -> dict:
+        """Corrige dónde cree estar el robot en el plano (la odometría se desvía)."""
+        if "x" not in d or "y" not in d:
+            raise ValueError("faltan 'x' y 'y'")
+        rumbo = d.get("rumbo_deg")
+        self.mapa.fijar(float(d["x"]), float(d["y"]), None if rumbo is None else float(rumbo),
+                        self._odo(), self.recorrido_m)
+        return {"resultado": "done", "robot": self.mapa.describir(self._odo(), self.recorrido_m)["robot"]}
+
+    async def cambiar_plano(self, d: dict) -> dict:
+        return self.mapa.cambiar(d)
+
+    # --- oído: dirección de la voz (ReSpeaker 2-Mic) ---------------------------
+
+    async def oir(self, d: dict) -> dict:
+        """Guarda lo que oyó el micrófono. Lo manda el agente de voz (o el dummy).
+
+        angulo_deg es el ángulo de llegada respecto al frente del cuerpo, + derecha, de
+        −90 a 90: con dos micrófonos no se distingue adelante de atrás. Se guarda junto
+        con el rumbo de ese momento para corregir lo que el robot gire después.
+        """
+        ang = d.get("angulo_deg")
+        if ang is not None and not -90 <= float(ang) <= 90:
+            raise ValueError("angulo_deg va de -90 a 90")
+        self._oido = {"texto": d.get("texto"), "angulo_deg": None if ang is None else float(ang),
+                      "nivel_db": d.get("nivel_db"), "t": time.monotonic(), "rumbo": self.status.yaw_deg}
+        self._oido_nuevo.set()
+        self._oido_nuevo = asyncio.Event()
+        return {"resultado": "done"}
+
+    async def escuchar(self, espera_s: float = 0) -> dict:
+        """Lo último que se oyó; con espera_s > 0 espera hasta 10 s a que llegue algo nuevo."""
+        if espera_s > 0:
+            with contextlib.suppress(asyncio.TimeoutError):
+                await asyncio.wait_for(self._oido_nuevo.wait(), _clamp(espera_s, 0, 10))
+        o = self._oido
+        if o is None:
+            return {"oido": False}
+        giro = _norm180(self.status.yaw_deg - o["rumbo"])
+        out = {"oido": True, "texto": o["texto"], "nivel_db": o["nivel_db"],
+               "hace_s": round(time.monotonic() - o["t"], 1), "giro_desde_deg": round(giro, 1)}
+        a = o["angulo_deg"]
+        if a is not None:
+            atras = 180 - a if a >= 0 else -180 - a
+            out |= {"angulo_deg": round(a, 1),
+                    "candidatos_deg": [round(_norm180(a - giro), 1), round(_norm180(atras - giro), 1)]}
+        return out
 
     # --- cola de órdenes -------------------------------------------------------
 
