@@ -1,6 +1,7 @@
 # BB-8 communication protocol
 
-Version 0.4 · 2026-10-15.
+Version 0.5 · 2026-10-15.
+- **0.5** puts the ReSpeaker 2-Mic HAT on the head. `sound_dir` is now relative to the head, and the body converts it to the body frame. The head streams voiced audio (`audio_start`, `audio`, `audio_end`), and the body re-serves it on `GET /audio/stream` for the voice front end.
 - **0.4** moves the services to Go: `bb8-body` and `bb8-head`. The head is reached over a mutual-TLS link instead of HTTP :8080. It also adds the config API and the agent API, and the API, results and floor plan are now in English.
 - **0.3** · 2026-10-15: added `/oido` and `/mapa`.
 - **0.2** · 2026-10-09: added `P`, the `bateria` and `imu` flags, and `ERR bateria`.
@@ -199,10 +200,19 @@ Hearing (`listen`, `GET /hearing`):
 
 ```json
 {"heard": true, "text": "BB-8, ven", "level_db": 58.2, "ago_s": 1.4,
- "angle_deg": 35.0, "turned_since_deg": 20.0, "candidates_deg": [15.0, 125.0]}
+ "angle_deg": -25.0, "head_deg": 60, "turned_since_deg": 20.0, "candidates_deg": [15.0, 125.0]}
 ```
 
-The ReSpeaker 2-Mic has two capsules, left and right. It measures the sine of the angle, so it cannot tell front from back (35° and 145° sound the same). `candidates_deg` gives both possible headings relative to the **current** front (+ right), with the turn since the sound (`turned_since_deg`) already subtracted. Nothing heard: `{"heard": false}`.
+The ReSpeaker 2-Mic sits on the **head**, with two capsules, left and right of the head.
+- It measures the sine of the angle, so it cannot tell front from back of the head: 35° and 145° sound the same.
+- `angle_deg` is relative to where the head was looking, + right, −90…90.
+- `head_deg` is the post angle at that moment. The body stamps it when the utterance starts; the head does not know its own angle.
+
+`candidates_deg` gives both possible headings in the **body** frame, + right:
+- in front of the head: `head_deg + angle_deg`;
+- behind it: `head_deg + 180 − angle_deg`.
+
+Both are normalized to −180…180, with the turn since the sound (`turned_since_deg`) already subtracted, so they can go straight to `turn`. Nothing heard: `{"heard": false}`.
 
 ### 2.2 Local API (`127.0.0.1:8770`, loopback only)
 
@@ -212,15 +222,25 @@ The ReSpeaker 2-Mic has two capsules, left and right. It measures the sine of th
 | `GET /tools` | — | tool names |
 | `POST /manual` | `{"left": 120, "right": 120}` | Gamepad bridge. Resend every ≤ 200 ms or the watchdog stops |
 | `GET /pose` | — | pose |
-| `POST /hearing` | `{"text": "BB-8, ven", "angle_deg": 35, "level_db": 58}` | `{"result":"done"}`. `angle_deg` −90…90 or `null` |
+| `POST /hearing` | `{"text": "BB-8, ven", "angle_deg": 35, "level_db": 58, "head_deg": 60}` | `{"result":"done"}`. `angle_deg` −90…90 relative to the head front, or `null`. `head_deg` is optional: by default, the current post angle. The simulator uses this route; the real head sends `sound_dir` over the link |
 | `GET /hearing?wait_s=3` | — | hearing; waits up to `wait_s` (≤ 10) for something new |
 | `POST /sleep`, `POST /wake` | — | `{"result":"done"}` |
 | `POST /poweroff` | `{"seconds": 15}` (5…120) | `{"result":"done","cut_in_s":15}`. Sends `P`; the caller runs `shutdown -h` right away |
 | `POST /head/rest` | `{"active": false}` | Light sleep of the head: eye at a faint breathing, camera unused. `true` reverts it |
 | `GET /head/photo?width=640` | — | `image/jpeg`, 503 without a camera |
-| `GET /head` | — | head state: `connected`, `backend`, `camera`, `config_rev`… |
+| `GET /head` | — | head state: `connected`, `backend`, `camera`, `mic`, `config_rev`… |
+| `GET /audio/stream` | — | The head's voiced audio, as a stream (see below). Used by the voice front end (`BB8_MIC=cabeza`) |
 | `GET /agent` | — | `{"model":…, "ready": true}` |
 | `POST /agent/ask` | `{"text": "[Speaker: Erick] da una vuelta", "speaker_known": true}` | `{"reply":"…","tools_used":["turn"],"steps":2}` |
+
+`GET /audio/stream` is a long-lived response (`application/x-bb8-audio`).
+- Every message is `[u32 BE length][JSON]`. A message with `"type": "audio"` is followed by `[u32 BE length][PCM]`, as s16le mono 16 kHz.
+- Message types:
+  - `hello` on connect;
+  - `audio_start` / `audio` / `audio_end`, with the utterance `id` and the chunk `seq`;
+  - `ping` every 5 s.
+- Between utterances nothing arrives, because the head only streams while its VAD hears a voice.
+- A slow reader loses frames instead of slowing the head down.
 
 ### 2.3 Config and agent API (`:8765`, token from the LAN)
 
@@ -271,17 +291,29 @@ The head gets `ca.crt`, `bb8-head.crt` and `bb8-head.key`. Each side only accept
 | body → head | `rest` | `{"active": false}` | `{"ok":true}` |
 | body → head | `config` (event) | `{"rev": 8, "values": {"eye_brightness": 0.3, "volume": 0.7}}` | The head applies it and answers with the `config_ack` event. The body sends it on every connect and on every change under `head.*` |
 | head → body | `tof` (event) | `{"mm": 812}` | every 100 ms while there is a sensor |
-| head → body | `sound_dir` (event) | `{"angle_deg": 35, "level_db": 58, "text": ""}` | ReSpeaker direction; lands in `listen` |
+| head → body | `audio_start` (event) | `{"id": 7, "rate": 16000, "channels": 1, "format": "s16le"}` | The head's VAD heard a voice. It includes 300 ms of pre-roll, so the wake word is not clipped. The body stamps `head_deg` for utterance `id` |
+| head → body | `audio` (event + binary frame) | `{"id": 7, "seq": 0}` + 100 ms of PCM (3200 bytes) | Only while the voice lasts. The body forwards it to `GET /audio/stream` |
+| head → body | `audio_end` (event) | `{"id": 7}` | After 600 ms of silence, or 15 s at most |
+| head → body | `sound_dir` (event) | `{"id": 7, "angle_deg": -25, "level_db": 58}` | At the end of each utterance. GCC-PHAT over its voiced blocks; `angle_deg` is relative to the **head** front. The body adds the `head_deg` stamped at `audio_start` and stores it for `listen` |
 | head → body | `state` (event) | `{"backend":"real","camera":true,"eye":true,"tof":false,"config_rev":7}` | once per connection |
 | head → body | `config_ack` (event) | `{"rev": 8}` | shown as `head.config_rev` |
 | both | `heartbeat` (event) | — | every 1 s. A peer silent for 2.5 s is dropped. On drop the body reports `head: disconnected` and the ToF reading expires (`D 0`) |
 
 Head hardware (Pi Zero W, armv6):
 - **Camera:** `rpicam-jpeg` runs on demand.
-- **Eye:** 16 NeoPixels on SPI0 MOSI (GPIO10).
+- **Eye:** 16-LED WS2812 ring on GPIO12 (PWM0, the HAT's Grove digital port), driven by the `bb8-eye` C helper (rpi_ws281x, PWM + DMA, root). `bb8-head` sends it raw RGB frames (3 bytes per LED) on the unix socket `/run/bb8-eye.sock` (systemd `bb8-eye.socket`).
 - **Sound:** beeps synthesized in Go and played with `aplay`; speech with `espeak-ng`.
 - **ToF:** VL53L0X on I2C1.
-- **Voice direction:** the ReSpeaker DOA is an interface (`head.SoundDir`) until the HAT is installed.
+- **Microphone:** ReSpeaker 2-Mic HAT v2.0, ALSA card `seeed2micvoicec`, captured with `arecord -c 2 -r 16000`.
+  - An energy VAD runs with an adaptive noise floor (+10 dB to start, 600 ms hangover).
+  - Direction of arrival uses GCC-PHAT between the two capsules over 32 ms Hann blocks, evaluated at sub-sample lags.
+  - The mic is muted while the head speaks, and for 400 ms after.
+- **Eye options:**
+  - `--eye ws2812-pwm` is the default with a mic;
+  - `apa102` drives the HAT's own LEDs on SPI0;
+  - `ws2812` puts the ring on SPI0 MOSI, without the HAT only.
+
+  Pin notes are in [Materiales](Materiales.md).
 
 ## 4. Floor plan
 

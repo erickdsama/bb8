@@ -18,23 +18,47 @@ const ToFFresh = 300 * time.Millisecond
 // Head talks to the head over the secure link.
 type Head struct {
 	Link *link.Server
-	// OnSound receives the voice direction from the head's mic array.
-	OnSound func(text *string, angleDeg, levelDB *float64)
+	// OnSound receives the voice direction from the head's mic array: the angle
+	// relative to the head and the head angle when the utterance started.
+	OnSound func(text *string, angleDeg, levelDB, headDeg *float64)
+	// HeadDeg is the current post angle (from the Arduino status). The head does
+	// not know where it points; the body stamps it on each utterance.
+	HeadDeg func() float64
+	// Audio fans the head's voiced audio out to local listeners (voz).
+	Audio *AudioHub
 
-	mu    sync.Mutex
-	tofMM int
-	tofAt time.Time
-	state map[string]any
+	mu      sync.Mutex
+	tofMM   int
+	tofAt   time.Time
+	state   map[string]any
+	uttHead map[uint64]float64 // utterance id → head angle at audio_start
 }
 
 func NewHead(srv *link.Server) *Head {
-	h := &Head{Link: srv, state: map[string]any{}}
+	h := &Head{Link: srv, state: map[string]any{}, Audio: NewAudioHub(), uttHead: map[uint64]float64{}}
 	srv.OnEvent = h.onEvent
 	return h
 }
 
-func (h *Head) onEvent(_ *link.Peer, typ string, body json.RawMessage) {
+func (h *Head) onEvent(_ *link.Peer, typ string, body json.RawMessage, bin []byte) {
 	switch typ {
+	case "audio_start", "audio", "audio_end":
+		var v struct {
+			ID  uint64 `json:"id"`
+			Seq int    `json:"seq"`
+		}
+		_ = json.Unmarshal(body, &v)
+		if typ == "audio_start" && h.HeadDeg != nil {
+			h.mu.Lock()
+			h.uttHead[v.ID] = h.HeadDeg()
+			for id := range h.uttHead { // keep only the last few
+				if id+8 < v.ID {
+					delete(h.uttHead, id)
+				}
+			}
+			h.mu.Unlock()
+		}
+		h.Audio.Publish(AudioFrame{Type: typ, ID: v.ID, Seq: v.Seq, PCM: bin})
 	case "tof":
 		var v struct {
 			MM int `json:"mm"`
@@ -48,6 +72,7 @@ func (h *Head) onEvent(_ *link.Peer, typ string, body json.RawMessage) {
 		var v struct {
 			Angle   *float64 `json:"angle_deg"`
 			LevelDB *float64 `json:"level_db"`
+			ID      uint64   `json:"id"`
 			Text    string   `json:"text"`
 		}
 		if json.Unmarshal(body, &v) == nil && h.OnSound != nil {
@@ -55,7 +80,13 @@ func (h *Head) onEvent(_ *link.Peer, typ string, body json.RawMessage) {
 			if v.Text != "" {
 				t = &v.Text
 			}
-			h.OnSound(t, v.Angle, v.LevelDB)
+			var hd *float64
+			h.mu.Lock()
+			if x, ok := h.uttHead[v.ID]; ok {
+				hd = &x
+			}
+			h.mu.Unlock()
+			h.OnSound(t, v.Angle, v.LevelDB, hd)
 		}
 	case "config_ack":
 		var v struct {

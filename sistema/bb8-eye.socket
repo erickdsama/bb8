@@ -1,0 +1,15 @@
+# Pi Zero W: socket for the WS2812 eye helper. bb8-head (user bb8) writes RGB frames
+# here; systemd starts bb8-eye@ as root per connection (PWM + DMA need /dev/mem).
+[Unit]
+Description=BB-8 eye helper socket (WS2812 on GPIO12)
+
+[Socket]
+ListenStream=/run/bb8-eye.sock
+SocketUser=root
+SocketGroup=bb8
+SocketMode=0660
+Accept=yes
+MaxConnections=2
+
+[Install]
+WantedBy=sockets.target

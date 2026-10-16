@@ -34,7 +34,9 @@ func TestRoundTripAndEvents(t *testing.T) {
 	}
 	s, addr := startServer(t, dir)
 	events := make(chan string, 4)
-	s.OnEvent = func(_ *Peer, typ string, body json.RawMessage) { events <- typ + string(body) }
+	s.OnEvent = func(_ *Peer, typ string, body json.RawMessage, bin []byte) {
+		events <- typ + string(body) + string(bin)
+	}
 
 	ccfg, _ := ClientTLS(dir)
 	ctx, cancel := context.WithCancel(context.Background())

@@ -30,6 +30,12 @@ func main() {
 	body := flag.String("body", env("BB8_BODY_ADDR", "bb8.local:8772"), "body link address")
 	pki := flag.String("pki", env("BB8_PKI", "~/.bb8/pki"), "dir with ca.crt, bb8-head.crt, bb8-head.key")
 	sim := flag.String("sim", "", "forward to the simulated head at this URL instead of hardware")
+	mic := flag.String("mic", env("BB8_HEAD_MIC", "plughw:CARD=seeed2micvoicec"), `ReSpeaker ALSA device ("" = no microphone)`)
+	spacing := flag.Float64("mic-spacing", 0.058, "distance between the two capsules, m (measure it)")
+	swap := flag.Bool("mic-swap", os.Getenv("BB8_MIC_SWAP") == "1", "the card reports the right capsule first")
+	eye := flag.String("eye", env("BB8_EYE", ""), `eye: ws2812-pwm (WS2812 on GPIO12 via bb8-eye), ws2812 (WS2812 on SPI0, no HAT), apa102 (the HAT's LEDs) or none; default ws2812-pwm with a mic, else ws2812`)
+	eyeSock := flag.String("eye-socket", env("BB8_EYE_SOCKET", "/run/bb8-eye.sock"), "bb8-eye helper socket (ws2812-pwm)")
+	leds := flag.Int("eye-leds", 16, "LEDs in the eye (16 on the ring; 3 for --eye apa102)")
 	flag.Parse()
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
 
@@ -42,14 +48,21 @@ func main() {
 		slog.Error("certs missing: copy them from 'bb8-body pair'", "dir", dir, "err", err)
 		os.Exit(1)
 	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 	var b head.Backend
 	if *sim != "" {
 		b = head.NewSim(*sim)
 	} else {
-		b = head.NewReal()
+		e := *eye
+		if e == "" {
+			e = "ws2812"
+			if *mic != "" {
+				e = "ws2812-pwm"
+			}
+		}
+		b = head.NewReal(ctx, head.RealConfig{Eye: e, EyeLEDs: *leds, EyeSocket: *eyeSock, MicDevice: *mic, MicSpacing: *spacing, MicSwap: *swap})
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 	slog.Info("bb8-head", "body", *body, "sim", *sim)
 	(&head.Head{B: b}).Run(ctx, *body, cfg)
 }

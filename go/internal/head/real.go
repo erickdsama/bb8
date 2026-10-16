@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"net"
 	"os/exec"
 	"strings"
 	"sync"
@@ -15,6 +16,7 @@ import (
 	"periph.io/x/conn/v3/i2c/i2creg"
 	"periph.io/x/conn/v3/physic"
 	"periph.io/x/conn/v3/spi/spireg"
+	"periph.io/x/devices/v3/apa102"
 	"periph.io/x/devices/v3/nrzled"
 	"periph.io/x/host/v3"
 )
@@ -23,26 +25,51 @@ import (
 // logged and reported in State, and the head still runs.
 //
 //   - Camera: rpicam-jpeg on demand (no process stays alive between photos).
-//   - Eye: 16-LED NeoPixel ring on SPI0 MOSI (GPIO10, pin 19) via periph.io nrzled.
-//     Enable SPI (dtparam=spi=on); the data line no longer uses GPIO18.
+//   - Eye: 16-LED WS2812 ring. With the ReSpeaker HAT (default "ws2812-pwm") its
+//     data goes to GPIO12 (PWM0, the HAT's Grove digital port), driven by the
+//     bb8-eye C helper (rpi_ws281x, PWM + DMA, root) through /run/bb8-eye.sock:
+//     SPI0 belongs to the HAT's APA102 LEDs and GPIO18 to its I2S. Without the HAT
+//     it can go on SPI0 MOSI ("ws2812", periph.io nrzled). "apa102" drives the HAT's
+//     own LEDs. Pin notes in wiki/Materiales.md.
 //   - Speaker: beeps synthesized in Go, played with aplay; text with espeak-ng
 //     (Piper does not run on the armv6 Zero W).
 //   - ToF: VL53L0X on I2C1 (0x29) once it moves from the Arduino to the head.
-//   - Sound direction: see SoundDir (ReSpeaker 2-Mic, pending hardware).
+//   - Microphone: ReSpeaker 2-Mic HAT (Mic): VAD, direction of arrival and the
+//     voiced audio streamed to the body. Its speaker output is the HAT's codec.
 type Real struct {
 	camera string
 	eye    *ringEye
 	tof    *VL53L0X
 	tofMM  atomic.Int64 // -1 = no reading
 	sound  SoundDir
+	mic    *Mic
 
 	sayMu  sync.Mutex
 	volume atomic.Value // float64
 	paused atomic.Bool
 }
 
-func NewReal() *Real {
+// RealConfig of the real head.
+//   - Eye: "ws2812-pwm" (WS2812 on GPIO12 via the bb8-eye helper at EyeSocket),
+//     "ws2812" (WS2812 on SPI0 MOSI, no HAT), "apa102" (the HAT's LEDs) or "none".
+//   - MicDevice: ALSA device of the ReSpeaker ("" = no mic); MicSpacing in m; MicSwap
+//     if the card reports the right capsule first.
+type RealConfig struct {
+	Eye        string
+	EyeLEDs    int
+	EyeSocket  string // bb8-eye socket for ws2812-pwm
+	MicDevice  string
+	MicSpacing float64
+	MicSwap    bool
+}
+
+func NewReal(ctx context.Context, c RealConfig) *Real {
 	r := &Real{sound: NoSoundDir{}}
+	if c.MicDevice != "" {
+		m := NewMic(c.MicDevice, c.MicSpacing, c.MicSwap)
+		r.sound, r.mic = m, m
+		go m.Run(ctx)
+	}
 	r.volume.Store(0.7)
 	r.tofMM.Store(-1)
 	for _, c := range []string{"rpicam-jpeg", "libcamera-jpeg"} {
@@ -58,10 +85,12 @@ func NewReal() *Real {
 		slog.Warn("periph host init", "err", err)
 		return r
 	}
-	if e, err := newRingEye(16); err != nil {
-		slog.Warn("no NeoPixel eye", "err", err)
-	} else {
-		r.eye = e
+	if c.Eye != "none" {
+		if e, err := newRingEye(c.Eye, max(1, c.EyeLEDs), c.EyeSocket); err != nil {
+			slog.Warn("no eye LEDs", "kind", c.Eye, "err", err)
+		} else {
+			r.eye = e
+		}
 	}
 	if bus, err := i2creg.Open(""); err != nil {
 		slog.Warn("no I2C bus", "err", err)
@@ -120,6 +149,11 @@ func (r *Real) Say(ctx context.Context, text, sound string) (float64, error) {
 	r.sayMu.Lock()
 	defer r.sayMu.Unlock()
 	t0 := time.Now()
+	// The mic would hear BB-8 itself: mute it while speaking and a bit after.
+	if r.mic != nil {
+		r.mic.Mute(30 * time.Second)
+		defer r.mic.Mute(400 * time.Millisecond)
+	}
 	vol := r.volume.Load().(float64)
 	key := sound
 	if key == "" {
@@ -170,14 +204,18 @@ func (r *Real) SetVolume(v float64) { r.volume.Store(max(0, min(1, v))) }
 func (r *Real) Sound() SoundDir { return r.sound }
 
 func (r *Real) State() map[string]any {
-	return map[string]any{"backend": "real", "camera": r.camera != "", "eye": r.eye != nil,
+	return map[string]any{"backend": "real", "camera": r.camera != "", "eye": r.eye != nil, "mic": r.mic != nil,
 		"tof": r.tof != nil, "sound_dir": r.sound.Name()}
 }
 
-// --- NeoPixel ring ---------------------------------------------------------
+// --- eye LEDs (NeoPixel or APA102 on SPI0) ------------------------------------
+
+type pixelWriter interface {
+	Write(pixels []byte) (int, error)
+}
 
 type ringEye struct {
-	dev *nrzled.Dev
+	dev pixelWriter
 	n   int
 
 	mu         sync.Mutex
@@ -186,18 +224,58 @@ type ringEye struct {
 	brightness float64
 }
 
-func newRingEye(n int) (*ringEye, error) {
-	p, err := spireg.Open("")
-	if err != nil {
-		return nil, err
-	}
-	d, err := nrzled.NewSPI(p, &nrzled.Opts{NumPixels: n, Channels: 3, Freq: 2500 * physic.KiloHertz})
-	if err != nil {
-		return nil, err
+func newRingEye(kind string, n int, socket string) (*ringEye, error) {
+	var d pixelWriter
+	if kind == "ws2812-pwm" {
+		d = &helperEye{path: socket}
+	} else {
+		p, err := spireg.Open("")
+		if err != nil {
+			return nil, err
+		}
+		switch kind {
+		case "apa102":
+			d, err = apa102.New(p, &apa102.Opts{NumPixels: n, Intensity: 255, Temperature: apa102.NeutralTemp})
+		default:
+			d, err = nrzled.NewSPI(p, &nrzled.Opts{NumPixels: n, Channels: 3, Freq: 2500 * physic.KiloHertz})
+		}
+		if err != nil {
+			return nil, err
+		}
 	}
 	e := &ringEye{dev: d, n: n, rgb: [3]uint8{40, 110, 255}, pattern: "steady", brightness: 0.3}
 	go e.loop()
 	return e, nil
+}
+
+// helperEye sends RGB frames (3 bytes per LED) to the bb8-eye helper over a
+// unix socket, reconnecting when the helper restarts.
+type helperEye struct {
+	path   string
+	conn   net.Conn
+	warned bool
+}
+
+func (h *helperEye) Write(pixels []byte) (int, error) {
+	if h.conn == nil {
+		c, err := net.DialTimeout("unix", h.path, time.Second)
+		if err != nil {
+			if !h.warned {
+				slog.Warn("eye helper not reachable (bb8-eye.socket)", "path", h.path, "err", err)
+				h.warned = true
+			}
+			time.Sleep(time.Second)
+			return 0, err
+		}
+		h.conn, h.warned = c, false
+	}
+	_ = h.conn.SetWriteDeadline(time.Now().Add(200 * time.Millisecond))
+	n, err := h.conn.Write(pixels)
+	if err != nil {
+		h.conn.Close()
+		h.conn = nil
+	}
+	return n, err
 }
 
 func (e *ringEye) set(rgb [3]uint8, pattern string, b float64) {

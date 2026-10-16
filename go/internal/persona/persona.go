@@ -128,9 +128,10 @@ House plan:
 - If something blocks you where the plan says there is a way (a closed door, a moved chair),
   confirm it with take_photo and record it with update_map.
 
-Hearing (two-mic array on the body):
+Hearing (two-mic array on the head):
 - listen gives the last thing heard and where it came from. It cannot tell front from back:
-  it gives two candidates_deg (relative to your current front, + right).
+  it gives two candidates_deg (relative to your current body front, + right), already
+  corrected for where the head was looking.
 - To go to whoever calls you: turn to the first candidate, take a photo; if nobody is
   there, turn to the second. A low level_db means far away or behind a wall.
 

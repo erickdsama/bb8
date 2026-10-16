@@ -109,8 +109,9 @@ func main() {
 	srv := &link.Server{}
 	head := body.NewHead(srv)
 	svc.SetToFSource(head.ToF)
-	head.OnSound = func(text *string, angle, level *float64) {
-		if err := svc.Hear(text, angle, level); err != nil {
+	head.HeadDeg = func() float64 { return float64(svc.Status().HeadDeg) }
+	head.OnSound = func(text *string, angle, level, headDeg *float64) {
+		if err := svc.Hear(text, angle, level, headDeg); err != nil {
 			slog.Warn("sound_dir", "err", err)
 		}
 	}

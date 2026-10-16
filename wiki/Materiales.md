@@ -15,7 +15,7 @@ Total MXN 1,898.25 con envío (Estafeta). Precios por unidad.
 | Condensador electrolítico 1000 µF 16 V | 4 | 3 | 1 |
 | Adaptador 12 V 2 A + par plug/jack DC | 1 | 83 + 14 | 1 |
 | Protoboard 830 + fuente MB102 + 65 jumpers | 1 | 90 | 1 |
-| Anillo WS2812 16 LED 45 mm (datos a **GPIO10 / pin 19** de la Zero, por SPI; ya no GPIO18) | 1 | 58 | 5 |
+| Anillo WS2812 16 LED 45 mm (datos a **GPIO12**, puerto Grove digital del ReSpeaker; ver [pines](#pines-de-la-zero-w-con-el-respeaker)) | 1 | 58 | 5 |
 | Amplificador PAM8403 5 V con volumen | 1 | 29 | 5 |
 | Bocina 4 Ω 5 W | 2 | 80 | 5 |
 | Par de conectores XT60 + par de cables XT60 12 AWG 15 cm | 1 | 18 + 59 | 6 |
@@ -40,17 +40,17 @@ Revisado el 15 oct 2026 entrando por SSH a las dos Pi.
 | Raspberry Pi 3 Model B+ (1 GB) | Hostname `bb8`. Debian 13 (trixie) de 64 bits, arranca de una **memoria USB de 8 GB** con 3.8 GB libres | 3 |
 | Raspberry Pi Zero W (la original) | Hostname `bb8-head`. **No es Zero 2 W**: armv6, un núcleo, 512 MB. Raspbian 13 (trixie) en microSD de 16 GB. I2C apagado todavía | 5 |
 
-**Lo que cambia por ser Zero W y no Zero 2 W:** Piper (la voz) no tiene versión armv6, así
-que la cabeza no puede generar voz; la bocina se queda en el cuerpo (Pi 3 → PAM8403) o
-la Pi 3 genera el audio y se lo manda a la cabeza. La cámara, el ojo y el ToF funcionan
-igual; la detección de caras con OpenCV será lenta (un núcleo). `instalar_zero.sh` está
-escrito para la Zero 2 W y hay que adaptarlo. Si quieres la voz en la cabeza, la Zero 2 W
+**Lo que cambia por ser Zero W y no Zero 2 W:** Piper (la voz) no tiene versión armv6.
+La cabeza habla con `espeak-ng` (voz robótica) por la salida de audio del ReSpeaker, o la
+voz de Piper sale por la bocina del cuerpo (Pi 3 → PAM8403). La cámara, el ojo, el ToF y
+el micrófono funcionan igual: `bb8-head` es Go y no usa OpenCV. `instalar_zero.sh` ya está
+hecho para la Zero W. Si quieres la voz de Piper en la cabeza, la Zero 2 W
 está en el carrito como opcional.
 
 ## Falta comprar: cotización del 9 oct 2026
 
-Actualizada el 15 oct 2026 con lo decidido al probar el simulador: ReSpeaker 2-Mic en
-lugar del micrófono USB, cámara gran angular, red WiFi propia del robot y más
+Actualizada el 15 oct 2026 con lo decidido al probar el simulador: ReSpeaker 2-Mic **en
+la cabeza** en lugar del micrófono USB, cámara gran angular, red WiFi propia del robot y más
 almacenamiento para la Pi 3.
 
 Precios en MXN tomados de las fichas de cada tienda el 9 de octubre de 2026, sin envío;
@@ -75,18 +75,17 @@ Se puede pedir ya; nada depende del tamaño final de la esfera.
 | [Soporte en L para motor 37 mm](https://articulo.mercadolibre.com.mx/MLM-652432552-soporte-motorreductor-bracket-37d-37gb-en-l-_JM) | 2 | Mercado Libre | ~40 c/u (est.) | Ya no es opcional: la llanta nueva no trae escuadra. Se atornilla abajo de la melamina en lugar del soporte impreso del CAD. Alternativa: [uxcell, 4 pzs](https://www.amazon.com.mx/uxcell-Soporte-reductor-engranajes-unidades/dp/B07QX82WS2) en Amazon |
 | Ball transfer 1″ de acero, montaje de 2 tornillos ([TruePower, 6 pzs](https://www.amazon.com.mx/TruePower-Roller-Ball-Transfer-Bearings/dp/B009KASQZW)) | 2 | Amazon | ~120 (est.) | Vienen en paquete; sobran para la cabeza o repuesto |
 | Melamina 12–15 mm 30 × 30 cm + varilla roscada 1/4″ de 30 cm con 4 tuercas y 4 rondanas | 1 | Maderería, ferretería | ~120 (est.) | La varilla es el poste: va de pie en el centro de la melamina, apretada con 2 tuercas arriba y 2 abajo. Así no hace falta imprimir el pie del poste |
-| ReSpeaker 2-Mic Pi HAT **v2.0** (Seeed) | 1 | Amazon / Mercado Libre | ~450 (est.) | Reemplaza al micrófono USB: con dos micrófonos se calcula de dónde viene la voz (`listen`, ver [Simulador](Simulador.md)). Va sobre el GPIO de la Pi 3 y trae su propia salida de audio. Comprar la **v2.0**: la v1 depende del driver `seeed-voicecard`, que se rompe con kernels nuevos; confirmar soporte para el kernel de trixie antes de pagar. No cancela eco por hardware |
+| ReSpeaker 2-Mic Pi HAT **v2.0** (Seeed) | 1 | Amazon / Mercado Libre | ~450 (est.) | Reemplaza al micrófono USB: con dos micrófonos se calcula de dónde viene la voz (`listen`, ver [Simulador](Simulador.md)). **Va sobre el GPIO de la Zero W, en la cabeza** (ver [pines](#pines-de-la-zero-w-con-el-respeaker)): la cabeza detecta la voz y le manda solo ese audio al cuerpo. Trae su propia salida de audio (JST y jack), así que el MAX98357A ya no hace falta. Comprar la **v2.0**: la v1 depende del driver `seeed-voicecard`, que se rompe con kernels nuevos; confirmar soporte para el kernel de trixie antes de pagar. No cancela eco por hardware |
 | Cámara OV5647 5 MP **gran angular** (120–160°) | 1 | Amazon / Mercado Libre | ~200–300 (est.) | Confirmado: no la tienes. En el simulador, con la lente normal (54°) y a 35 cm del piso, una pared o un marco de puerta llena la foto; con 90–120° se ve el cuarto. Confirmar que traiga cable **15 → 22 pines** (la Zero W usa el de 22). Respaldo: [Arducam OV5647 normal](https://www.amazon.com.mx/Arducam-megap%C3%ADxeles-Sensor-OV5647-Raspberry/dp/B012V1HEP4), 134, trae los dos cables |
 | Adaptador WiFi USB 2.4 GHz con modo AP (chip MediaTek, el MT7612U es lo más seguro) | 1 | Amazon / Mercado Libre | ~150–400 (est.) | Hace la red propia del robot (`bb8-net`): la Pi 3 es el punto de acceso y la cabeza se conecta ahí, aunque el robot salga del alcance del router. Opcional si el punto de acceso va en la WiFi integrada de la Pi 3, que es más frágil. Antes de comprar, confirmar en la ficha que soporte modo AP en Linux |
 | Memoria USB 3.0 o microSD A1 de 32 GB | 1 | Steren / Amazon | ~120 (est.) | La Pi 3 arranca de una USB de 8 GB con 3.8 GB libres; la voz (Whisper, wake word, Piper) y el venv no caben con holgura |
 | Raspberry Pi Zero 2 W (opcional) | 1 | UNIT / Amazon | ~400 (est.) | Solo si quieres la voz saliendo de la cabeza (Piper no corre en la Zero W) y caras más rápidas. Mismo tamaño y cable de cámara |
-| [Amplificador I2S MAX98357A](https://www.amazon.com.mx/MAX98357A-amplificador-decodificaci%C3%B3n-selecci%C3%B3n-proyectos/dp/B0F1Y3KHJF) | 1 | Amazon | ~85 | Le da audio a la Zero y mueve directo una bocina de 4 Ω (3.2 W). Pack de 2: [DAOKAI](https://www.amazon.com.mx/DAOKAI-unidades-MAX98357-amplificador-decodificador/dp/B0B2NSMV55) 231 |
 | [Power bank 1 × 18650, 2600 mAh](https://www.mercadolibre.com.mx/cargador-tipo-power-bank-para-bateria-18650-2600mah-incluida/up/MLMU3701037772) | 1 | Mercado Libre | ~250 (est.) | 97 × 26 mm, 63 g, salida 5 V 1 A, batería incluida. Para la cabeza |
 | Imanes neodimio disco 20 × 5 mm, [paquete de 10](https://listado.mercadolibre.com.mx/imanes-de-neodimio-20x5) | 1 | Mercado Libre | ~607 | Hacen falta 8 (4 en el poste, 4 en la cabeza). Revisar que la ficha diga N42; 2 paquetes de 5 salen en ~568 |
 | [Rueda loca mini, bola de nylon 1″](https://uelectronics.com/producto/mini-rueda-universal-con-bola-de-nylon/) | 3 | UNIT | 37–51 c/u | Las 3 "ruedecitas" de la cabeza; el nylon no raya la pintura del casco |
 
-**Subtotal ahora: ~$2,550** sin la Zero 2 W opcional (~$2,400 si el punto de acceso va en la
-WiFi integrada).
+**Subtotal ahora: ~$2,465** sin la Zero 2 W opcional (~$2,315 si el punto de acceso va en la
+WiFi integrada). Bajó $85 al quitar el MAX98357A.
 
 ### Carrito recomendado, después (Parte 6)
 
@@ -108,7 +107,7 @@ consumo real de los motores.
 | Primer, pintura blanca/naranja/plata, laca, lijas | 1 | Tlapalería | 300–500 (est.) | |
 | Lastre (pesas o plomo) | 200–400 g | Mercado Libre | ~50 (est.) | |
 
-**Subtotal Parte 6: ~$4,700** con la impresión por servicio. Total pendiente con los dos carritos: **~$7,250** más envíos.
+**Subtotal Parte 6: ~$4,700** con la impresión por servicio. Total pendiente con los dos carritos: **~$7,165** más envíos.
 
 ### Cámara OV5647
 
@@ -120,11 +119,61 @@ orillas (ojo de pez), cosa que el simulador no imita. La
 cuesta 240 pero solo trae cable de 15 pines; con la Zero haría falta además un
 [cable 15 → 22](https://www.amazon.com.mx/Onyehn-flexible-c%C3%A1mara-Raspberry-unidades/dp/B07XZ5DX5H).
 
+### Pines de la Zero W con el ReSpeaker
+
+El ReSpeaker 2-Mic HAT v2.0 cubre los 40 pines de la Zero W. Revisado contra lo que va en
+la cabeza (datos del HAT de la [wiki de Seeed](https://wiki.seeedstudio.com/respeaker_2_mics_pi_hat_raspberry_v2/);
+confirmar con `aplay -l` y `i2cdetect -y 1` al armar):
+
+| Pin (BCM / físico) | Lo usa | Notas |
+| --- | --- | --- |
+| GPIO2 / 3, GPIO3 / 5 (I2C1) | Códec TLV320AIC3104 del HAT (0x18) **y** VL53L0X (0x29) | Sin choque: direcciones distintas en el mismo bus. El ToF se conecta al puerto Grove I2C del HAT |
+| GPIO18 / 12, GPIO19 / 35, GPIO20 / 38, GPIO21 / 40 (I2S) | Micrófonos y salida de audio del HAT | Por eso el ojo ya no puede ir en GPIO18 y el MAX98357A sobra |
+| GPIO10 / 19 (MOSI), GPIO11 / 23 (SCLK) (SPI0) | LEDs APA102 del HAT | Por eso el anillo WS2812 no va en GPIO10 con el HAT |
+| GPIO17 / 11 | Botón del HAT | Libre para usarlo (p. ej. "despertar") |
+| GPIO12 / 32 (PWM0) | **Datos del ojo WS2812**, por el puerto Grove digital del HAT | PWM libre: el audio del HAT es I2S. `dtparam=audio=off` |
+| GPIO13 / 33 | Puerto Grove digital del HAT (segundo hilo) | Libre |
+| CSI | Cámara OV5647 | Sin choque |
+
+**El ojo: WS2812 en GPIO12 (PWM0), sin comprar nada.** Los LEDs APA102 del HAT ocupan el
+SPI0 (GPIO10 y GPIO11) y el I2S ocupa GPIO18, así que el anillo WS2812 que ya tienes va en
+**GPIO12**. Ese pin sale en el **puerto Grove digital del HAT**, así que no hace falta un
+header apilable ni soldar bajo el HAT. GPIO12 es el canal 0 del PWM (función ALT0) y el
+PWM está libre: el HAT saca el audio por I2S, no por el PWM analógico (el instalador pone
+`dtparam=audio=off` para que el driver de audio integrado no lo tome).
+
+Cableado del anillo al puerto Grove digital (cable Grove de 4 hilos):
+
+| Hilo Grove | Pin del HAT | Al anillo WS2812 |
+| --- | --- | --- |
+| Amarillo (señal 1) | **GPIO12** | DIN (entrada de datos) |
+| Blanco (señal 2) | GPIO13 | — (sin usar) |
+| Rojo | VCC | **No lo uses** si el puerto da 3.3 V: alimenta el anillo con 5 V del power bank |
+| Negro | GND | GND (común con el power bank) |
+
+- VCC del anillo: 5 V directo del power bank (a 0.3 de brillo pide ~0.3 A; a blanco pleno ~1 A).
+- Pon una resistencia de 330 Ω en serie en DIN y un capacitor de 470–1000 µF entre 5 V y GND del anillo.
+- La señal de la Zero es de 3.3 V. Con el anillo a 5 V casi siempre basta; si parpadea o da colores raros, pon un 74AHCT125 (o un diodo 1N4148 en la VCC del primer LED) para subir el nivel.
+
+En software, `bb8-head` no usa cgo, así que el PWM con DMA lo hace un ayudante en C, `bb8-eye`:
+- Usa [rpi_ws281x](https://github.com/jgarff/rpi_ws281x); su tabla de pines del PWM0 incluye GPIO12 con ALT0, y la Zero W viene en su lista de modelos.
+- Se compila en la Zero al instalar.
+- Corre como root por conexión desde `bb8-eye.socket`, y `bb8-head` le manda los cuadros por `/run/bb8-eye.sock`.
+
+Es el ojo por defecto con micrófono (`--eye ws2812-pwm`). Otras opciones:
+- `--eye apa102 --eye-leds 3`: solo los 3 LEDs del HAT.
+- `--eye ws2812`: el anillo en SPI0 (GPIO10), solo **sin** el HAT.
+
+**Audio.** La salida del HAT (JST de bocina o jack → PAM8403 → bocina de 4 Ω) reemplaza al
+MAX98357A. El PAM8403 va a 5 V del power bank de la cabeza.
+
 ### Lo que ya no hace falta
 
 - **Bocina o DAC USB para la Pi principal:** ya llegaron 2 bocinas y un PAM8403, y la
   Pi 3 trae jack de 3.5 mm: jack → PAM8403 → bocina.
-- **Tarjeta de sonido USB para la Zero:** la reemplaza el MAX98357A del carrito.
+- **Tarjeta de sonido USB y amplificador MAX98357A para la Zero:** el ReSpeaker trae su
+  propio códec con salida de bocina (JST) y jack de 3.5 mm. El MAX98357A además chocaría:
+  usa el mismo I2S (GPIO18, 19 y 21) que el HAT.
 - **Micrófono USB mini SunFounder (191):** lo reemplaza el ReSpeaker 2-Mic HAT.
 - **Cúpula de la cabeza:** la imprime el servicio junto con la esfera.
 - **Checador de voltaje LiPo y conectores XT60 macho:** ya vienen en el pedido 377466.

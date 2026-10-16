@@ -92,12 +92,13 @@ func RobotTools(m *motion.Service, h *Head) []Tool {
 				return Data(r)
 			})},
 		{Name: "listen",
-			Description: "The last thing the body microphone (ReSpeaker 2-Mic) heard and where the voice came from.\n\n" +
+			Description: "The last thing the head microphone (ReSpeaker 2-Mic) heard and where the voice came from.\n\n" +
 				"wait_s (0 to 10): if above 0, waits for someone to speak before answering. Returns heard (false if " +
 				"nothing yet), text, level_db (60+ near, < 40 far or behind a wall), ago_s, angle_deg (−90 to 90, + right, " +
-				"relative to the front you had when hearing it) and candidates_deg: the two possible headings relative to " +
-				"your current front, already corrected by how much you turned since (turned_since_deg). With two mics " +
-				"you cannot tell front (the first) from back (the second).",
+				"relative to where the HEAD was looking), head_deg (head angle then) and candidates_deg: the two possible " +
+				"headings relative to your BODY front now, already corrected by how much you turned since " +
+				"(turned_since_deg); use them with turn. With two mics you cannot tell in front of the head (the first) " +
+				"from behind it (the second); look_at toward a candidate and take_photo to check.",
 			Schema: Object(map[string]any{"wait_s": Num("seconds to wait, 0 to 10")}),
 			Handler: Bind(func(_ context.Context, in struct {
 				Wait float64 `json:"wait_s"`

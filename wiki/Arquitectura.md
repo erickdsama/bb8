@@ -6,15 +6,16 @@ The software has three layers, each slower and smarter than the one below. It ha
 
 ```mermaid
 flowchart TD
-  U[You, by voice] --> VZ[Voice front end<br/>Python: wake word, STT, speaker id]
-  VZ -->|POST /agent/ask| B
+  U[You, by voice] -.->|ReSpeaker on the head| H
+  VZ[Voice front end<br/>Python: wake word, STT, speaker id] -->|POST /agent/ask| B
+  B -->|GET /audio/stream| VZ
   CL[Claude Desktop / Code] -->|MCP :8765/mcp + token| B
   WEB[Config page<br/>browser] -->|HTTP + SSE :8765| B
   J[Bluetooth gamepad<br/>wins over the LLM] -->|evdev| B
   B[bb8-body · Pi 3 B+<br/>motion · map · MCP · agent · connectors · config]
   B -->|USB serial 115200| AR[Arduino<br/>own firmware]
   AR --> M[2 motors + post servo]
-  H[bb8-head · Pi Zero W<br/>camera, ToF, eye, speaker, mic] -->|mutual TLS :8772<br/>head dials in| B
+  H[bb8-head · Pi Zero W<br/>camera, ToF, eye, speaker, ReSpeaker mic] -->|mutual TLS :8772<br/>head dials in<br/>ToF, voice direction, voiced audio| B
   B -->|OpenRouter| LLM[(LLM)]
   B -->|HTTPS| EXT[(Open-Meteo, Google Calendar…)]
 ```
@@ -40,7 +41,7 @@ The limits live in three places, never in the prompt:
 | --- | --- | --- | --- |
 | Raspberry Pi 3 B+ (main) | `bb8-body`: MCP + web on :8765, local API on 127.0.0.1:8770, head link on :8772 | ~17 MB | [`go/cmd/bb8-body`](https://github.com/erickdsama/bb8/tree/main/go/cmd/bb8-body) |
 | Raspberry Pi 3 B+ (main) | `voz` (Python: wake word, Whisper, speaker id) and `energia` (Python, :8771) | — | parts 4 and 6 |
-| Raspberry Pi Zero W (head, armv6) | `bb8-head`: OV5647 via `rpicam-jpeg`, NeoPixel over SPI, beeps + `espeak-ng`, VL53L0X, ReSpeaker hook | ~13 MB | [`go/cmd/bb8-head`](https://github.com/erickdsama/bb8/tree/main/go/cmd/bb8-head) |
+| Raspberry Pi Zero W (head, armv6) | `bb8-head`: ReSpeaker 2-Mic HAT (VAD, direction of arrival, voiced audio to the body), OV5647 via `rpicam-jpeg`, WS2812 eye on GPIO12 PWM (C helper `bb8-eye`), beeps + `espeak-ng` through the HAT codec, VL53L0X | ~13 MB | [`go/cmd/bb8-head`](https://github.com/erickdsama/bb8/tree/main/go/cmd/bb8-head) |
 | Arduino Uno | `bb8_firmware`: L298N, encoders, MG996R servo, MPU6050, VL53L0X (parts 1–4) | — | part 1 |
 | Your PC | The simulator replaces the Arduino and the head hardware (`bb8-head --sim`); the Go binaries are the same | — | `simulador/` |
 
@@ -56,7 +57,7 @@ The Python stack used before took ~100 MB on the body (`bb8.motion_api` 40 MB + 
 | `tools`, `mcpserver` | One tool registry → MCP (and the agent) |
 | `body` | Robot tools, head client, local API, config fields and wiring |
 | `link` | Mutual TLS, framing, `pair` |
-| `head` | Head side: Real and Sim backends, beeps, VL53L0X, SoundDir |
+| `head` | Head side: Real and Sim backends, beeps, VL53L0X, mic (VAD + GCC-PHAT direction + audio stream) |
 | `config` | Store, schema, SSE web UI |
 | `agent` | OpenRouter tool loop |
 | `connectors` | Connector interface + `weather`, `calendar` (Google provider) |
@@ -77,9 +78,23 @@ The Python stack used before took ~100 MB on the body (`bb8.motion_api` 40 MB + 
 | `express(emotion)` | The emotion's beep and eye color (15 emotions) |
 | `get_pose()` | Position, heading, tilt, battery, forward distance, head link |
 | `get_map()` / `set_position()` / `update_map()` | House plan: room, how far and how much to turn toward each thing; fix the position; record changes |
-| `listen(wait_s)` | Last thing the ReSpeaker heard and from where (two candidates: front and back) |
+| `listen(wait_s)` | Last thing the head's ReSpeaker heard and from where: the angle relative to the head, converted to two body-frame candidates (in front of / behind the head) |
 | `get_setting()` / `set_setting()` | Settings the agent may change (volume, city…) |
 | `weather`, `calendar_*` | Connector tools, while the connector is enabled |
+
+## Hearing
+
+The ReSpeaker 2-Mic HAT is on the head (Zero W), so the microphones turn with it.
+
+1. **Head:**
+   - An energy VAD with an adaptive noise floor decides when someone speaks. Only then does the head stream 16 kHz mono audio over the link (`audio_start` / `audio` / `audio_end`), so the WiFi stays quiet between sentences.
+   - At the end of each utterance, GCC-PHAT between the two capsules gives the angle relative to the **head** front (`sound_dir`).
+   - The mic is muted while the head speaks.
+2. **Body:**
+   - At `audio_start` it stamps the post angle reported by the Arduino; the head does not know where it points.
+   - It turns the head angle into two body-frame candidates: `head + a` in front of the head, `head + 180 − a` behind it.
+   - It re-serves the audio on `GET /audio/stream`.
+3. **Voice front end (Pi 3):** it reads that stream (`BB8_MIC=cabeza`) for the wake word, Whisper and speaker id, and fills the gaps with silence. A local USB mic is still an option (`BB8_MIC=local`).
 
 ## Configuration (both ways, live)
 

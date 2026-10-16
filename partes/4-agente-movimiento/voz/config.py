@@ -17,6 +17,9 @@ ENERGIA_URL = os.environ.get("BB8_ENERGIA_URL", "http://127.0.0.1:8771")
 # --- Micrófono y wake word ---------------------------------------------------
 TASA = 16000
 BLOQUE = 1280                 # 80 ms, lo que espera openWakeWord
+# "cabeza": el ReSpeaker de la cabeza, por el enlace (GET /audio/stream de bb8-body).
+# "local": un micrófono en la Pi (BB8_MICROFONO elige cuál).
+MIC = os.environ.get("BB8_MIC", "cabeza")
 MICROFONO = os.environ.get("BB8_MICROFONO") or None   # nombre o índice de sounddevice; None = el de por defecto
 # Modelo de wake word: un nombre de los preentrenados (hey_jarvis, alexa, hey_mycroft)
 # o la ruta a un .onnx. Sin BB8_WAKEWORD usa "oye BB-8" si ya copiaste el modelo

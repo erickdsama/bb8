@@ -57,7 +57,7 @@ python simulador/lanzar_dummy.py --camara sintetica   # compila bb8-body y bb8-h
 
 En otra terminal, con el venv activo: `PYTHONPATH=simulador python -m dummy.probar` recorre
 las herramientas, los frenos de seguridad y la configuración en vivo, y termina con
-`Todo bien` (30 comprobaciones; `make probar` hace todo junto). La página de configuración
+`Todo bien` (31 comprobaciones; `make probar` hace todo junto). La página de configuración
 está en <http://127.0.0.1:8765/>. Para hablarle desde Claude Code:
 `claude mcp add --transport http bb8 http://127.0.0.1:8765/mcp`.
 Dentro del repo, Claude Code ya lo encuentra por `.mcp.json`, y `CLAUDE.md` y `.claude/skills/` le explican el proyecto.

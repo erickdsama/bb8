@@ -1,6 +1,6 @@
 # BB-8 CI: builds the Arduino firmware and test sketches, vets/tests the Go code,
 # cross-builds the Pi binaries, and runs the end-to-end test (`python -m dummy.probar`,
-# 30 checks) against the dummy with bb8-body and bb8-head --sim.
+# 31 checks) against the dummy with bb8-body and bb8-head --sim.
 name: CI
 
 on:

@@ -97,7 +97,8 @@ type hearing struct {
 	angle   *float64
 	levelDB *float64
 	at      time.Time
-	heading float64
+	heading float64 // body heading when heard
+	headDeg float64 // post angle when heard: the mics are on the head
 }
 
 type Service struct {
@@ -391,14 +392,19 @@ func (s *Service) ChangeMap(c floorplan.Change) Result {
 
 // --- hearing: voice direction (ReSpeaker 2-Mic) ------------------------------
 
-// Hear stores what the microphone heard. angle is relative to the body front,
-// + right, −90…90: two mics cannot tell front from back.
-func (s *Service) Hear(text *string, angle, levelDB *float64) error {
+// Hear stores what the head microphone heard. angle is relative to the HEAD
+// front, + right, −90…90: two mics cannot tell front from back. headDeg is the
+// post angle when it was heard (nil = now).
+func (s *Service) Hear(text *string, angle, levelDB, headDeg *float64) error {
 	if angle != nil && (*angle < -90 || *angle > 90) {
 		return errors.New("angle_deg goes from -90 to 90")
 	}
 	s.mu.Lock()
-	s.hear = &hearing{text: text, angle: angle, levelDB: levelDB, at: time.Now(), heading: s.status.YawDeg}
+	hd := float64(s.status.HeadDeg)
+	if headDeg != nil {
+		hd = *headDeg
+	}
+	s.hear = &hearing{text: text, angle: angle, levelDB: levelDB, at: time.Now(), heading: s.status.YawDeg, headDeg: hd}
 	close(s.hearNew)
 	s.hearNew = make(chan struct{})
 	s.mu.Unlock()
@@ -426,13 +432,12 @@ func (s *Service) Listen(wait float64) Result {
 	out := Result{"heard": true, "text": h.text, "level_db": h.levelDB,
 		"ago_s": round(time.Since(h.at).Seconds(), 1), "turned_since_deg": round(turned, 1)}
 	if h.angle != nil {
+		// Body frame: in front of the head (head + a) or behind it (head + 180 − a).
 		a := *h.angle
-		back := -180 - a
-		if a >= 0 {
-			back = 180 - a
-		}
+		front, back := h.headDeg+a, h.headDeg+180-a
 		out["angle_deg"] = round(a, 1)
-		out["candidates_deg"] = []float64{round(floorplan.Norm180(a-turned), 1), round(floorplan.Norm180(back-turned), 1)}
+		out["head_deg"] = round(h.headDeg, 1)
+		out["candidates_deg"] = []float64{round(floorplan.Norm180(front-turned), 1), round(floorplan.Norm180(back-turned), 1)}
 	}
 	return out
 }

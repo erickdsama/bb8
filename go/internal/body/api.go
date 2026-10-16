@@ -87,14 +87,15 @@ func LocalAPI(m *motion.Service, h *Head, reg *tools.Registry) *http.ServeMux {
 	mux.HandleFunc("POST /hearing", func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
 			Text    *string  `json:"text"`
-			Angle   *float64 `json:"angle_deg"`
+			Angle   *float64 `json:"angle_deg"` // relative to the head front
 			LevelDB *float64 `json:"level_db"`
+			HeadDeg *float64 `json:"head_deg"` // optional: default the current post angle
 		}
 		if err := body(r, &in); err != nil {
 			bad(w, err)
 			return
 		}
-		if err := m.Hear(in.Text, in.Angle, in.LevelDB); err != nil {
+		if err := m.Hear(in.Text, in.Angle, in.LevelDB, in.HeadDeg); err != nil {
 			bad(w, err)
 			return
 		}
@@ -128,6 +129,7 @@ func LocalAPI(m *motion.Service, h *Head, reg *tools.Registry) *http.ServeMux {
 		w.Header().Set("Content-Type", "image/jpeg")
 		_, _ = w.Write(jpg)
 	})
+	mux.HandleFunc("GET /audio/stream", h.Audio.ServeStream)
 	mux.HandleFunc("GET /head", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, h.State()) })
 	return mux
 }

@@ -109,7 +109,8 @@ Pi Zero W original (armv6) con Raspberry Pi OS Lite de 32 bits y hostname `bb8-h
 
 ```bash
 # En el PC
-scp dist/linux-armv6/bb8-head sistema/{instalar_zero.sh,bb8-head.service} bb8-head.local:/tmp/
+scp dist/linux-armv6/bb8-head partes/5-cabeza/eye/bb8_eye.c \
+    sistema/{instalar_zero.sh,bb8-head.service,bb8-eye.socket,bb8-eye@.service} bb8-head.local:/tmp/
 # En la Pi 3: los certificados de la cabeza
 sudo scp /etc/bb8/pki/{ca.crt,bb8-head.crt,bb8-head.key} bb8-head.local:/tmp/
 # En la Zero
@@ -121,8 +122,11 @@ journalctl -fu bb8-head        # debe decir "link: connected to body"
 El instalador:
 
 - instala `bb8-head` y los certificados en `/etc/bb8/pki`;
-- instala `rpicam-apps-lite` (cámara), `alsa-utils` (pitidos) y `espeak-ng` (voz: Piper no
-  corre en armv6);
+- instala `rpicam-apps-lite` (cámara), `alsa-utils` (micrófono y pitidos) y `espeak-ng`
+  (voz: Piper no corre en armv6);
+- el driver del ReSpeaker 2-Mic HAT v2.0 va aparte (overlay `respeaker-2mic-v2_0` de
+  [seeed-linux-dtoverlays](https://github.com/Seeed-Studio/seeed-linux-dtoverlays)); revisa
+  con `arecord -l` que aparezca `seeed2micvoicec`;
 - activa **SPI** (anillo NeoPixel) e **I2C** (VL53L0X) y apaga Bluetooth para ahorrar;
 - habilita `bb8-head`, que corre como `bb8` con los grupos `spi i2c video audio gpio`, no
   como root.
@@ -131,8 +135,11 @@ La cabeza **no abre ningún puerto**: marca al cuerpo en `bb8.local:8772` y solo
 presenta certificados de la CA del BB-8. Si el cuerpo cambia de IP no pasa nada: se
 verifica por nombre (`bb8-body`), no por IP.
 
-**El cable de datos del ojo va a GPIO10 (MOSI, pin 19)**, ya no a GPIO18: el anillo se
-maneja por SPI.
+**El cable de datos del ojo va a GPIO12 (PWM0), en el puerto Grove digital del ReSpeaker**,
+con 5 V y GND del power bank.
+- El instalador clona rpi_ws281x (en un commit fijo) y compila en la Zero el ayudante `bb8-eye` (`partes/5-cabeza/eye/bb8_eye.c`), por eso instala `gcc` y `git`.
+- Deja `bb8-eye.socket` activo y pone `dtparam=audio=off` para que el PWM quede libre.
+- Hay que reiniciar una vez.
 
 Sin la cámara OV5647 conectada, la cabeza arranca igual: `take_photo` responde "la
 cabeza no tiene cámara" y lo demás funciona. Sin VL53L0X en la cabeza (en las Partes 1–4
@@ -165,7 +172,9 @@ configuración.
 | `BB8_ENERGIA_URL` | `http://127.0.0.1:8771` | Gestor de energía |
 | `BB8_WAKEWORD` | `voz/modelos/oye_bb8.onnx` si existe, si no `hey_jarvis` | Modelo preentrenado o ruta a un `.onnx` ([Wake word "oye BB-8"](Wake-word-oye-BB-8.md)) |
 | `BB8_WAKEWORD_UMBRAL` | `0.5` | Sensibilidad de la wake word |
-| `BB8_MICROFONO` | el de por defecto | Nombre o índice de `sounddevice` |
+| `BB8_MIC` | `cabeza` | `cabeza`: el ReSpeaker de la cabeza por el enlace (`GET /audio/stream`); `local`: un micrófono en la Pi 3 |
+| `BB8_MICROFONO` | el de por defecto | Con `BB8_MIC=local`: nombre o índice de `sounddevice` |
+| `BB8_HEAD_MIC`, `BB8_MIC_SWAP`, `BB8_EYE` (en la Zero) | `plughw:CARD=seeed2micvoicec`, `0`, `ws2812-pwm` con micrófono | Dispositivo ALSA del ReSpeaker, canales al revés, tipo de ojo (`ws2812-pwm`, `apa102`, `ws2812`, `none`) |
 | `BB8_STT` | `local`, o `nube` si hay `BB8_STT_API_KEY` | Dónde se transcribe |
 | `BB8_STT_API_KEY` | — | Clave de la API de transcripción (Groq, OpenAI…) |
 | `BB8_STT_URL` | `https://api.groq.com/openai/v1/audio/transcriptions` | Endpoint compatible con OpenAI |

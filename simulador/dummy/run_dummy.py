@@ -70,7 +70,7 @@ def main() -> None:
 
     speaker = HS.SimSpeaker(play=not a.sin_sonido)
     app = build_app(camera, HS.SimToF(world, head_deg), eye, speaker,
-                    extra_routes=visor.rutas(world, arduino, eye, speaker, OidoSim(world)))
+                    extra_routes=visor.rutas(world, arduino, eye, speaker, OidoSim(world, head_deg)))
     log.info("Cabeza simulada en http://127.0.0.1:%d", a.puerto_cabeza)
     log.info("Visor 2D en http://127.0.0.1:%d/sim", a.puerto_cabeza)
     uvicorn.run(app, host="127.0.0.1", port=a.puerto_cabeza, log_level="warning")

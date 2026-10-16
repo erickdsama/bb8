@@ -21,8 +21,9 @@ make zero                                   # en el PC: dist/linux-armv6/bb8-hea
 sudo bash /tmp/instalar_zero.sh bb8.local   # en la Zero, con el binario y los certificados en /tmp
 ```
 
-**El cable de datos del ojo va a GPIO10 (MOSI, pin 19)**, ya no a GPIO18: el anillo va por
-SPI. En la Pi principal, `/etc/bb8.env`: `BB8_VOZ_SALIDA=cabeza` y `BB8_BUSCAR_CARA=1`.
+**El cable de datos del ojo va a GPIO12 (PWM0), en el puerto Grove digital del ReSpeaker**,
+con 5 V y GND del power bank. Lo maneja `bb8-eye` ([`eye/bb8_eye.c`](eye/bb8_eye.c), rpi_ws281x),
+que el instalador compila en la Zero. En la Pi principal, `/etc/bb8.env`: `BB8_VOZ_SALIDA=cabeza` y `BB8_BUSCAR_CARA=1`.
 Si el ToF se muda a la cabeza, `USAR_TOF_LOCAL 0` en el firmware.
 
 Casco, plato y soportes impresos de la cabeza: [`cad/`](../../cad).

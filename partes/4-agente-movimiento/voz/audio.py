@@ -1,10 +1,19 @@
-"""Micrófono y altavoz con sounddevice (PortAudio). En la Pi: sudo apt install libportaudio2."""
+"""Micrófono y altavoz.
+
+El micrófono por defecto es el ReSpeaker de la cabeza: la Zero detecta la voz (VAD) y
+manda solo ese audio por el enlace; bb8-body lo reparte en GET /audio/stream
+(BB8_MIC=cabeza). Con BB8_MIC=local se usa un micrófono en la Pi con sounddevice
+(PortAudio; en la Pi: sudo apt install libportaudio2).
+"""
 from __future__ import annotations
 
 import io
+import json
 import logging
 import queue
+import struct
 import threading
+import time
 import wave
 
 import numpy as np
@@ -46,6 +55,90 @@ class Microfono:
     def vaciar(self) -> None:
         while not self._q.empty():
             self._q.get_nowait()
+
+
+class MicrofonoRed:
+    """El micrófono de la cabeza a través de bb8-body. Misma interfaz que Microfono.
+
+    Formato de GET /audio/stream: [u32 BE largo][JSON], y tras cada {"type":"audio"} otro
+    [u32 BE largo][PCM s16le mono 16 kHz]. Entre frases la cabeza no manda nada; aquí se
+    entregan bloques de silencio a ritmo real para que la wake word y el fin de frase
+    funcionen igual que con un micrófono local.
+    """
+
+    def __init__(self, url: str = V.MOTION_URL):
+        self.url = url.rstrip("/") + "/audio/stream"
+        self._q: queue.Queue[np.ndarray] = queue.Queue(maxsize=400)
+        self.silenciado = threading.Event()
+        self._activa = threading.Event()     # hay una frase llegando
+        self._resto = np.zeros(0, dtype=np.int16)
+        threading.Thread(target=self._leer, name="mic-red", daemon=True).start()
+        log.info("Micrófono: la cabeza, vía %s", self.url)
+
+    def _leer(self) -> None:
+        import httpx
+
+        while True:
+            try:
+                with httpx.stream("GET", self.url, timeout=httpx.Timeout(10, read=30)) as r:
+                    r.raise_for_status()
+                    buf = bytearray()
+                    pcm_pendiente = False
+                    for trozo in r.iter_bytes():
+                        buf += trozo
+                        while len(buf) >= 4:
+                            n = struct.unpack(">I", buf[:4])[0]
+                            if len(buf) < 4 + n:
+                                break
+                            datos, buf = bytes(buf[4:4 + n]), buf[4 + n:]
+                            if pcm_pendiente:
+                                pcm_pendiente = False
+                                self._audio(np.frombuffer(datos, dtype=np.int16))
+                                continue
+                            f = json.loads(datos)
+                            if f["type"] == "audio":
+                                pcm_pendiente = True
+                            elif f["type"] == "audio_start":
+                                self._activa.set()
+                            elif f["type"] == "audio_end":
+                                self._audio(np.zeros(0, dtype=np.int16), fin=True)
+                                self._activa.clear()
+            except Exception as e:
+                self._activa.clear()
+                log.warning("Sin audio de la cabeza (%s); reintento en 3 s", e)
+                time.sleep(3)
+
+    def _audio(self, m: np.ndarray, fin: bool = False) -> None:
+        if self.silenciado.is_set():
+            self._resto = np.zeros(0, dtype=np.int16)
+            return
+        m = np.concatenate([self._resto, m])
+        if fin and len(m) % V.BLOQUE:
+            m = np.concatenate([m, np.zeros(V.BLOQUE - len(m) % V.BLOQUE, dtype=np.int16)])
+        n = len(m) // V.BLOQUE * V.BLOQUE
+        for i in range(0, n, V.BLOQUE):
+            try:
+                self._q.put_nowait(m[i:i + V.BLOQUE])
+            except queue.Full:
+                pass
+        self._resto = m[n:]
+
+    def bloque(self, timeout: float | None = None) -> np.ndarray:
+        try:
+            return self._q.get(timeout=V.BLOQUE / V.TASA if not self._activa.is_set() else timeout)
+        except queue.Empty:
+            if self._activa.is_set():
+                raise
+            return np.zeros(V.BLOQUE, dtype=np.int16)   # nadie habla: silencio a ritmo real
+
+    def vaciar(self) -> None:
+        while not self._q.empty():
+            self._q.get_nowait()
+
+
+def abrir_microfono():
+    """El de la cabeza (BB8_MIC=cabeza, por defecto) o uno local (BB8_MIC=local)."""
+    return MicrofonoRed() if V.MIC == "cabeza" else Microfono()
 
 
 def wav_a_numpy(wav: bytes) -> tuple[np.ndarray, int]:

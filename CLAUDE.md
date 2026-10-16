@@ -40,7 +40,7 @@ make test        # go vet + go test (Go in PATH or ~/.local/go)
 make             # bin/bb8-body, bin/bb8-head for this PC
 make release     # dist/linux-arm64 (Pi 3) and dist/linux-armv6 (Zero W)
 python simulador/lanzar_dummy.py --camara sintetica --sin-sonido   # builds Go, dummy + bb8-body + bb8-head --sim
-PYTHONPATH=simulador python -m dummy.probar                        # end-to-end test, 30 checks
+PYTHONPATH=simulador python -m dummy.probar                        # end-to-end test, 31 checks
 make probar      # both of the above
 ```
 
@@ -84,7 +84,8 @@ make probar      # both of the above
 - **Motors:** JGB37-520B, 12 V, 319 RPM, 6 mm D-shaft. 65 mm RC wheels on a 12 mm hex coupling.
 - **Main Pi:** Raspberry Pi 3 B+, 1 GB, 64-bit OS, hostname `bb8`.
 - **Head:** the original Raspberry Pi **Zero W** (armv6, 512 MB, hostname `bb8-head`), not a Zero 2 W. Piper does not run there; the head speaks with `espeak-ng`.
-  - The NeoPixel data line is on SPI0 MOSI (GPIO10).
+  - The ReSpeaker 2-Mic HAT is on the Zero.
+  - The WS2812 eye's data line goes to GPIO12 (PWM0, the HAT's Grove digital port), driven by the C helper `bb8-eye` (`partes/5-cabeza/eye/bb8_eye.c`, rpi_ws281x) through `/run/bb8-eye.sock`.
   - The OV5647 camera (wide angle) and the ReSpeaker 2-Mic HAT are pending.
 
 Shopping list: `wiki/Materiales.md`. Nothing has been tested on real hardware yet; everything was validated against the dummy.

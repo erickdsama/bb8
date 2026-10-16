@@ -1,8 +1,8 @@
 # Pi Zero W: dials bb8-body over mutual TLS; opens no ports.
 [Unit]
 Description=BB-8 head (camera, eye, speaker, ToF)
-After=network-online.target sound.target
-Wants=network-online.target
+After=network-online.target sound.target bb8-eye.socket
+Wants=network-online.target bb8-eye.socket
 
 [Service]
 User=bb8

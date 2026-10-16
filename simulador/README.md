@@ -8,7 +8,7 @@ correr en el PC, sin hardware, los mismos binarios de Go que van en las Pis
 uv pip install -r requirements.txt && uv pip install -e .   # desde la raíz del repo; Go 1.25+ también
 python simulador/lanzar_dummy.py --camara sintetica        # compila bin/ y arranca todo
 python simulador/lanzar_dummy.py --camara sintetica --mundo casa   # casa con una persona
-PYTHONPATH=simulador python -m dummy.probar                 # en otra terminal: 30 comprobaciones (dummy nuevo)
+PYTHONPATH=simulador python -m dummy.probar                 # en otra terminal: 31 comprobaciones (dummy nuevo)
 make probar                                                 # las dos cosas juntas
 ```
 

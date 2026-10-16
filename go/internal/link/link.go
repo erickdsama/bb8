@@ -41,8 +41,8 @@ type Msg struct {
 // Handler answers a request. bin is optional binary payload.
 type Handler func(ctx context.Context, typ string, body json.RawMessage) (resp any, bin []byte, err error)
 
-// EventFunc receives events (ID 0).
-type EventFunc func(p *Peer, typ string, body json.RawMessage)
+// EventFunc receives events (ID 0). bin is the binary frame that followed, if any.
+type EventFunc func(p *Peer, typ string, body json.RawMessage, bin []byte)
 
 type reply struct {
 	msg Msg
@@ -120,6 +120,18 @@ func (p *Peer) Notify(typ string, body any) error {
 	return p.write(Msg{Type: typ, Body: b}, nil)
 }
 
+// NotifyBin sends an event followed by a binary frame (audio chunks).
+func (p *Peer) NotifyBin(typ string, body any, bin []byte) error {
+	b, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	if bin == nil {
+		bin = []byte{}
+	}
+	return p.write(Msg{Type: typ, Body: b}, bin)
+}
+
 // Request sends a request and waits for the reply.
 func (p *Peer) Request(ctx context.Context, typ string, body any) (json.RawMessage, []byte, error) {
 	b, err := json.Marshal(body)
@@ -185,7 +197,7 @@ func (p *Peer) serve(ctx context.Context) error {
 			go p.answer(ctx, m)
 		default:
 			if p.onEvent != nil && m.Type != "heartbeat" {
-				p.onEvent(p, m.Type, m.Body)
+				p.onEvent(p, m.Type, m.Body, bin)
 			}
 		}
 	}

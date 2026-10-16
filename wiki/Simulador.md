@@ -148,7 +148,7 @@ Recorre las herramientas, choca a propósito contra la silla (debe frenar solo a
 ~21 cm), comprueba el plano, el oído, que el mando gane al LLM, que `stop` cancele,
 que una inclinación de 40° frene y la configuración en los dos sentidos (lo que cambia
 el agente llega a la web y a la cabeza; la web con un `rev` viejo recibe 409). Guarda
-la foto en `foto_dummy.jpg` y termina con `Todo bien` (30 comprobaciones). Necesita un
+la foto en `foto_dummy.jpg` y termina con `Todo bien` (31 comprobaciones). Necesita un
 dummy recién arrancado: las pruebas de movimiento asumen la pose inicial.
 
 ## Calibración contra el dummy

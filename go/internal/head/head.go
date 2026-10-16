@@ -87,7 +87,7 @@ func (h *Head) handle(ctx context.Context, typ string, body json.RawMessage) (an
 	return nil, nil, fmt.Errorf("unknown request %q", typ)
 }
 
-func (h *Head) onEvent(p *link.Peer, typ string, body json.RawMessage) {
+func (h *Head) onEvent(p *link.Peer, typ string, body json.RawMessage, _ []byte) {
 	if typ == "config" {
 		var in struct {
 			Rev    int64  `json:"rev"`
@@ -122,8 +122,12 @@ func (h *Head) pump(ctx context.Context, p *link.Peer) {
 	h.mu.Unlock()
 	_ = p.Notify("state", st)
 	var sound <-chan SoundEvent
+	var audio <-chan AudioChunk
 	if sd, ok := h.B.(interface{ Sound() SoundDir }); ok {
 		sound = sd.Sound().Events()
+		if as, ok := sd.Sound().(AudioSource); ok {
+			audio = as.Audio()
+		}
 	}
 	t := time.NewTicker(ToFEvery)
 	defer t.Stop()
@@ -133,6 +137,20 @@ func (h *Head) pump(ctx context.Context, p *link.Peer) {
 			return
 		case e := <-sound:
 			_ = p.Notify("sound_dir", e)
+			continue
+		case c := <-audio:
+			var err error
+			switch c.Kind {
+			case "start":
+				err = p.Notify("audio_start", map[string]any{"id": c.ID, "rate": MicRate, "channels": 1, "format": "s16le"})
+			case "data":
+				err = p.NotifyBin("audio", map[string]any{"id": c.ID, "seq": c.Seq}, c.PCM)
+			case "end":
+				err = p.Notify("audio_end", map[string]any{"id": c.ID})
+			}
+			if err != nil {
+				return
+			}
 			continue
 		case <-t.C:
 		}

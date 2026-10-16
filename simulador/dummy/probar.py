@@ -124,6 +124,20 @@ async def main() -> None:
         check("listen tras girar 40°: candidato al frente", abs(res["candidates_deg"][0]) < 15
               and abs(res["turned_since_deg"] - 40) < 8, res)
 
+        # Los micrófonos van en la cabeza: con la cabeza a 60°, una voz a 40° a la derecha
+        # del cuerpo llega a −20° de la cabeza, y bb8-body la devuelve a 40° del cuerpo.
+        await call("look_at", degrees=60)
+        w = mundo()
+        ang = math.radians(w["theta_deg"] - 40)
+        voz = {"texto": "aquí estoy", "x": w["x_m"] + 1.2 * math.cos(ang), "y": w["y_m"] + 1.2 * math.sin(ang)}
+        task = asyncio.create_task(call("listen", wait_s=3))
+        await asyncio.sleep(0.3)
+        post("http://127.0.0.1:8080/sim/hablar", voz)
+        res = await task
+        await call("look_at", degrees=0)
+        check("listen con la cabeza girada 60°", res.get("heard") and abs(res["angle_deg"] + 20) < 15
+              and abs(res["head_deg"] - 60) < 3 and abs(res["candidates_deg"][0] - 40) < 15, res)
+
         # Plano: tras moverse y girar, la odometría llevada al plano coincide con el mundo
         # (los ejes del plano son los del mundo; el rumbo del plano es horario: −theta).
         res = await call("get_map")

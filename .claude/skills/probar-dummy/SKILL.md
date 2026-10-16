@@ -10,7 +10,7 @@ The project's end-to-end test is `dummy.probar`. It calls the tools over MCP the
 - the floor plan and hearing;
 - two-way config sync (agent → web SSE → head ack; web PATCH with a stale rev → 409).
 
-It has **30 checks**. The Go unit tests (`make test`) cover the rest. CI runs both on every push and PR.
+It has **31 checks**. The Go unit tests (`make test`) cover the rest. CI runs both on every push and PR.
 
 ## 1. Environment (once)
 
@@ -38,7 +38,7 @@ python simulador/lanzar_dummy.py --camara sintetica --sin-sonido > /tmp/bb8-dumm
 PYTHONPATH=simulador python -m dummy.probar
 ```
 
-- It must end in `Todo bien` with 30 ✅ lines.
+- It must end in `Todo bien` with 31 ✅ lines.
 - **It needs a fresh dummy:** the move checks assume the start pose. Restart the dummy before running it again.
 - It saves `foto_dummy.jpg` in the current folder (it is in `.gitignore`; delete it if it lands elsewhere).
 - `make probar` does steps 2–4 in one go.

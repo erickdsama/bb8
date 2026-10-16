@@ -75,12 +75,12 @@ FRASES = [
 
 
 def registrar(nombre: str) -> None:
-    from .audio import Microfono
+    from .audio import abrir_microfono
 
     h = Hablantes()
     if not h.encoder:
         raise SystemExit("Instala resemblyzer primero: pip install resemblyzer")
-    mic = Microfono()
+    mic = abrir_microfono()   # el mismo micrófono que escuchará después (la cabeza, por defecto)
     embs = []
     for frase in FRASES:
         input(f"\nEnter y lee en voz alta: «{frase}»")

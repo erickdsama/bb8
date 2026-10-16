@@ -19,7 +19,7 @@ from head.personalidad import frase
 
 from . import config as V
 from .agente import Agente
-from .audio import Microfono
+from .audio import abrir_microfono
 from .escucha import Escucha
 from .hablantes import Hablantes
 from .salida import Voz
@@ -40,7 +40,7 @@ async def _energia(ruta: str) -> None:
 
 
 async def bucle(sin_registro: bool) -> None:
-    mic = Microfono()
+    mic = abrir_microfono()
     escucha = Escucha(mic)
     stt = crear_transcriptor()
     hablantes = Hablantes()
