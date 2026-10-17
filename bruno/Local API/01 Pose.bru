@@ -1,0 +1,15 @@
+meta {
+  name: Pose
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{api}}/pose
+  body: none
+  auth: none
+}
+
+docs {
+  Listens on 127.0.0.1 only. From your PC open a tunnel: ssh -L 8770:127.0.0.1:8770 bb8.local
+}

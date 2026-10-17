@@ -1,0 +1,38 @@
+meta {
+  name: look_at 45
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base}}/mcp
+  body: json
+  auth: bearer
+}
+
+headers {
+  Accept: application/json, text/event-stream
+  Mcp-Session-Id: {{mcpSession}}
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "jsonrpc": "2.0",
+    "id": 14,
+    "method": "tools/call",
+    "params": {
+      "name": "look_at",
+      "arguments": {
+        "degrees": 45
+      }
+    }
+  }
+}
+
+docs {
+  The head turns the post servo: + is right, -90..90.
+}

@@ -1,0 +1,38 @@
+meta {
+  name: express
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{base}}/mcp
+  body: json
+  auth: bearer
+}
+
+headers {
+  Accept: application/json, text/event-stream
+  Mcp-Session-Id: {{mcpSession}}
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "jsonrpc": "2.0",
+    "id": 26,
+    "method": "tools/call",
+    "params": {
+      "name": "express",
+      "arguments": {
+        "emotion": "happy"
+      }
+    }
+  }
+}
+
+docs {
+  Beep + eye color for an emotion.
+}

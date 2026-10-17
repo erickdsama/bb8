@@ -1,0 +1,31 @@
+meta {
+  name: Initialized
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base}}/mcp
+  body: json
+  auth: bearer
+}
+
+headers {
+  Accept: application/json, text/event-stream
+  Mcp-Session-Id: {{mcpSession}}
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "jsonrpc": "2.0",
+    "method": "notifications/initialized"
+  }
+}
+
+docs {
+  Run second. The server answers 202 with an empty body.
+}

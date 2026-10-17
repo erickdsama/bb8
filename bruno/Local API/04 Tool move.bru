@@ -1,0 +1,17 @@
+meta {
+  name: Tool move
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{api}}/tools/move
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "meters": 0.3
+  }
+}

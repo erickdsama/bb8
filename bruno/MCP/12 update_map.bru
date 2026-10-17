@@ -1,0 +1,44 @@
+meta {
+  name: update_map
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{base}}/mcp
+  body: json
+  auth: bearer
+}
+
+headers {
+  Accept: application/json, text/event-stream
+  Mcp-Session-Id: {{mcpSession}}
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "jsonrpc": "2.0",
+    "id": 21,
+    "method": "tools/call",
+    "params": {
+      "name": "update_map",
+      "arguments": {
+        "action": "add_furniture",
+        "name": "plant",
+        "x": 3.5,
+        "y": 0.5,
+        "width_m": 0.3,
+        "length_m": 0.3,
+        "height_m": 0.6
+      }
+    }
+  }
+}
+
+docs {
+  action: add_furniture, move_furniture, remove_furniture, close_door, open_door.
+}

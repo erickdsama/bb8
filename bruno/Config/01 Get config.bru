@@ -1,0 +1,23 @@
+meta {
+  name: Get config
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base}}/api/config
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+script:post-response {
+  bru.setVar("configRev", res.body.rev);
+}
+
+docs {
+  Values (secrets show as "set" or ""), rev, and live state.
+}

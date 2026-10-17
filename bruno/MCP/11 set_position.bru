@@ -1,0 +1,40 @@
+meta {
+  name: set_position
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{base}}/mcp
+  body: json
+  auth: bearer
+}
+
+headers {
+  Accept: application/json, text/event-stream
+  Mcp-Session-Id: {{mcpSession}}
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "jsonrpc": "2.0",
+    "id": 20,
+    "method": "tools/call",
+    "params": {
+      "name": "set_position",
+      "arguments": {
+        "x": 2.0,
+        "y": 1.0,
+        "heading_deg": 0
+      }
+    }
+  }
+}
+
+docs {
+  Corrects where the robot thinks it is in the floor plan. Does not move it.
+}

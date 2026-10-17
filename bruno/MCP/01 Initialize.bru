@@ -1,0 +1,43 @@
+meta {
+  name: Initialize
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base}}/mcp
+  body: json
+  auth: bearer
+}
+
+headers {
+  Accept: application/json, text/event-stream
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-06-18",
+      "capabilities": {},
+      "clientInfo": {
+        "name": "bruno",
+        "version": "1"
+      }
+    }
+  }
+}
+
+script:post-response {
+  bru.setVar("mcpSession", res.getHeader("mcp-session-id"));
+}
+
+docs {
+  Run this first: it stores the Mcp-Session-Id in the variable mcpSession. The response is SSE (event: message / data: ...).
+}

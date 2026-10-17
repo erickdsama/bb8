@@ -1,0 +1,18 @@
+meta {
+  name: Agent ask
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{api}}/agent/ask
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "text": "Mira a la derecha 40 grados y dime cuanto hay al frente.",
+    "speaker_known": true
+  }
+}
