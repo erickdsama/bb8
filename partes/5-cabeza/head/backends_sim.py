@@ -17,7 +17,7 @@ from .sounds import SONIDOS, beep_wav, reproducir
 
 log = logging.getLogger("dummy.head")
 
-FOV_DEG = 54.0  # OV5647 horizontal
+FOV_DEG = 54.0  # OV5647 con su lente normal; hay versiones gran angular de 120–160°
 
 
 def encode_jpeg(frame: np.ndarray, width: int) -> bytes:
@@ -66,35 +66,19 @@ class WebcamCamera:
 
 
 class SyntheticCamera:
-    """Vista en primera persona de la habitación simulada, por raycast de columnas."""
+    """Vista en primera persona del mundo simulado: lo dibuja world.vista() en 3D."""
 
     name = "sintetica"
 
-    def __init__(self, world, head_deg: Callable[[], float], eye: "SimEye"):
-        self.world, self.head_deg, self.eye = world, head_deg, eye
+    def __init__(self, world, head_deg: Callable[[], float], eye: "SimEye", fov_deg: float = FOV_DEG):
+        self.world, self.head_deg, self.eye, self.fov = world, head_deg, eye, fov_deg
 
     def capture_jpeg(self, width: int) -> bytes:
         W, H = 640, 480
-        img = np.zeros((H, W, 3), np.uint8)
-        img[: H // 2] = (95, 92, 90)      # pared detrás de los muebles
-        img[H // 2:] = (120, 135, 150)    # piso
         with self.world.lock:
             theta = self.world.theta - math.radians(self.head_deg())
             x, y = self.world.x, self.world.y
-        cols = 160
-        cw = W // cols
-        f = (W / 2) / math.tan(math.radians(FOV_DEG / 2))  # distancia focal en px
-        cam_h = 0.35  # altura de la cámara sobre el piso
-        for c in range(cols):
-            off = math.radians((c + 0.5) / cols * FOV_DEG - FOV_DEG / 2)
-            d, hit = self.world.raycast(theta - off, x, y)
-            d = max(0.05, d * math.cos(off))  # sin ojo de pez
-            obj_h, base = (2.4, (200, 190, 180)) if hit is None else (hit.height, hit.color)
-            shade = max(0.35, 1 - d / 5)
-            color = tuple(int(v * shade) for v in base)
-            top = int(H / 2 - f * (obj_h - cam_h) / d)
-            bottom = int(H / 2 + f * cam_h / d)
-            cv2.rectangle(img, (c * cw, max(0, top)), ((c + 1) * cw - 1, min(H - 1, bottom)), color, -1)
+        img = self.world.vista(theta, 0.35, self.fov, W, H)  # cámara a 35 cm del piso
         r, g, b = self.eye.rgb
         cv2.circle(img, (W - 24, 24), 12, (b, g, r) if (r, g, b) != (0, 0, 0) else (40, 40, 40), -1)
         cv2.putText(img, f"camara simulada  x={x:.2f} y={y:.2f} cabeza={self.head_deg():+.0f}",

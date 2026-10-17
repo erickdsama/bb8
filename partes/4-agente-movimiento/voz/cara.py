@@ -1,7 +1,8 @@
-"""Parte 5: girar la cabeza hacia quien habla (plan B sin ReSpeaker).
+"""Turn the head toward whoever spoke, using the mic direction (ReSpeaker 2-Mic).
 
-Barre la cabeza a −45°, 0° y +45°, pide /cara a la Zero en cada posición y
-centra la cara más grande. Si no ve a nadie, vuelve al frente.
+The old face sweep (/cara with OpenCV on the head) is gone: the Go head does not
+run OpenCV. Now the head looks at the first sound candidate (front side) from
+GET /hearing; the model can still take_photo to check.
 """
 from __future__ import annotations
 
@@ -15,22 +16,15 @@ log = logging.getLogger("bb8.voz.cara")
 
 
 async def mirar_a_quien_habla() -> float | None:
-    async with httpx.AsyncClient(timeout=5) as cli:
-        mejor: tuple[float, float] | None = None   # (área, ángulo)
-        for ang in (0, -45, 45):
-            r = (await cli.post(f"{V.MOTION_URL}/look_at", json={"grados": ang})).json()
-            if r.get("resultado") != "done":
-                log.info("No puedo girar la cabeza: %s", r)
-                return None
-            caras = (await cli.get(f"{V.HEAD_URL}/cara")).json().get("caras", [])
-            for c in caras:
-                # x va de −1 (izquierda de la foto) a 1 (derecha): grados a sumar a la cabeza.
-                destino = ang + c["x"] * V.CAMARA_FOV_H / 2
-                if mejor is None or c["area"] > mejor[0]:
-                    mejor = (c["area"], destino)
-            if mejor and ang == 0:
-                break   # ya está al frente: no barrer
-        final = round(max(-90, min(90, mejor[1]))) if mejor else 0
-        await cli.post(f"{V.MOTION_URL}/look_at", json={"grados": final})
-        log.info("Cara %s → cabeza a %d°", "encontrada" if mejor else "no encontrada", final)
-        return final if mejor else None
+    async with httpx.AsyncClient(base_url=V.MOTION_URL, timeout=5) as cli:
+        oido = (await cli.get("/hearing")).json()
+        cands = oido.get("candidates_deg") or []
+        if not oido.get("heard") or not cands or oido.get("ago_s", 99) > 5:
+            return None
+        final = round(max(-90, min(90, cands[0])))
+        r = (await cli.post("/tools/look_at", json={"degrees": final})).json()
+        if r.get("result") != "done":
+            log.info("Cannot turn the head: %s", r)
+            return None
+        log.info("Voice at %s° → head to %d°", cands[0], final)
+        return final

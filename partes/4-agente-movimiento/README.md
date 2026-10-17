@@ -1,26 +1,29 @@
 # Parte 4 · Agente controla el movimiento
 
-El servidor MCP que le da a Claude las herramientas del robot y el agente de voz.
+The tools, the MCP server and the OpenRouter agent live in `bb8-body` (Go):
+[`go/internal/tools`](../../go/internal/tools), [`mcpserver`](../../go/internal/mcpserver),
+[`agent`](../../go/internal/agent), [`connectors`](../../go/internal/connectors). This folder
+holds the microphone side (Python).
 
 ```
-bb8_mcp/                servidor MCP bb8-motion (FastMCP, :8765/mcp); personalidad en head/personalidad.py
-voz/                    wake word → VAD → Whisper → Claude + MCP → Piper
+voz/                    wake word → VAD → Whisper → ¿quién habla? → bb8-body /agent/ask → Piper
 ├── escucha.py          openWakeWord + Silero VAD
 ├── stt.py              faster-whisper local o API en la nube (BB8_STT)
 ├── hablantes.py        registro de voces (Resemblyzer, opcional)
-├── agente.py           Claude con las herramientas MCP
-├── salida.py           Piper local o en la cabeza, pitidos
-└── cara.py             girar hacia quien habla (Parte 5)
+├── agente.py           cliente de POST /agent/ask (con speaker_known)
+├── salida.py           Piper local o el altavoz de la cabeza vía bb8-body, pitidos
+└── cara.py             girar la cabeza hacia la voz (Parte 5)
 wakeword/               entrenar la wake word "oye BB-8" (Colab o PC, no en la Pi)
+bb8_mcp/                servidor MCP anterior en Python (solo lanzar_dummy.py --python)
 requirements-voz.txt
 ```
 
-Desde la raíz del repo, con la Parte 3 corriendo:
+Desde la raíz del repo, con `bb8-body` corriendo (o el dummy) y `agent.api_key` puesta en
+la página de configuración:
 
 ```bash
-python -m bb8_mcp                                     # luego: claude mcp add --transport http bb8 http://127.0.0.1:8765/mcp
-pip install -r partes/4-agente-movimiento/requirements-voz.txt
-export ANTHROPIC_API_KEY=sk-ant-...
+claude mcp add --transport http bb8 http://127.0.0.1:8765/mcp   # Claude Code
+uv pip install -r partes/4-agente-movimiento/requirements-voz.txt
 python -m voz.agente "da una vuelta y dime qué ves"   # sin micrófono
 python -m voz.hablantes registrar Erick
 python -m voz                                         # el bucle completo

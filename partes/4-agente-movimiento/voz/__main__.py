@@ -1,10 +1,10 @@
 """Agente de voz del BB-8 en la Pi principal.
 
-    python -m voz                       # necesita ANTHROPIC_API_KEY, el MCP y el servicio de movimiento
+    python -m voz                       # needs bb8-body running (agent.api_key set in the config page)
     python -m voz --sin-voz-registrada  # obedece a cualquiera aunque haya voces registradas
 
 Ciclo: wake word → graba hasta el silencio → Whisper → ¿quién habla? → Claude con
-las herramientas MCP → Piper. "BB-8, a dormir" pasa a reposo profundo (Parte 6).
+el agente de bb8-body (OpenRouter, POST /agent/ask) → Piper. "BB-8, a dormir" pasa a reposo profundo (Parte 6).
 """
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from head.personalidad import frase
 
 from . import config as V
 from .agente import Agente
-from .audio import Microfono
+from .audio import abrir_microfono
 from .escucha import Escucha
 from .hablantes import Hablantes
 from .salida import Voz
@@ -40,28 +40,28 @@ async def _energia(ruta: str) -> None:
 
 
 async def bucle(sin_registro: bool) -> None:
-    mic = Microfono()
+    mic = abrir_microfono()
     escucha = Escucha(mic)
     stt = crear_transcriptor()
     hablantes = Hablantes()
     voz = Voz(mic)
     agente = Agente()
     await agente.conectar()
-    voz.ojo("blanco")
-    voz.pitido("despertar")
-    voz.ojo("azul", "respirar")
+    voz.ojo("white")
+    voz.pitido("wake")
+    voz.ojo("blue", "breathe")
     log.info("✅ BB-8 escuchando (wake word: %s)", V.WAKEWORD)
     try:
         while True:
             await asyncio.to_thread(escucha.esperar_wakeword)
             await _energia("/actividad")
-            voz.ojo("cian")
-            voz.pitido("pregunta")
+            voz.ojo("cyan")
+            voz.pitido("question")
             audio = await asyncio.to_thread(escucha.grabar_frase)
             if audio is None:
-                voz.ojo("azul", "respirar")
+                voz.ojo("blue", "breathe")
                 continue
-            voz.ojo("naranja", "respirar")   # pensando
+            voz.ojo("orange", "breathe")   # pensando
             tareas = [asyncio.to_thread(stt, audio), asyncio.to_thread(hablantes.identificar, audio)]
             if V.BUSCAR_CARA:
                 from .cara import mirar_a_quien_habla
@@ -70,20 +70,20 @@ async def bucle(sin_registro: bool) -> None:
             texto, ident = res[0], res[1]
             if isinstance(texto, Exception) or not texto:
                 log.warning("Transcripción vacía o fallida: %s", texto)
-                voz.pitido("triste")
-                voz.ojo("azul", "respirar")
+                voz.pitido("sad")
+                voz.ojo("blue", "breathe")
                 continue
             quien = "" if sin_registro or isinstance(ident, Exception) else ident[0]
             if A_DORMIR.search(texto) and quien is not None:
-                voz.pitido("bostezo")
+                voz.pitido("yawn")
                 voz.decir(frase("buenas_noches"))
                 await _energia("/dormir")
                 continue
             try:
                 respuesta = await agente.turno(texto, quien)
             except Exception as e:
-                log.exception("Claude")
-                voz.ojo("rojo")
+                log.exception("Agent")
+                voz.ojo("red")
                 voz.pitido("error")
                 respuesta = frase("sin_senal")
                 if "connect" in str(e).lower():
@@ -91,9 +91,9 @@ async def bucle(sin_registro: bool) -> None:
                     agente = Agente()
                     await agente.conectar()
             log.info("BB-8: %s", respuesta)
-            voz.ojo("verde")
+            voz.ojo("green")
             voz.decir(respuesta)
-            voz.ojo("azul", "respirar")
+            voz.ojo("blue", "breathe")
     finally:
         await agente.cerrar()
 

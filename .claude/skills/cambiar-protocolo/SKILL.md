@@ -1,44 +1,52 @@
 ---
 name: cambiar-protocolo
-description: Cambiar o agregar una orden serial Pi↔Arduino, un campo de la línea de estado, una ruta HTTP del servicio de movimiento o de la cabeza. Úsalo siempre que el cambio cruce de una placa a otra.
+description: Change or add a Pi↔Arduino serial command, a status-line field, a head-link message (body↔head over mutual TLS), or a bb8-body HTTP route (local API, config API). Use it whenever a change crosses from one board or process to another.
 ---
 
-# Cambiar el protocolo
+# Change the protocol
 
-`wiki/Protocolo.md` es la fuente de verdad. Un cambio de protocolo a medias deja al
-dummy diciendo una cosa y al Arduino otra, y la prueba sigue pasando. Por eso se
-cambian **todos** los sitios en el mismo commit.
+`wiki/Protocolo.md` is the source of truth. A half-done protocol change leaves the dummy saying one thing and the Arduino another, while the test keeps passing. So **every** side changes in the same commit.
 
 ## Serial Pi ↔ Arduino
 
-| Sitio | Qué tocar |
+| Place | What to touch |
 | --- | --- |
-| `wiki/Protocolo.md` § 1 | Tabla de órdenes, línea de estado `?`, errores, reflejos; sube la versión y fecha del encabezado |
-| `partes/3-base-andando/bb8/protocol.py` | Constantes `CMD_*`, armado de la línea y parseo de la respuesta/estado |
-| `simulador/dummy/arduino_sim.py` | La misma orden con el mismo comportamiento y errores |
-| `partes/1-protoboard/arduino/bb8_firmware/bb8_firmware.ino` | El parser de órdenes y la respuesta (skill `firmware-arduino`) |
-| `partes/3-base-andando/bb8/motion.py` | Quién envía la orden y qué hace con la respuesta |
+| `wiki/Protocolo.md` § 1 | Command table, `?` status line, errors, reflexes; bump the version and date |
+| `go/internal/protocol/protocol.go` | Command builders, `ParseReply`, `ParseStatus` (+ `protocol_test.go`) |
+| `go/internal/motion/motion.go` | Who sends it and what to do with the reply |
+| `simulador/dummy/arduino_sim.py` | The same command with the same behavior and errors (it uses the Python `bb8/protocol.py`; keep that in sync too) |
+| `partes/1-protoboard/arduino/bb8_firmware/bb8_firmware.ino` | Command parser and reply (skill `firmware-arduino`) |
 
-Reglas del protocolo que se mantienen:
+Protocol rules that stay:
 
-- Una línea terminada en `\n`, exactamente una respuesta: `OK …` o `ERR <motivo>`.
-- 115200 baudios. Solo `M` alimenta el watchdog de 500 ms.
-- Los reflejos (tilt, obstáculo, watchdog, batería crítica) se deciden en el Arduino, no en la Pi.
-- Un motivo de `ERR` nuevo necesita su traducción a `resultado` en `motion.py` (`blocked`, `error`…) y una línea en la tabla de errores.
+- One line ending in `\n` and exactly one reply: `OK …` or `ERR <reason>`.
+- 115200 baud. Only `M` feeds the 500 ms watchdog.
+- Reflexes (tilt, obstacle, watchdog, critical battery) are decided on the Arduino, not the Pi.
+- A new `ERR` reason needs its mapping to a `result` in `motion.go` (`blocked`, `error`…) and a row in the error table.
 
-## HTTP
+## Head link (mutual TLS, :8772)
 
-| Enlace | Sitios |
+| Place | What to touch |
 | --- | --- |
-| Servicio de movimiento :8770 | `wiki/Protocolo.md` § 2, `bb8/motion_api.py` (ruta), `bb8/motion.py` (lógica) |
-| Cabeza :8080 | `wiki/Protocolo.md` § 3, `head/server.py` (ruta), `head/backends_real.py` y `head/backends_sim.py` (los dos backends) |
-| Energía :8771 | `energia/__main__.py` y `wiki/Parte-6-Esfera-y-baterias.md` |
+| `wiki/Protocolo.md` § 3 | Message table: type, direction, body, reply |
+| `go/internal/head/head.go` | `handle` (requests) or `pump` / `onEvent` (events) |
+| `go/internal/head/real.go`, `sim.go` | Both backends (`Backend` interface) |
+| `go/internal/body/head.go` | Client method or `onEvent` case |
+| `go/internal/link` | Only if framing or TLS change (+ `link_test.go`) |
 
-Si una ruta nueva la usa Claude, sigue con la skill `agregar-herramienta-mcp`.
+## bb8-body HTTP
 
-## Verificar
+| API | Places |
+| --- | --- |
+| Local API 127.0.0.1:8770 | `wiki/Protocolo.md` § 2.2, `go/internal/body/api.go`; clients `voz/*.py`, `energia/__main__.py` |
+| Config / agent :8765 | § 2.3, `go/internal/config/web.go` (+ `web/index.html`), `go/internal/agent/agent.go` (`Routes`) |
+| Power manager :8771 | `energia/__main__.py` and `wiki/Parte-6-Esfera-y-baterias.md` |
 
-1. `python -m compileall -q partes simulador`
-2. Agrega una comprobación en `simulador/dummy/probar.py` que ejercite la orden nueva por MCP o HTTP.
-3. Corre la skill `probar-dummy`.
-4. Si tocaste el firmware, compílalo (skill `firmware-arduino`) aunque no puedas subirlo.
+If the model uses a new route, continue with skill `agregar-herramienta-mcp`.
+
+## Verify
+
+1. `make test`, and `python -m compileall -q partes simulador`.
+2. Add a check to `simulador/dummy/probar.py` that exercises the change through MCP or HTTP.
+3. Run skill `probar-dummy` on a fresh dummy.
+4. If you touched the firmware, compile it (skill `firmware-arduino`) even if you cannot upload it.

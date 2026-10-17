@@ -1,97 +1,106 @@
 # CLAUDE.md
 
-BB-8 de 30–35 cm (estilo Sphero) manejado por Claude vía MCP. Dueño: Erick. Todo el
-proyecto (código, comentarios, docs, mensajes de commit) está **en español**; sigue así.
+A 30–35 cm BB-8 (Sphero style) driven by an LLM through MCP and its own OpenRouter agent. Owner: Erick.
 
-## Arquitectura en una línea
+**Language.**
+- New code, identifiers, comments and technical docs (protocol, architecture, skills) are **in English**.
+- What BB-8 says out loud stays **in Spanish**, and so do the build guides (`wiki/Parte-N-*.md`, part READMEs).
+- Older Python code and its comments are in Spanish. Leave them unless you are rewriting that code.
 
-Agente (Claude) → servidor MCP `bb8_mcp` (:8765/mcp) → servicio de movimiento
-`bb8.motion_api` (127.0.0.1:8770, único dueño del serial) → Arduino (reflejos a 10 ms).
-La cabeza es una Pi Zero con `head.server` (:8080). Detalle: `wiki/Arquitectura.md`.
+## Architecture in one line
 
-## Dónde está cada cosa
+At run time the brain is the OpenRouter agent inside `bb8-body`: voice (ReSpeaker on the head) → body → `voz` (wake word, STT) → `/agent/ask` → agent → tools → Arduino. The same tools are exposed over MCP (`:8765/mcp`) for external clients such as Claude Code, for development. `bb8-body` is a Go binary on the Pi 3 B+ and the only owner of the serial port; it drives the Arduino (10 ms reflexes). `bb8-head` (Go, Pi Zero W) dials the body over mutual TLS (:8772) and opens no ports.
 
-| Carpeta | Paquete / contenido | Parte |
-| --- | --- | --- |
-| `partes/1-protoboard/arduino/` | `pruebas/p1…p5`, `bb8_firmware/bb8_firmware.ino` | 1 |
-| `partes/1-protoboard/wokwi/` | firmware en el simulador Wokwi (`diagram.json`, `wokwi.toml`) | 1 |
-| `partes/2-base-melamina/` | solo README (montaje) | 2 |
-| `partes/3-base-andando/` | `bb8` (config, protocol, serial_link, motion, motion_api, gamepad), `calibrar` | 3 |
-| `partes/4-agente-movimiento/` | `bb8_mcp` (servidor MCP), `voz` (agente de voz), `wakeword/` (scripts para entrenar "oye BB-8", no es paquete) | 4 |
-| `partes/5-cabeza/` | `head` (servidor de la Pi Zero, backends real y simulado) | 5 |
-| `partes/6-esfera-baterias/` | `energia` (reposo y batería) | 6 |
-| `cad/` | OpenSCAD paramétrico: esfera, base, poste, cabeza; `exportar.sh` → `stl/`, `png/`, `plantillas/` | 2, 5, 6 |
-| `simulador/` | `dummy` (Arduino y cabeza simulados, `probar.py`), `lanzar_dummy.py` | — |
-| `sistema/` | systemd, `instalar_pi.sh`, `instalar_zero.sh`, `bb8.env.ejemplo` | — |
-| `wiki/` | documentación (fuente de verdad del protocolo: `wiki/Protocolo.md`) | — |
-| `docs/` | documento técnico original y artefactos HTML (históricos) | — |
+Details: `wiki/Arquitectura.md`. Wire formats: `wiki/Protocolo.md` (the source of truth).
 
-Los paquetes viven en carpetas distintas pero se importan entre sí; `pyproject.toml`
-los mapea. **Cuando agregues un paquete nuevo, agrégalo a `packages` y
-`package-dir` en `pyproject.toml`** o no se podrá importar.
+## Where things are
 
-## Comandos
+| Folder | Content |
+| --- | --- |
+| `go/cmd/bb8-body`, `go/cmd/bb8-head` | The two binaries (`bb8-body pair` creates the link certs) |
+| `go/internal/` | `protocol`, `serial`, `motion`, `floorplan`, `tools`, `mcpserver`, `body`, `link`, `head`, `config` (+ `web/index.html`), `agent`, `connectors/{weather,calendar}`, `gamepad`, `persona` |
+| `partes/1-protoboard/arduino/` | `pruebas/p1…p5`, `bb8_firmware/bb8_firmware.ino` |
+| `partes/1-protoboard/wokwi/` | Firmware in the Wokwi simulator |
+| `partes/3-base-andando/` | Legacy Python `bb8` (used by `calibrar` and `--python`); `mapas/` (floor plans, English keys) |
+| `partes/4-agente-movimiento/` | `voz`: Python voice front end (wake word, STT, speaker id → `POST /agent/ask`); `wakeword/`; legacy `bb8_mcp` |
+| `partes/5-cabeza/` | Legacy Python `head`. `head.sounds` and `head.personalidad` are still used by `voz` and the sim |
+| `partes/6-esfera-baterias/` | `energia` (Python power manager, uses the local API) |
+| `cad/` | Parametric OpenSCAD. `exportar.sh` writes `stl/`, `png/`, `plantillas/` |
+| `simulador/` | `dummy` (simulated Arduino + head, `probar.py`), `lanzar_dummy.py` |
+| `sistema/` | systemd units (`bb8-body`, `bb8-head`, `bb8-voz`, `bb8-energia`), `instalar_pi.sh`, `instalar_zero.sh` |
+| `wiki/` | Documentation |
+
+Python packages are mapped in `pyproject.toml`. **If you add a Python package, add it to `packages` and `package-dir`** or it will not import.
+
+## Commands
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt && pip install -e .
-python simulador/lanzar_dummy.py --camara sintetica --sin-sonido   # dummy + servicio + MCP
-python -m dummy.probar                                             # prueba de punta a punta (19 checks)
-python -m compileall -q partes simulador                           # chequeo rápido de sintaxis
-bash cad/exportar.sh png                                           # renders del CAD (apt install openscad xvfb)
+uv venv && uv pip install -r requirements.txt && uv pip install -e .   # Python (always uv)
+make test        # go vet + go test (Go in PATH or ~/.local/go)
+make             # bin/bb8-body, bin/bb8-head for this PC
+make release     # dist/linux-arm64 (Pi 3) and dist/linux-armv6 (Zero W)
+python simulador/lanzar_dummy.py --camara sintetica --sin-sonido   # builds Go, dummy + bb8-body + bb8-head --sim
+PYTHONPATH=simulador python -m dummy.probar                        # end-to-end test, 31 checks
+make probar      # both of the above
 ```
 
-CAD: todas las medidas viven en `cad/parametros.scad`; si cambias una, vuelve a correr
-`bash cad/exportar.sh` y sube los STL y PNG regenerados.
+- Config page on the dummy: http://127.0.0.1:8765/. Loopback needs no token.
+- If 8765 is taken, start the dummy and run probar with `BB8_MCP_PORT=8775`.
+- **probar needs a fresh dummy.** It assumes the start pose; a second run in a row fails the move checks.
+- CI (`.github/workflows/ci.yml`) runs:
+  - `make test` and `make release`;
+  - probar against the dummy;
+  - the firmware and p1…p5 builds.
+- After touching `go/`, `dummy` or `voz`, run probar (skill `probar-dummy`).
+- The firmware cannot be tested on hardware here. If you change it, also change `dummy/arduino_sim.py`.
 
-No hay suite de pytest ni CI todavía: **`python -m dummy.probar` contra el dummy es la
-prueba**. Córrela después de tocar `bb8`, `bb8_mcp`, `head` o `dummy` (skill
-`probar-dummy`). El firmware no se puede probar aquí; si lo cambias, cambia también
-No hay suite de pytest: **`python -m dummy.probar` contra el dummy es la prueba**. El CI
-(`.github/workflows/ci.yml`) la corre en cada push y PR, y compila el firmware y las
-pruebas p1…p5 para el Arduino Uno. Córrela después de tocar `bb8`, `bb8_mcp`, `head` o `dummy` (skill
-`probar-dummy`). El firmware no se puede probar en hardware aquí (sí en Wokwi a mano); si lo cambias, cambia también
-`dummy/arduino_sim.py` para que el simulador lo imite.
+## Rules that do not break
 
-## Reglas que no se rompen
+- **The LLM never drives motors directly.** Every order goes through `bb8-body`, which clamps it and arbitrates with the gamepad.
+  - Limits live in the config (`motion.*`), in hard ceilings in `motion.Params.Clamp`, and in the firmware. Never in prompts.
+  - The agent cannot write them: only fields with `Agent: true` are writable from `set_setting`.
+- **The gamepad wins** over the LLM if it was touched within `motion.manual_hold_s` (1 s).
+- **Arduino reflexes do not wait for the Pi:** tilt > 35°, obstacle < 25 cm and the 500 ms watchdog brake by themselves.
+- **Unknown voices do not move the robot.** Tools with `Moves: true` are refused in `tools.Registry.Call`, in code.
+- **The head is only reachable through the body**, over mutual TLS. Nothing talks to the Zero over plain HTTP.
+- **A protocol change touches every side at once.**
+  - Serial: `wiki/Protocolo.md`, `go/internal/protocol`, `dummy/arduino_sim.py` and the firmware.
+  - Head link: `go/internal/link` + `go/internal/head` + `go/internal/body/head.go`.
+  - Skill `cambiar-protocolo`.
+- One serial owner: `bb8-body`. `calibrar` opens the port directly only with `bb8-body` stopped.
 
-- **El LLM nunca maneja motores directo.** Toda orden pasa por el servicio de movimiento, que limita (máx. 2 m, 360°, 5 s, PWM 55 %) y arbitra con el mando. Los límites viven en `bb8/config.py` y en el firmware, no en prompts.
-- **El mando Bluetooth gana** sobre el LLM si se tocó en el último segundo.
-- **Los reflejos del Arduino no esperan a la Pi:** inclinación > 35°, obstáculo < 25 cm y watchdog de 500 ms frenan solos.
-- **Voces desconocidas no mueven al robot**: el bloqueo de `move`/`turn`/`look_at` está en `voz/agente.py`, en código.
-- **Un cambio de protocolo toca cuatro sitios a la vez:** `wiki/Protocolo.md`, `bb8/protocol.py`, `dummy/arduino_sim.py` y el firmware (o `head/server.py` + `head/backends_sim.py` para la cabeza). Skill `cambiar-protocolo`.
-- Un solo dueño del serial: `bb8.motion_api`. `calibrar` abre el puerto directo solo con el servicio detenido.
+## Pinned on purpose
 
-## Dependencias fijadas a propósito
+- `github.com/modelcontextprotocol/go-sdk v1.8.0`. Tools use the raw `Server.AddTool` with the registry's JSON schema.
+- `mcp>=1.10,<2` (Python): only for `dummy.probar` and the legacy `bb8_mcp`.
+- The Go binaries are built with `CGO_ENABLED=0` (static) so they cross-compile to armv6 without a toolchain.
 
-- `mcp>=1.10,<2`: FastMCP vive en mcp 1.x (en 2.x se renombró).
-- `opencv-python<5`: 5.x quitó los detectores Haar que usa `/cara`.
-- La Pi Zero solo instala `partes/5-cabeza/requirements-zero.txt`.
+## Hardware (to understand the code)
 
-## Hardware (para entender el código)
+- **Arduino Uno and L298N:** ENA D5, IN1 D7, IN2 D8, ENB D6, IN3 D11, IN4 D12.
+- **Encoders:** D2/D4 and D3/D10.
+- **Servo:** MG996R on D9.
+- **I2C (A4/A5):** MPU6050 + VL53L0X. MPU INT on A2, Pi power cut on A3, battery divider on A0.
+- **Motors:** JGB37-520B, 12 V, 319 RPM, 6 mm D-shaft. 65 mm RC wheels on a 12 mm hex coupling.
+- **Main Pi:** Raspberry Pi 3 B+, 1 GB, 64-bit OS, hostname `bb8`.
+- **Head:** the original Raspberry Pi **Zero W** (armv6, 512 MB, hostname `bb8-head`), not a Zero 2 W. Piper does not run there; the head speaks with `espeak-ng`.
+  - The ReSpeaker 2-Mic HAT is on the Zero.
+  - The WS2812 eye's data line goes to GPIO12 (PWM0, the HAT's Grove digital port), driven by the C helper `bb8-eye` (`partes/5-cabeza/eye/bb8_eye.c`, rpi_ws281x) through `/run/bb8-eye.sock`.
+  - The OV5647 camera (wide angle) and the ReSpeaker 2-Mic HAT are pending.
 
-Arduino Uno, un L298N (ENA D5, IN1 D7, IN2 D8, ENB D6, IN3 D11, IN4 D12),
-encoders en D2/D4 y D3/D10, servo MG996R en D9, MPU6050 + VL53L0X por I2C (A4/A5),
-INT del MPU en A2, corte de la Pi en A3, divisor de batería en A0. Motores JGB37-520B
-12 V 319 RPM. Pi principal: Raspberry Pi 3 (1 GB, OS de 64 bits); cámara OV5647
-pendiente de compra (la cabeza arranca sin ella). Nada se ha probado aún en hardware real: todo se validó contra el dummy.
+Shopping list: `wiki/Materiales.md`. Nothing has been tested on real hardware yet; everything was validated against the dummy.
 
-## MCP del robot
+## Robot MCP
 
-`.mcp.json` registra el servidor `bb8` en `http://127.0.0.1:8765/mcp` y
-`.claude/settings.json` lo habilita. Solo responde si el dummy está corriendo (o un
-túnel a la Pi). Con él pruebas un cambio como lo usaría Claude: `take_photo`, `move`,
-`get_pose`… Skill `manejar-bb8`. Para el robot real, agrega aparte
-`claude mcp add -s local --transport http bb8-pi http://<ip-de-la-pi>:8765/mcp`.
+- `.mcp.json` registers the server `bb8` at `http://127.0.0.1:8765/mcp`, and `.claude/settings.json` enables it.
+- It only answers while the dummy runs (or through a tunnel to the Pi). Skill `manejar-bb8`.
+- For the real robot: `claude mcp add -s local --transport http bb8-pi http://bb8.local:8765/mcp --header "Authorization: Bearer <token>"`.
 
-## Skills del proyecto
+## Project skills
 
-En `.claude/skills/`: `probar-dummy`, `cambiar-protocolo`, `agregar-herramienta-mcp`,
-`firmware-arduino`, `manejar-bb8`.
+In `.claude/skills/`: `probar-dummy`, `cambiar-protocolo`, `agregar-herramienta-mcp`, `firmware-arduino`, `manejar-bb8`.
 
-## Documentación
+## Documentation
 
-Si cambias cómo se corre algo, actualiza la página de la wiki de esa parte
-(`wiki/Parte-N-*.md`) y el README de su carpeta. Los enlaces de la wiki a código usan
-URLs absolutas `https://github.com/erickdsama/bb8/blob/main/...` para que funcionen
-también en la Wiki de GitHub.
+- If you change how something runs, update that part's wiki page (`wiki/Parte-N-*.md`) and its folder README.
+- Wiki links to code use absolute `https://github.com/erickdsama/bb8/blob/main/...` URLs, so they also work in the GitHub Wiki.

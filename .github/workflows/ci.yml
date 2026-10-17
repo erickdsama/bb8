@@ -1,5 +1,6 @@
-# CI del BB-8: compila el firmware y los sketches de prueba del Arduino, y corre la
-# prueba de punta a punta contra el dummy (los mismos 17 checks de `python -m dummy.probar`).
+# BB-8 CI: builds the Arduino firmware and test sketches, vets/tests the Go code,
+# cross-builds the Pi binaries, and runs the end-to-end test (`python -m dummy.probar`,
+# 31 checks) against the dummy with bb8-body and bb8-head --sim.
 name: CI
 
 on:
@@ -50,6 +51,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Go vet and tests
+        run: make test
+
+      - name: Cross-build for the Pis (arm64 body, armv6 head)
+        run: make release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bb8-binaries
+          path: dist/
+          if-no-files-found: error
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -74,7 +91,7 @@ jobs:
           echo "El dummy no arrancó en 60 s"; cat dummy.log; exit 1
 
       - name: Correr la prueba de punta a punta
-        run: python -m dummy.probar
+        run: PYTHONPATH=simulador python -m dummy.probar
 
       - name: Log del dummy
         if: always()

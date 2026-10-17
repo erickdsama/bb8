@@ -45,6 +45,10 @@ def build_app(service: MotionService, gamepad: bool = False) -> Starlette:
                 return JSONResponse({"resultado": "error", "motivo": str(e)}, status_code=500)
         return ep
 
+    async def oido(req: Request):
+        espera = float(req.query_params.get("espera_s", 0))
+        return JSONResponse(await service.escuchar(espera))
+
     routes = [
         Route("/move", handler(lambda d: service.move(num(d, "metros"))), methods=["POST"]),
         Route("/turn", handler(lambda d: service.turn(num(d, "grados"))), methods=["POST"]),
@@ -55,6 +59,11 @@ def build_app(service: MotionService, gamepad: bool = False) -> Starlette:
         Route("/wake", handler(lambda d: service.wake()), methods=["POST"]),
         Route("/apagar", handler(lambda d: service.poweroff(float(d.get("segundos", 15)))), methods=["POST"]),
         Route("/pose", lambda req: JSONResponse(service.pose()), methods=["GET"]),
+        Route("/oido", handler(lambda d: service.oir(d)), methods=["POST"]),
+        Route("/mapa", handler(lambda d: service.plano()), methods=["GET"]),
+        Route("/mapa/posicion", handler(lambda d: service.fijar_posicion(d)), methods=["POST"]),
+        Route("/mapa/cambiar", handler(lambda d: service.cambiar_plano(d)), methods=["POST"]),
+        Route("/oido", oido, methods=["GET"]),
     ]
 
     @contextlib.asynccontextmanager

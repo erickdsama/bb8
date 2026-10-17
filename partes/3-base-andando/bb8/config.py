@@ -19,6 +19,10 @@ MOTION_URL = os.environ.get("BB8_MOTION_URL", f"http://{MOTION_HOST}:{MOTION_POR
 # Servidor MCP
 MCP_HOST = os.environ.get("BB8_MCP_HOST", "127.0.0.1")
 MCP_PORT = int(os.environ.get("BB8_MCP_PORT", "8765"))
+# Plano de la casa (JSON, formato en wiki/Protocolo.md § 2). Vacío = sin plano.
+MAPA_PATH = os.environ.get("BB8_MAPA", "")
+# Última pose en el plano, para no perderla si el servicio se reinicia o la Pi duerme.
+MAPA_ESTADO = os.environ.get("BB8_MAPA_ESTADO", os.path.expanduser("~/.bb8/pose.json"))
 
 # --- Mecánica (calibrar en la Parte 3) -------------------------------------
 WHEEL_DIAMETER_M = 0.065

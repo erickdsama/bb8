@@ -1,27 +1,29 @@
 # Parte 5 · Agente controla la cabeza
 
-El servidor HTTP de la cabeza, que corre en la Pi Zero 2 W.
+En la Pi Zero W corre `bb8-head`, un binario de Go ([`go/cmd/bb8-head`](../../go/cmd/bb8-head),
+código en [`go/internal/head`](../../go/internal/head)). Se conecta al cuerpo por TLS mutuo
+(`:8772`) y no abre puertos. Esta carpeta tiene la cabeza anterior en Python, de la que
+`voz` y el simulador todavía usan los pitidos y la personalidad.
 
 ```
 head/
-├── server.py           API :8080 (/estado /foto /tof /ojo /hablar /cara /reposo)
-├── backends_real.py    picamera2 (opcional), VL53L0X/L1X, NeoPixel en GPIO18, Piper (sin probar en hardware)
+├── sounds.py           pitidos de droide (15 emociones + balbuceo); los usan voz y el dummy
+├── personalidad.py     emoción → pitido + ojo y frases cortas en español (las usa voz)
 ├── backends_sim.py     webcam del PC o vista sintética (la usa el simulador)
-├── colors.py           colores y patrones del ojo
-├── sounds.py           pitidos de droide sintetizados (15 emociones + balbuceo)
-└── personalidad.py     emoción → pitido + ojo, frases cortas y prompt de personalidad
-requirements-zero.txt
+├── server.py, backends_real.py, colors.py   cabeza anterior en Python (ya no se instala)
+requirements-zero.txt   solo para la cabeza anterior
 ```
 
-En la Zero (hostname `bb8-head`, I2C y cámara activados):
+Instalar (ver [wiki/Instalacion-en-la-Pi.md](../../wiki/Instalacion-en-la-Pi.md#pi-zero-w-cabeza)):
 
 ```bash
-sudo git clone https://github.com/erickdsama/bb8 /home/bb8/bb8
-cd /home/bb8/bb8 && sudo bash sistema/instalar_zero.sh
-curl http://bb8-head.local:8080/estado
+make zero                                   # en el PC: dist/linux-armv6/bb8-head
+sudo bash /tmp/instalar_zero.sh bb8.local   # en la Zero, con el binario y los certificados en /tmp
 ```
 
-En la Pi principal, `/etc/bb8.env`: `BB8_VOZ_SALIDA=cabeza` y `BB8_BUSCAR_CARA=1`.
+**El cable de datos del ojo va a GPIO12 (PWM0), en el puerto Grove digital del ReSpeaker**,
+con 5 V y GND del power bank. Lo maneja `bb8-eye` ([`eye/bb8_eye.c`](eye/bb8_eye.c), rpi_ws281x),
+que el instalador compila en la Zero. En la Pi principal, `/etc/bb8.env`: `BB8_VOZ_SALIDA=cabeza` y `BB8_BUSCAR_CARA=1`.
 Si el ToF se muda a la cabeza, `USAR_TOF_LOCAL 0` en el firmware.
 
 Casco, plato y soportes impresos de la cabeza: [`cad/`](../../cad).
@@ -29,7 +31,6 @@ Escuchar los pitidos en el PC (solo librería estándar):
 
 ```bash
 python -m head.sounds                       # todos, con su descripción
-python -m head.sounds curioso risa          # algunos
 python -m head.sounds --texto "¿Quién anda ahí?"
 python -m head.sounds --html sonidos.html   # página para oírlos en el navegador
 ```

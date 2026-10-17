@@ -67,6 +67,7 @@ Gestor de librerías y súbelo. Lo que se ajusta está arriba del archivo, en
 | --- | --- |
 | `INVERTIR_MOTOR_IZQ` / `_DER`, `INVERTIR_ENC_IZQ` / `_DER` | Según lo que viste en `p2_motores_encoders` |
 | `SIGNO_GIRO_Z` | Si `p4_mpu6050` baja el rumbo al girar a la derecha |
+| `MPU_INVERTIDO` | 1 si el MPU va con el chip hacia abajo (inclinación en reposo ~180° en `p4_mpu6050`). En el robot de Erick va en 1. Pon el mismo valor en `p4_mpu6050` |
 | `SERVO_INVERTIDO` | Si `H 40` gira la cabeza a la izquierda |
 | `PULSOS_MAX_CICLO` | Con lo que diga `python -m calibrar velocidad` (Parte 3) |
 | `USAR_TOF_LOCAL` | `0` cuando el ToF se mude a la cabeza (Parte 5) |

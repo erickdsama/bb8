@@ -50,8 +50,8 @@ class Energia:
         self._pose_prev: dict | None = None
         self._bat_baja_desde: float | None = None
         self._ultimo_aviso = -math.inf
-        self.motion = httpx.AsyncClient(base_url=C.MOTION_URL, timeout=5)
-        self.cabeza = httpx.AsyncClient(base_url=C.HEAD_URL, timeout=10)
+        # bb8-body local API; the head is only reachable through it (secure link).
+        self.motion = httpx.AsyncClient(base_url=C.MOTION_URL, timeout=10)
 
     # --- avisos externos ------------------------------------------------------
 
@@ -66,11 +66,17 @@ class Energia:
 
     # --- transiciones -----------------------------------------------------------
 
-    async def _post(self, cli: httpx.AsyncClient, ruta: str, cuerpo: dict | None = None) -> None:
+    async def _post(self, ruta: str, cuerpo: dict | None = None) -> None:
         try:
-            await cli.post(ruta, json=cuerpo or {})
+            await self.motion.post(ruta, json=cuerpo or {})
         except httpx.HTTPError as e:
-            log.warning("%s%s: %s", cli.base_url, ruta, e)
+            log.warning("%s: %s", ruta, e)
+
+    async def _ojo(self, color: str, patron: str) -> None:
+        await self._post("/tools/set_eye_color", {"color": color, "pattern": patron})
+
+    async def _decir(self, texto: str) -> None:
+        await self._post("/tools/say", {"text": texto})
 
     async def _a(self, nuevo: str) -> None:
         if nuevo == self.estado:
@@ -79,18 +85,18 @@ class Energia:
         log.info("%s → %s", viejo, nuevo)
         if nuevo == "activo":
             if viejo in ("ligero", "profundo"):
-                await self._post(self.motion, "/wake")
-                await self._post(self.cabeza, "/reposo", {"activo": True})
-            await self._post(self.cabeza, "/ojo", {"color": "azul", "patron": "fijo"})
+                await self._post("/wake")
+                await self._post("/head/rest", {"active": True})
+            await self._ojo("blue", "steady")
         elif nuevo == "escuchando":
-            await self._post(self.cabeza, "/ojo", {"color": "azul", "patron": "respirar"})
+            await self._ojo("blue", "breathe")
         elif nuevo == "ligero":
-            await self._post(self.motion, "/sleep")
-            await self._post(self.cabeza, "/reposo", {"activo": False})
+            await self._post("/sleep")
+            await self._post("/head/rest", {"active": False})
         elif nuevo == "profundo":
-            await self._post(self.cabeza, "/hablar", {"texto": "Me voy a dormir. Muéveme para despertarme."})
-            await self._post(self.cabeza, "/reposo", {"activo": False})
-            await self._post(self.motion, "/apagar", {"segundos": CORTE_S})
+            await self._decir("Me voy a dormir. Muéveme para despertarme.")
+            await self._post("/head/rest", {"active": False})
+            await self._post("/poweroff", {"seconds": CORTE_S})
             if self.prueba:
                 log.warning("--prueba: aquí la Pi haría 'systemctl poweroff'")
                 return
@@ -105,15 +111,15 @@ class Energia:
         prev, self._pose_prev = self._pose_prev, p
         if p.get("control") in ("llm", "manual"):
             return True
-        if self.estado == "ligero" and not p.get("dormido"):
+        if self.estado == "ligero" and not p.get("asleep"):
             return True   # una orden MCP despertó al servicio de movimiento
         if prev is None:
             return False
-        if abs(p["rumbo_deg"] - prev["rumbo_deg"]) > 3 or p.get("cabeza_deg") != prev.get("cabeza_deg"):
+        if abs(p["heading_deg"] - prev["heading_deg"]) > 3 or p.get("head_deg") != prev.get("head_deg"):
             return True
         d = math.hypot(p["x_m"] - prev["x_m"], p["y_m"] - prev["y_m"])
         # En reposo la IMU sigue midiendo: si alguien lo inclina o lo empuja, despierta.
-        return d > 0.02 or abs(p["inclinacion_deg"] - prev["inclinacion_deg"]) > 5
+        return d > 0.02 or abs(p["tilt_deg"] - prev["tilt_deg"]) > 5
 
     async def _bateria(self, v: float) -> None:
         if v <= 0:          # 0 = sin divisor en A0 (fuente de pared)
@@ -123,15 +129,15 @@ class Energia:
             self._bat_baja_desde = self._bat_baja_desde or ahora
             if ahora - self._bat_baja_desde > 30 and self.estado != "profundo":
                 log.warning("Batería %.2f V: a dormir", v)
-                await self._post(self.cabeza, "/hablar", {"texto": "Batería agotada. Necesito el cargador."})
+                await self._decir("Batería agotada. Necesito el cargador.")
                 await self.dormir()
         else:
             self._bat_baja_desde = None
         if v < BAT_AVISO_V and ahora - self._ultimo_aviso > 300 and self.estado != "profundo":
             self._ultimo_aviso = ahora
             log.warning("Batería baja: %.2f V", v)
-            await self._post(self.cabeza, "/ojo", {"color": "rojo", "patron": "parpadeo"})
-            await self._post(self.cabeza, "/hablar", {"texto": "Bip. Batería baja."})
+            await self._ojo("red", "blink")
+            await self._decir("Bip. Batería baja.")
 
     async def lazo(self) -> None:
         while True:
@@ -145,7 +151,7 @@ class Energia:
                 continue
             if self._hubo_movimiento(pose):
                 await self.actividad("movimiento")
-            await self._bateria(float(pose.get("bateria_v") or 0))
+            await self._bateria(float(pose.get("battery_v") or 0))
             quieto = time.monotonic() - self.ultima_actividad
             if self.estado == "activo" and quieto > self.t_escuchando:
                 await self._a("escuchando")

@@ -1,32 +1,37 @@
 ---
 name: manejar-bb8
-description: Usar las herramientas del MCP bb8 (move, turn, look_at, take_photo, get_pose…) para manejar el robot, en el dummy o en el real, por ejemplo para probar un cambio como lo vería Claude.
+description: Use the bb8 MCP tools (move, turn, look_at, take_photo, get_pose, get_map…) to drive the robot, in the dummy or the real one, e.g. to try a change the way the model would see it.
 ---
 
-# Manejar a BB-8 por MCP
+# Drive BB-8 over MCP
 
-El servidor `bb8` está en `.mcp.json` (`http://127.0.0.1:8765/mcp`).
-Solo responde si algo está corriendo detrás:
+The `bb8` server is in `.mcp.json` (`http://127.0.0.1:8765/mcp`). It only answers if something runs behind it.
 
-- **Dummy:** `python simulador/lanzar_dummy.py --camara sintetica --sin-sonido` en segundo plano (skill `probar-dummy`, pasos 1–2). Si las herramientas `bb8` no aparecen, el servidor no estaba arriba al iniciar la sesión: arranca el dummy y reconecta con `/mcp`.
-- **Robot real:** solo si el usuario lo pide. El MCP de la Pi debe escuchar en `0.0.0.0`; regístralo aparte con `claude mcp add -s local --transport http bb8-pi http://<ip-de-la-pi>:8765/mcp`.
+- **Dummy:** start `python simulador/lanzar_dummy.py --camara sintetica --sin-sonido` in the background (skill `probar-dummy`, steps 1–2). It builds and starts `bb8-body` and `bb8-head --sim`.
+  - If the `bb8` tools do not show up, the server was not up when the session started: start the dummy and reconnect with `/mcp`.
+  - If port 8765 is taken, use `BB8_MCP_PORT=8775` and the local entry `bb8-pc`.
+- **Real robot:** only if the user asks.
+  - `bb8-body` listens on `0.0.0.0:8765` and the LAN needs the token: `claude mcp add -s local --transport http bb8-pi http://bb8.local:8765/mcp --header "Authorization: Bearer <token>"`.
+  - The token is in `/etc/bb8/token` on the Pi.
 
-## Cómo manejar
+## How to drive
 
-Sigue las mismas reglas que el servidor le da a BB-8:
+Follow the same rules the server gives BB-8:
 
-- `take_photo` antes de avanzar en un sitio nuevo; nunca más de 1 m sin volver a mirar.
-- Espera el resultado de cada `move`/`turn` antes del siguiente; no encadenes más de tres sin informar.
-- `blocked` = algo a menos de 25 cm: gira, no insistas recto.
-- `manual_override` = el humano tiene el mando: detente.
-- `get_pose` con inclinación alta o batería < 10.5 V: detente y avisa.
-- `look_at` gira solo la cabeza (±90°); `turn` gira todo el cuerpo (+ derecha).
+- `take_photo` before moving into a new place; never more than 1 m without looking again.
+- Wait for each `move`/`turn` result before the next. Do not chain more than three without reporting.
+- `blocked` means something is closer than 25 cm: turn, do not insist straight.
+- `manual_override` means the human has the gamepad: stop.
+- `get_pose` with high tilt or battery < 10.5 V: stop and say so.
+- `look_at` turns only the head (±90°); `turn` rotates the body (+ right).
+- `set_setting` only changes voice/eye/home settings; motion limits are in the config page.
 
-En el robot real, cada movimiento mueve un objeto de 2 kg en una casa: confirma con el
-usuario antes de la primera orden de movimiento de la sesión.
+On the real robot every move pushes a 2 kg object around a house. Confirm with the user before the first movement order of the session.
 
-## En el dummy
+## In the dummy
 
-- Habitación de 4 × 3 m; silla café a ~1.6 m al frente y una caja verde.
-- Posición real: `curl http://127.0.0.1:8080/sim/mundo`. Erick lo puede ver en vivo en <http://127.0.0.1:8080/sim>.
-- Para simular que lo inclinan o lo empujan, mira las rutas `/sim/*` en `simulador/dummy/visor.py`.
+- **Worlds:**
+  - default: a 4 × 3 m room with a brown chair ~1.6 m ahead and a green box;
+  - `--mundo casa`: an 8 × 6 m house with a person.
+- **Real pose:** `curl http://127.0.0.1:8080/sim/mundo`. Erick can watch live at <http://127.0.0.1:8080/sim>; config page at <http://127.0.0.1:8765/>.
+- **Tilting or pushing:** see the `/sim/*` routes in `simulador/dummy/visor.py`.

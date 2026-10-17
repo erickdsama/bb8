@@ -7,6 +7,7 @@
 const uint8_t MPU = 0x68;
 float pitch = 0, roll = 0, rumbo = 0, sesgo = 0;
 const int SIGNO_GIRO_Z = -1;
+const bool MPU_INVERTIDO = false;   // true si el chip va hacia abajo (igual que en el firmware)
 
 void escribir(uint8_t r, uint8_t v) { Wire.beginTransmission(MPU); Wire.write(r); Wire.write(v); Wire.endTransmission(); }
 
@@ -37,6 +38,7 @@ void loop() {
   int16_t v[7];
   if (!leer(v)) { Serial.println(F("lectura fallida")); return; }
   float ax = v[0], ay = v[1], az = v[2];
+  if (MPU_INVERTIDO) { ay = -ay; az = -az; v[5] = -v[5]; }
   pitch = 0.98 * (pitch + v[5] / 65.5 * dt) + 0.02 * atan2(-ax, sqrt(ay * ay + az * az)) * RAD_TO_DEG;
   roll = 0.98 * (roll + v[4] / 65.5 * dt) + 0.02 * atan2(ay, az) * RAD_TO_DEG;
   float gz = (v[6] - sesgo) / 65.5;

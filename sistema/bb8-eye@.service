@@ -1,0 +1,9 @@
+# One instance per connection from bb8-head; stdin is the socket.
+[Unit]
+Description=BB-8 eye helper (rpi_ws281x, GPIO12 PWM0)
+
+[Service]
+ExecStart=/usr/local/bin/bb8-eye 16
+StandardInput=socket
+StandardOutput=journal
+StandardError=journal

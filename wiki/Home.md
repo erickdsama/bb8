@@ -1,14 +1,15 @@
 # Wiki del BB-8
 
-Un BB-8 de 30–35 cm que rueda, escucha y ve, manejado por Claude a través de un
-servidor MCP. Esta wiki explica cómo está hecho y cómo correr cada pieza, del
+Un BB-8 de 30–35 cm que rueda, escucha y ve, manejado por Claude a través de MCP o por
+su propio agente (OpenRouter). Dos binarios de Go: `bb8-body` en la Pi 3 y `bb8-head` en
+la Pi Zero W, unidos por un enlace TLS mutuo. Esta wiki explica cómo está hecho y cómo correr cada pieza, del
 protoboard a la esfera cerrada.
 
 ## Empieza aquí
 
-1. [Arquitectura](Arquitectura.md): las tres capas (reflejos, servicio, agente), qué corre en cada placa y por qué Claude nunca toca los motores.
+1. [Arquitectura](Arquitectura.md): las tres capas (reflejos, cuerpo, agente), qué corre en cada placa, la configuración en vivo y por qué el modelo nunca toca los motores.
 2. [Simulador](Simulador.md): corre todo en tu PC sin hardware y pruébalo de punta a punta.
-3. [Conectar con Claude](Conectar-con-Claude.md): Claude Code, Claude Desktop o el agente de voz.
+3. [Conectar con Claude](Conectar-con-Claude.md): Claude Code, Claude Desktop, el agente propio (OpenRouter, clima, calendario) y la página de configuración.
 
 ## Las seis partes, en orden
 
@@ -26,8 +27,8 @@ obedezca al agente; hasta la Parte 6 todo va con fuente de pared de 12 V.
 
 ## Referencia
 
-- [Protocolo](Protocolo.md): serial Pi ↔ Arduino, HTTP del servicio de movimiento y de la cabeza, pinout.
-- [Instalación en la Pi](Instalacion-en-la-Pi.md): servicios systemd, `/etc/bb8.env` y todas las variables `BB8_*`.
+- [Protocolo](Protocolo.md) (en inglés): serial Pi ↔ Arduino, herramientas, API local, API de configuración, enlace cabeza ↔ cuerpo, plano, pinout.
+- [Instalación en la Pi](Instalacion-en-la-Pi.md): binarios, emparejar la cabeza, servicios systemd, `/etc/bb8.env` y las variables `BB8_*`.
 - [Wake word "oye BB-8"](Wake-word-oye-BB-8.md): entrenar el modelo propio en Colab y ponerlo en el robot.
 - [Materiales](Materiales.md): lo que ya se compró (pedido UNIT 377466) y lo que falta.
 - [Diseño 3D](Diseno-3D.md): esfera, base, poste y cabeza en OpenSCAD paramétrico, con STL listos para imprimir.
@@ -41,15 +42,20 @@ bb8/
 ├── partes/
 │   ├── 1-protoboard/arduino/       pruebas p1…p5 + bb8_firmware
 │   ├── 2-base-melamina/            montaje (sin código)
-│   ├── 3-base-andando/             bb8/ (servicio de movimiento), calibrar/
-│   ├── 4-agente-movimiento/        bb8_mcp/ (servidor MCP), voz/ (agente de voz)
-│   ├── 5-cabeza/                   head/ (servidor de la Pi Zero)
+│   ├── 3-base-andando/             calibrar/, mapas/ (planos); bb8/ (Python anterior)
+│   ├── 4-agente-movimiento/        voz/ (micrófono → agente), wakeword/; bb8_mcp/ (Python anterior)
+│   ├── 5-cabeza/                   head/ (pitidos y personalidad que usa voz; servidor Python anterior)
 │   └── 6-esfera-baterias/          energia/ (reposo y batería)
+├── go/
+│   ├── cmd/bb8-body, cmd/bb8-head  los dos binarios
+│   └── internal/                   motion, floorplan, link, head, config, agent, connectors…
 ├── cad/                            piezas imprimibles en OpenSCAD (STL, plantilla, renders)
 ├── simulador/                      dummy/ + lanzar_dummy.py
 ├── sistema/                        systemd e instaladores
+├── Makefile                        make test · make release (arm64 y armv6) · make probar
 ├── docs/                           documento técnico y artefactos HTML
 ├── wiki/                           esta wiki
-├── pyproject.toml                  mapea cada paquete a su carpeta (pip install -e .)
-└── requirements.txt                Pi principal y PC
+├── go.mod                          módulo de Go
+├── pyproject.toml                  mapea cada paquete de Python a su carpeta (uv pip install -e .)
+└── requirements.txt                voz, simulador y prueba
 ```

@@ -1,65 +1,154 @@
-# Arquitectura
+# Architecture
 
-BB-8 funciona como un Sphero: una base con dos ruedas rueda por dentro de la esfera
-y la hace girar; el lastre abajo la mantiene derecha, y un poste con imanes sujeta la
-cabeza a través del casco. El software no usa ROS: son tres capas, cada una más lenta
-y más lista que la de abajo.
+BB-8 works like a Sphero. A two-wheel base rolls inside the sphere and turns it. Ballast at the bottom keeps it upright, and a post with magnets holds the head through the shell.
+
+The software has three layers, each slower and smarter than the one below. It has two Go binaries and no ROS.
 
 ```mermaid
 flowchart TD
-  U[Tú, por voz] --> AG[Agente de voz<br/>Pi principal]
-  AG -->|API| LLM[Claude<br/>tool use]
-  LLM -->|herramientas MCP| MCP[Servidor MCP bb8-motion<br/>:8765/mcp]
-  J[Mando Bluetooth<br/>gana sobre el LLM] --> MS[Servicio de movimiento<br/>127.0.0.1:8770]
-  MCP --> MS
-  MS -->|USB serial 115200| AR[Arduino<br/>firmware propio]
-  AR --> M[2 motores + servo del poste]
-  MCP <-->|WiFi :8080| Z[Pi Zero 2 W · cabeza<br/>cámara, ToF, ojo, altavoz]
-  MS -->|GET /tof| Z
+  U[You, by voice] -.->|ReSpeaker on the head| H
+  VZ[Voice front end<br/>Python: wake word, STT, speaker id] -->|POST /agent/ask| B
+  B -->|GET /audio/stream| VZ
+  CL[Claude Desktop / Code] -->|MCP :8765/mcp + token| B
+  WEB[Config page<br/>browser] -->|HTTP + SSE :8765| B
+  J[Bluetooth gamepad<br/>wins over the LLM] -->|evdev| B
+  B[bb8-body · Pi 3 B+<br/>motion · map · MCP · agent · connectors · config]
+  B -->|USB serial 115200| AR[Arduino<br/>own firmware]
+  AR --> M[2 motors + post servo]
+  H[bb8-head · Pi Zero W<br/>camera, ToF, eye, speaker, ReSpeaker mic] -->|mutual TLS :8772<br/>head dials in<br/>ToF, voice direction, voiced audio| B
+  B -->|OpenRouter| LLM[(LLM)]
+  B -->|HTTPS| EXT[(Open-Meteo, Google Calendar…)]
 ```
 
-## Las tres capas
+## A voice order, end to end
 
-| Capa | Dónde | Ciclo | Hace |
+This is the path at run time. **Claude is not in it**: the brain is the OpenRouter agent inside `bb8-body`.
+
+```
+voice ─► ReSpeaker (head, Zero W) ──► mutual TLS ──► bb8-body (Pi 3)
+          VAD + direction                              │
+                                                       ├─► voz: wake word + STT ──► text
+                                                       │                              │
+                                                       │            POST /agent/ask ◄─┘
+                                                       ▼
+                                          OpenRouter agent (LLM)
+                                                       │ tool calls
+                                                       ▼
+                                          tool registry ── same tools the MCP server exposes
+                                                       │
+                          ┌────────────────────────────┼────────────────────────┐
+                          ▼                            ▼                        ▼
+                  motion ─► Arduino            head link ─► camera,        connectors
+                  (move, turn, look_at)        eye, speaker, ToF           (weather, calendar)
+                                                       ▲
+                                                       └── the answer is spoken by the head
+```
+
+- The agent calls the tools **in-process**: no network hop between the LLM loop and the Arduino.
+- The **MCP server** (`:8765/mcp`) exposes that same registry to *external* clients (Claude Code or Desktop) for development and debugging. It is a second door, not the main road.
+- Whoever calls a tool (agent, MCP, gamepad), the limits and the arbiter are the same: they live in `bb8-body` and the firmware.
+- If the Arduino is not ready at boot or resets later, `bb8-body` keeps running, answers `arduino_unavailable` and reconnects by itself.
+
+## The three layers
+
+| Layer | Where | Cycle | Does |
 | --- | --- | --- | --- |
-| Reflejos | Arduino ([firmware](https://github.com/erickdsama/bb8/tree/main/partes/1-protoboard/arduino/bb8_firmware)) | 10 ms | Rampa, PID con encoders; frena si se inclina > 35°, si hay un obstáculo a < 25 cm o si pasan 500 ms sin órdenes |
-| Servicio de movimiento | Pi, Python ([`bb8`](https://github.com/erickdsama/bb8/tree/main/partes/3-base-andando/bb8)) | 50 ms | Único dueño del serial. Convierte metros y grados en pulsos de encoder, arbitra entre mando y LLM, impone límites |
-| Agente | Claude vía MCP ([`bb8_mcp`](https://github.com/erickdsama/bb8/tree/main/partes/4-agente-movimiento/bb8_mcp)) | 1–4 s | Decide qué herramienta sigue según lo que ve y oye |
+| Reflexes | Arduino ([firmware](https://github.com/erickdsama/bb8/tree/main/partes/1-protoboard/arduino/bb8_firmware)) | 10 ms | Ramp, encoder PID. Brakes on tilt > 35°, an obstacle < 25 cm, or 500 ms without orders |
+| Body service | Pi 3 B+, Go ([`go/internal/motion`](https://github.com/erickdsama/bb8/tree/main/go/internal/motion)) | 50 ms | The only serial owner. Turns meters and degrees into encoder ticks, arbitrates gamepad vs LLM, and clamps limits |
+| Agent | Claude over MCP, or BB-8's own OpenRouter agent ([`go/internal/agent`](https://github.com/erickdsama/bb8/tree/main/go/internal/agent)) | 1–4 s | Picks the next tool from what it sees and hears |
 
-Cada herramienta es corta y termina sola (máx. 2 m, 5 s, PWM 55 %), así que mientras
-Claude piensa no hay un motor girando. Los límites viven en el servicio y en el
-firmware, no en el prompt.
+Every movement tool is short and stops by itself (2 m, 5 s, PWM 55 % by default). So while the model thinks, no motor is spinning.
 
-## Qué corre en cada placa
+The limits live in three places, never in the prompt:
+- the config (`motion.*`);
+- hard ceilings in code (PWM ≤ 160, ≤ 3 m);
+- the firmware.
 
-| Placa | Procesos | Código |
-| --- | --- | --- |
-| Raspberry Pi principal | `bb8.motion_api` (:8770), `bb8_mcp` (:8765), `voz`, `energia` (:8771) | partes 3, 4 y 6 |
-| Raspberry Pi Zero 2 W (cabeza) | `head.server` (:8080): cámara OV5647, ToF, anillo WS2812, altavoz | parte 5 |
-| Arduino Uno | `bb8_firmware`: L298N, encoders, servo MG996R, MPU6050, VL53L0X | parte 1 |
-| Tu PC | El simulador reemplaza al Arduino y a la Zero; el resto es el mismo código | `simulador/` |
+## What runs where
 
-## Herramientas que ve Claude
+| Board | Processes | RAM | Code |
+| --- | --- | --- | --- |
+| Raspberry Pi 3 B+ (main) | `bb8-body`: MCP + web on :8765, local API on 127.0.0.1:8770, head link on :8772 | ~17 MB | [`go/cmd/bb8-body`](https://github.com/erickdsama/bb8/tree/main/go/cmd/bb8-body) |
+| Raspberry Pi 3 B+ (main) | `voz` (Python: wake word, Whisper, speaker id) and `energia` (Python, :8771) | — | parts 4 and 6 |
+| Raspberry Pi Zero W (head, armv6) | `bb8-head`: ReSpeaker 2-Mic HAT (VAD, direction of arrival, voiced audio to the body), OV5647 via `rpicam-jpeg`, WS2812 eye on GPIO12 PWM (C helper `bb8-eye`), beeps + `espeak-ng` through the HAT codec, VL53L0X | ~13 MB | [`go/cmd/bb8-head`](https://github.com/erickdsama/bb8/tree/main/go/cmd/bb8-head) |
+| Arduino Uno | `bb8_firmware`: L298N, encoders, MG996R servo, MPU6050, VL53L0X (parts 1–4) | — | part 1 |
+| Your PC | The simulator replaces the Arduino and the head hardware (`bb8-head --sim`); the Go binaries are the same | — | `simulador/` |
 
-| Herramienta | Qué hace |
+The Python stack used before took ~100 MB on the body (`bb8.motion_api` 40 MB + `bb8_mcp` 60 MB), plus OpenCV on the head.
+
+## Packages (`go/internal/`)
+
+| Package | Does |
 | --- | --- |
-| `move(metros)` | Avanza o retrocede hasta 2 m; devuelve `done`, `blocked` (obstáculo), `manual_override`, `cancelled` o `error` |
-| `turn(grados)` | Gira sobre su eje con el giroscopio; + es derecha |
-| `stop()` | Cancela cualquier movimiento |
-| `look_at(grados)` | Gira la cabeza −90…90° con el servo del poste |
-| `take_photo()` | Foto de la cabeza, 640 px |
-| `set_eye_color(color, patron)` | Anillo NeoPixel |
-| `say(texto o sonido)` | Habla con Piper (con balbuceo de pitidos antes) o pita |
-| `express(emocion)` | Pitido de la emoción y el color de ojo que le toca (15 emociones, `head/personalidad.py`) |
-| `get_pose()` | Posición, rumbo, inclinación, batería, distancia al frente |
+| `protocol`, `serial` | Arduino lines; `/dev/ttyACM0` or `socket://` |
+| `motion` | Polling, odometry, move/turn/look_at, arbiter, hearing |
+| `floorplan` | House plan, anchor, routes, sketch |
+| `tools`, `mcpserver` | One tool registry → MCP (and the agent) |
+| `body` | Robot tools, head client, local API, config fields and wiring |
+| `link` | Mutual TLS, framing, `pair` |
+| `head` | Head side: Real and Sim backends, beeps, VL53L0X, mic (VAD + GCC-PHAT direction + audio stream) |
+| `config` | Store, schema, SSE web UI |
+| `agent` | OpenRouter tool loop |
+| `connectors` | Connector interface + `weather`, `calendar` (Google provider) |
+| `gamepad` | evdev |
+| `persona` | Emotions, colors, system prompt |
 
-## Seguridad
+## Tools the model sees
 
-- El mando Bluetooth gana si se tocó en el último segundo.
-- Voces no registradas pueden platicar, pero `move`, `turn` y `look_at` se bloquean en el código.
-- El Arduino frena solo; Claude se entera después por el resultado `blocked`.
-- El MCP escucha en 127.0.0.1 por defecto. Con `--host 0.0.0.0` no tiene contraseña: solo en la WiFi de casa.
+| Tool | Does |
+| --- | --- |
+| `move(meters)` | Forward or back up to 2 m. Returns `done`, `blocked`, `manual_override`, `cancelled`, `timeout` or `error` |
+| `turn(degrees)` | Turns in place with the gyro, + right |
+| `stop()` | Cancels any movement |
+| `look_at(degrees)` | Head −90…90° with the post servo |
+| `take_photo()` | Head photo, 640 px |
+| `set_eye_color(color, pattern)` | NeoPixel ring |
+| `say(text, sound)` | Babble of beeps, then speech; or just a beep |
+| `express(emotion)` | The emotion's beep and eye color (15 emotions) |
+| `get_pose()` | Position, heading, tilt, battery, forward distance, head link |
+| `get_map()` / `set_position()` / `update_map()` | House plan: room, how far and how much to turn toward each thing; fix the position; record changes |
+| `listen(wait_s)` | Last thing the head's ReSpeaker heard and from where: the angle relative to the head, converted to two body-frame candidates (in front of / behind the head) |
+| `get_setting()` / `set_setting()` | Settings the agent may change (volume, city…) |
+| `weather`, `calendar_*` | Connector tools, while the connector is enabled |
 
-Los mensajes exactos de cada enlace están en [Protocolo](Protocolo.md). Los diagramas
-de cableado, alimentación y secuencia están en el artefacto
-[Diagramas](Artefactos.md#diagramas).
+## Hearing
+
+The ReSpeaker 2-Mic HAT is on the head (Zero W), so the microphones turn with it.
+
+1. **Head:**
+   - An energy VAD with an adaptive noise floor decides when someone speaks. Only then does the head stream 16 kHz mono audio over the link (`audio_start` / `audio` / `audio_end`), so the WiFi stays quiet between sentences.
+   - At the end of each utterance, GCC-PHAT between the two capsules gives the angle relative to the **head** front (`sound_dir`).
+   - The mic is muted while the head speaks.
+2. **Body:**
+   - At `audio_start` it stamps the post angle reported by the Arduino; the head does not know where it points.
+   - It turns the head angle into two body-frame candidates: `head + a` in front of the head, `head + 180 − a` behind it.
+   - It re-serves the audio on `GET /audio/stream`.
+3. **Voice front end (Pi 3):** it reads that stream (`BB8_MIC=cabeza`) for the wake word, Whisper and speaker id, and fills the gaps with silence. A local USB mic is still an option (`BB8_MIC=local`).
+
+## Configuration (both ways, live)
+
+There is one store on the body: `config.json` plus `secrets.json`, with a `rev` counter.
+
+Every write goes through `Store.Set(patch, source, baseRev)`. A write can come from:
+- the web page;
+- the agent's `set_setting`;
+- calibration.
+
+`Set` validates against the schema, bumps `rev`, persists, and notifies the subscribers:
+- `motion` picks up new params live;
+- the head gets its `head.*` section over the link and acks the rev;
+- connectors re-register their tools;
+- every open web page receives the change over SSE.
+
+A web save carries `baseRev`. If someone else saved meanwhile, it gets 409 and reloads.
+
+## Security
+
+- **Gamepad:** it wins if it was touched within the last second.
+- **Unknown voices:** they can chat, but `move`, `turn` and `look_at` are refused in Go code (`tools.Registry.Call`).
+- **Reflexes:** the Arduino brakes by itself. The model learns about it from the `blocked` result.
+- **Head link:** mutual TLS 1.3 with a private CA. The head opens no ports.
+- **MCP and web from the LAN:** they need the bearer token (`/etc/bb8/token`). Loopback needs none.
+- **Secrets** (OpenRouter key, OAuth tokens) are write-only from the web and stored with mode 0600.
+
+The exact messages of every link are in [Protocolo](Protocolo.md).

@@ -1,0 +1,26 @@
+# Main Pi: serial owner, motion, floor plan, MCP + config web (:8765), local API
+# (127.0.0.1:8770) and the secure head link (:8772). Replaces bb8-motion + bb8-mcp.
+[Unit]
+Description=BB-8 body (motion, MCP, config, head link)
+After=network-online.target bluetooth.target
+Wants=network-online.target
+
+[Service]
+User=bb8
+SupplementaryGroups=dialout input
+EnvironmentFile=-/etc/bb8.env
+StateDirectory=bb8
+ExecStart=/usr/local/bin/bb8-body --mcp 0.0.0.0:8765 --data /var/lib/bb8 --map-state /var/lib/bb8/pose.json \
+  --pki /etc/bb8/pki --token-file /etc/bb8/token
+# The 50 ms serial loop goes first and is the last thing the OOM killer takes.
+Nice=-5
+OOMScoreAdjust=-500
+Restart=always
+RestartSec=2
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/bb8
+
+[Install]
+WantedBy=multi-user.target
