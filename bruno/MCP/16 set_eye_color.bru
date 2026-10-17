@@ -1,0 +1,39 @@
+meta {
+  name: set_eye_color
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{base}}/mcp
+  body: json
+  auth: bearer
+}
+
+headers {
+  Accept: application/json, text/event-stream
+  Mcp-Session-Id: {{mcpSession}}
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "jsonrpc": "2.0",
+    "id": 25,
+    "method": "tools/call",
+    "params": {
+      "name": "set_eye_color",
+      "arguments": {
+        "color": "blue",
+        "pattern": "breathe"
+      }
+    }
+  }
+}
+
+docs {
+  Needs the head. pattern: fixed, breathe, blink, off.
+}

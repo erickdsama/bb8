@@ -1,0 +1,38 @@
+meta {
+  name: listen
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{base}}/mcp
+  body: json
+  auth: bearer
+}
+
+headers {
+  Accept: application/json, text/event-stream
+  Mcp-Session-Id: {{mcpSession}}
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "jsonrpc": "2.0",
+    "id": 22,
+    "method": "tools/call",
+    "params": {
+      "name": "listen",
+      "arguments": {
+        "wait_s": 3
+      }
+    }
+  }
+}
+
+docs {
+  Waits up to wait_s (0-10) for something to be heard.
+}

@@ -1,0 +1,28 @@
+meta {
+  name: Patch config
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{base}}/api/config
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "baseRev": {{configRev}},
+    "patch": {
+      "agent.model": "anthropic/claude-sonnet-5.5"
+    }
+  }
+}
+
+docs {
+  Run "Get config" first (it stores configRev). A stale baseRev returns 409 with the current config. Put the OpenRouter key with {"agent.api_key": "sk-or-..."} (write-only).
+}

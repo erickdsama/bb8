@@ -1,0 +1,17 @@
+meta {
+  name: Tool look_at
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{api}}/tools/look_at
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "degrees": 30
+  }
+}

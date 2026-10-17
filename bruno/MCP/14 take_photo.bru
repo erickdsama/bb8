@@ -1,0 +1,36 @@
+meta {
+  name: take_photo
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{base}}/mcp
+  body: json
+  auth: bearer
+}
+
+headers {
+  Accept: application/json, text/event-stream
+  Mcp-Session-Id: {{mcpSession}}
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "jsonrpc": "2.0",
+    "id": 23,
+    "method": "tools/call",
+    "params": {
+      "name": "take_photo",
+      "arguments": {}
+    }
+  }
+}
+
+docs {
+  Needs the head with a camera. Returns an image block (base64).
+}

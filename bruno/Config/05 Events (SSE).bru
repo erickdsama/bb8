@@ -1,0 +1,19 @@
+meta {
+  name: Events (SSE)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{base}}/api/config/events
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+docs {
+  Server-sent events: every change, whoever made it.
+}

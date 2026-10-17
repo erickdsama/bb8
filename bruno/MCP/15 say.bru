@@ -1,0 +1,38 @@
+meta {
+  name: say
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{base}}/mcp
+  body: json
+  auth: bearer
+}
+
+headers {
+  Accept: application/json, text/event-stream
+  Mcp-Session-Id: {{mcpSession}}
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "jsonrpc": "2.0",
+    "id": 24,
+    "method": "tools/call",
+    "params": {
+      "name": "say",
+      "arguments": {
+        "text": "Hola, soy BB-8"
+      }
+    }
+  }
+}
+
+docs {
+  Needs the head. BB-8 speaks Spanish.
+}
