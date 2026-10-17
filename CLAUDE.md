@@ -9,7 +9,7 @@ A 30–35 cm BB-8 (Sphero style) driven by an LLM through MCP and its own OpenRo
 
 ## Architecture in one line
 
-The model reaches `bb8-body` through MCP (`:8765/mcp`) or the agent (`/agent/ask`). `bb8-body` is a Go binary on the Pi 3 B+ and the only owner of the serial port; it drives the Arduino (10 ms reflexes). `bb8-head` (Go, Pi Zero W) dials the body over mutual TLS (:8772) and opens no ports.
+At run time the brain is the OpenRouter agent inside `bb8-body`: voice (ReSpeaker on the head) → body → `voz` (wake word, STT) → `/agent/ask` → agent → tools → Arduino. The same tools are exposed over MCP (`:8765/mcp`) for external clients such as Claude Code, for development. `bb8-body` is a Go binary on the Pi 3 B+ and the only owner of the serial port; it drives the Arduino (10 ms reflexes). `bb8-head` (Go, Pi Zero W) dials the body over mutual TLS (:8772) and opens no ports.
 
 Details: `wiki/Arquitectura.md`. Wire formats: `wiki/Protocolo.md` (the source of truth).
 

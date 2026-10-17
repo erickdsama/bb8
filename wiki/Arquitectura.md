@@ -20,6 +20,35 @@ flowchart TD
   B -->|HTTPS| EXT[(Open-Meteo, Google Calendar…)]
 ```
 
+## A voice order, end to end
+
+This is the path at run time. **Claude is not in it**: the brain is the OpenRouter agent inside `bb8-body`.
+
+```
+voice ─► ReSpeaker (head, Zero W) ──► mutual TLS ──► bb8-body (Pi 3)
+          VAD + direction                              │
+                                                       ├─► voz: wake word + STT ──► text
+                                                       │                              │
+                                                       │            POST /agent/ask ◄─┘
+                                                       ▼
+                                          OpenRouter agent (LLM)
+                                                       │ tool calls
+                                                       ▼
+                                          tool registry ── same tools the MCP server exposes
+                                                       │
+                          ┌────────────────────────────┼────────────────────────┐
+                          ▼                            ▼                        ▼
+                  motion ─► Arduino            head link ─► camera,        connectors
+                  (move, turn, look_at)        eye, speaker, ToF           (weather, calendar)
+                                                       ▲
+                                                       └── the answer is spoken by the head
+```
+
+- The agent calls the tools **in-process**: no network hop between the LLM loop and the Arduino.
+- The **MCP server** (`:8765/mcp`) exposes that same registry to *external* clients (Claude Code or Desktop) for development and debugging. It is a second door, not the main road.
+- Whoever calls a tool (agent, MCP, gamepad), the limits and the arbiter are the same: they live in `bb8-body` and the firmware.
+- If the Arduino is not ready at boot or resets later, `bb8-body` keeps running, answers `arduino_unavailable` and reconnects by itself.
+
 ## The three layers
 
 | Layer | Where | Cycle | Does |

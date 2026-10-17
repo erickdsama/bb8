@@ -19,6 +19,9 @@ import (
 
 const ReplyTimeout = 200 * time.Millisecond
 
+// ErrTimeout: the Arduino did not answer within ReplyTimeout.
+var ErrTimeout = errors.New("timeout")
+
 type port interface {
 	io.ReadWriteCloser
 	setDeadline(time.Duration) error
@@ -41,9 +44,15 @@ type Link struct {
 	buf []byte
 }
 
-// Open connects, waits for the Uno reset and checks the "I" identification.
+// bootWait is how long a freshly opened tty may take to answer: opening it resets
+// the Uno, and the bootloader plus the firmware setup (gyro calibration, I2C) take 2–4 s.
+const bootWait = 10 * time.Second
+
+// Open connects and checks the "I" identification. On a tty it keeps asking "I"
+// until the Uno has booted instead of waiting a fixed time.
 func Open(url string, baud int) (*Link, error) {
 	l := &Link{URL: url}
+	tries := 1
 	if addr, ok := strings.CutPrefix(url, "socket://"); ok {
 		c, err := net.DialTimeout("tcp", addr, 3*time.Second)
 		if err != nil {
@@ -56,12 +65,20 @@ func Open(url string, baud int) (*Link, error) {
 			return nil, err
 		}
 		l.p = ttyPort{p}
-		time.Sleep(2 * time.Second) // opening the port resets the Uno
-		if rp, ok := p.(interface{ ResetInputBuffer() error }); ok {
-			_ = rp.ResetInputBuffer()
-		}
+		tries = int(bootWait / (ReplyTimeout + 100*time.Millisecond))
+		time.Sleep(1500 * time.Millisecond) // let the reset start before asking
 	}
-	id, err := l.Send(protocol.CmdIdent)
+	var id string
+	var err error
+	for i := 0; i < tries; i++ {
+		if rp, ok := l.p.(ttyPort); ok {
+			_ = rp.ResetInputBuffer() // drop bootloader / boot noise
+		}
+		if id, err = l.Send(protocol.CmdIdent); err == nil || !errors.Is(err, ErrTimeout) && !isGarbage(err) {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 	if err != nil {
 		l.Close()
 		return nil, fmt.Errorf("identify: %w", err)
@@ -112,7 +129,7 @@ func (l *Link) readLine() (string, error) {
 		}
 		left := time.Until(deadline)
 		if left <= 0 {
-			return "", errors.New("timeout")
+			return "", ErrTimeout
 		}
 		if err := l.p.setDeadline(left); err != nil {
 			return "", err
@@ -130,4 +147,10 @@ func (l *Link) readLine() (string, error) {
 			continue
 		}
 	}
+}
+
+// isGarbage: a reply that is not OK/ERR (boot noise while the Uno restarts).
+func isGarbage(err error) bool {
+	var pe *protocol.Error
+	return errors.As(err, &pe) && pe.Reason == "garbage"
 }

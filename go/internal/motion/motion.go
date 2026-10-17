@@ -83,6 +83,13 @@ type Link interface {
 	Close()
 }
 
+// Reconnecting is what serial.Resilient adds to a Link: the identification line can
+// change after a reconnect and the link may be down.
+type Reconnecting interface {
+	Ident() string
+	Connected() bool
+}
+
 type Result = map[string]any
 
 func clamp(v, lo, hi float64) float64 { return math.Max(lo, math.Min(hi, v)) }
@@ -145,12 +152,35 @@ func (s *Service) SetToFSource(f func() (int, bool)) {
 
 func (s *Service) send(line string) (string, error) { return s.link.Send(line) }
 
-// Run starts the background loops until ctx ends, then stops the motors.
-func (s *Service) Run(ctx context.Context) {
-	s.Map.Load() // anchor (start or saved pose) before moving
+// arduino returns the identification and whether the Arduino link is up.
+func (s *Service) arduino() (string, bool) {
+	if r, ok := s.link.(Reconnecting); ok {
+		return r.Ident(), r.Connected()
+	}
+	return s.ident, true
+}
+
+// ArduinoUp runs after every (re)connection. A reconnect means the Uno reset: the
+// encoder counters and the heading restarted from zero, and it forgot sleep and the post angle.
+func (s *Service) ArduinoUp(ident string, first bool) {
+	s.mu.Lock()
+	s.prevEnc = nil
+	s.mu.Unlock()
+	s.asleep.Store(false)
 	if _, err := s.send(protocol.Head(0)); err != nil {
 		slog.Warn("head to 0", "err", err)
 	}
+	if first {
+		slog.Info("arduino connected", "ident", ident)
+		return
+	}
+	s.Map.SetUncertain("the Arduino restarted: the heading started again from 0, check where I am")
+	slog.Warn("arduino reconnected", "ident", ident)
+}
+
+// Run starts the background loops until ctx ends, then stops the motors.
+func (s *Service) Run(ctx context.Context) {
+	s.Map.Load() // anchor (start or saved pose) before moving
 	go s.tofLoop(ctx)
 	s.pollLoop(ctx)
 	_, _ = s.send(protocol.CmdStop)
@@ -159,11 +189,19 @@ func (s *Service) Run(ctx context.Context) {
 func (s *Service) pollLoop(ctx context.Context) {
 	t := time.NewTicker(PollEvery)
 	defer t.Stop()
+	failing := false
 	for {
 		reply, err := s.send(protocol.CmdStatus)
 		if err != nil {
-			slog.Warn("status poll failed", "err", err)
+			if !failing { // once per outage, not every 50 ms
+				slog.Warn("status poll failed", "err", err)
+			}
+			failing = true
 		} else {
+			if failing {
+				slog.Info("status poll recovered")
+			}
+			failing = false
 			st := protocol.ParseStatus(reply)
 			s.mu.Lock()
 			s.updateOdometry(st)
@@ -359,7 +397,7 @@ func (s *Service) Pose() Result {
 		"x_m": round(x, 3), "y_m": round(y, 3), "heading_deg": round(st.YawDeg, 1),
 		"tilt_deg": round(st.TiltDeg, 1), "battery_v": round(st.BatteryV, 2), "head_deg": st.HeadDeg,
 		"tof_m": tof, "flags": st.FlagList(), "control": s.Control(), "asleep": s.asleep.Load(),
-		"arduino": s.ident, "status_age_s": round(time.Since(t).Seconds(), 2),
+		"arduino": arduinoName(s), "arduino_connected": arduinoUp(s), "status_age_s": round(time.Since(t).Seconds(), 2),
 	}
 }
 
@@ -447,6 +485,9 @@ func (s *Service) Listen(wait float64) Result {
 func (s *Service) run(fn func(gen int64) (Result, error)) Result {
 	if s.ManualActive() {
 		return Result{"result": "manual_override"}
+	}
+	if !arduinoUp(s) {
+		return Result{"result": "error", "reason": "arduino_unavailable"}
 	}
 	if s.asleep.Load() { // light sleep: an order wakes it instead of failing
 		s.Wake()
@@ -604,3 +645,13 @@ func (s *Service) head(degrees float64, gen int64) (Result, error) {
 	}
 	return Result{"result": "done", "degrees": s.Status().HeadDeg}, nil
 }
+
+func arduinoName(s *Service) string {
+	id, up := s.arduino()
+	if !up {
+		return "disconnected"
+	}
+	return id
+}
+
+func arduinoUp(s *Service) bool { _, up := s.arduino(); return up }

@@ -88,11 +88,9 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	ser, err := serial.Open(*serialURL, 115200)
-	if err != nil {
-		slog.Error("arduino", "err", err)
-		os.Exit(1)
-	}
+	// The Arduino may not be ready at boot or may reset later: the link connects
+	// lazily and reconnects on its own, so the service never dies because of it.
+	ser := serial.NewResilient(*serialURL, 115200)
 	defer ser.Close()
 
 	cfg, err := config.Open(home(*dataDir))
@@ -103,7 +101,8 @@ func main() {
 	cfg.Register(body.RobotFields()...)
 	cfg.Register(agent.Fields()...)
 
-	svc := motion.New(ser, ser.Ident, floorplan.New(home(*mapPath), home(*mapState)), motion.Defaults())
+	svc := motion.New(ser, "", floorplan.New(home(*mapPath), home(*mapState)), motion.Defaults())
+	ser.OnConnect = svc.ArduinoUp
 
 	// Secure head link.
 	srv := &link.Server{}
