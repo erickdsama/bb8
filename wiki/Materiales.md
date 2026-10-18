@@ -88,6 +88,19 @@ consultada (tienda física o sin precio visible). Nada de esto se ha comprado.
 | ~~Cautín 60 W con control de temperatura + estaño con flux + base~~ | 1 | Mercado Libre / Amazon | 250–350 | El MPU6050 y el VL53L0X vienen con los pines sueltos; sin soldar el escáner I2C no los ve. **Comprado (Home Depot, 15 oct): cautín 40 W, soldadura 60/40 con flux, base** |
 | ~~Multímetro básico~~ | 1 | Mercado Libre / Steren | ~200 | Para ajustar el LM2596 a 5.1 V antes de conectar el servo. **Comprado (Home Depot, 15 oct)** |
 
+### Cableado y fijación del robot final (revisión del 18 oct 2026)
+
+La protoboard solo sirve para las pruebas de la Parte 1: no cabe en el disco y los jumpers se aflojan al rodar. En el robot, 5 V y GND se reparten en un protoshield sobre el Uno y las borneras. Esta lista sale de recorrer, pieza por pieza, cómo se conecta y se sujeta todo.
+
+| Pieza | Cant. | Dónde | MXN | Para qué |
+| --- | --- | --- | --- | --- |
+| Protoshield para Arduino Uno (sin protoboard mini) | 1 | UNIT / Electrozone | ~60–90 (est.) | Se monta sobre el Uno y reparte 5 V y GND; ahí se sueldan encoders, I2C y servo |
+| Cable USB A a B corto, 15–30 cm | 1 | Steren / Electrozone | ~50 (est.) | Pi ↔ Arduino dentro de la esfera; el de pruebas es largo |
+| Jumpers macho-hembra de 30–40 cm (JUMPER-EXT30 o EXT40, Electrozone) | 6 | Electrozone | ~15 | Extensión del servo, que queda en lo alto del poste, hasta el Arduino |
+| Separadores M3 de 8 mm | 12 | Electrozone / ferretería | ~50 (est.) | Pi, Uno y L298N sobre la melamina; los del pedido son de 10 y de 5 mm |
+
+Ya los tienes, y alcanzan: borneras de 2 pines, cable 22 AWG, termorretráctil, jumpers, tornillos M3 × 6 con tuerca, XT60, portafusible e interruptor.
+
 ### Carrito recomendado, ahora (Partes 2, 4 y 5)
 
 Se puede pedir ya; nada depende del tamaño final de la esfera.
