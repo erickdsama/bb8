@@ -122,7 +122,7 @@ Largos medidos sobre la vista superior de la base (artifact de diagramas, secci�
 | Control del puente H | ENA, IN1, IN2, IN3, IN4 y ENB → D5, D7, D8, D11, D12 y D6 | jumpers hembra-hembra | 15 cm | pines macho en el L298N y en el protoshield |
 | GND común | GND del L298N → GND del protoshield | 22 AWG | 10 cm | borne de tornillo y soldado |
 | Servo | señal → D9; 5 V y GND → salida del LM2596 | jumpers macho-hembra de 30–40 cm | 30–40 cm | conector del servo; la alimentación no pasa por el Arduino |
-| IMU | MPU6050 VCC, GND, SDA, SCL e INT → protoshield (5 V, GND, A4, A5, A2) | jumpers hembra-hembra | 20 cm | pines soldados en ambos lados |
+| IMU | MPU6050 VCC, GND, SDA, SCL e INT → protoshield (5 V, GND, A4, A5, A2) | jumpers hembra-hembra | 20 cm | el jumper entra en los pines que ya tiene el sensor y en una tira de pines macho soldada al protoshield; al sensor no se le suelda nada |
 | ToF (Partes 1–4) | VL53L0X VIN, GND, SCL y SDA → protoshield | jumpers hembra-hembra | 20 cm | pasa a la cabeza en la Parte 5 |
 | Pi ↔ Arduino | USB de la Pi → USB-B del Uno | USB A–B corto | 15–30 cm | también lleva el GND común |
 | Divisor de batería (Parte 6) | 12 V → 10 kΩ → A0 → 4.7 kΩ → GND | 22 AWG | 10 cm | soldado en el protoshield |
