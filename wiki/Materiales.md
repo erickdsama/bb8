@@ -98,6 +98,9 @@ La protoboard solo sirve para las pruebas de la Parte 1: no cabe en el disco y l
 | Cable USB A a B corto, 15–30 cm | 1 | Steren / Electrozone | ~50 (est.) | Pi ↔ Arduino dentro de la esfera; el de pruebas es largo |
 | Jumpers macho-hembra de 30–40 cm (JUMPER-EXT30 o EXT40, Electrozone) | 6 | Electrozone | ~15 | Extensión del servo, que queda en lo alto del poste, hasta el Arduino |
 | Separadores M3 de 8 mm | 12 | Electrozone / ferretería | ~50 (est.) | Pi, Uno y L298N sobre la melamina; los del pedido son de 10 y de 5 mm |
+| Tornillos M3 × 20 mm con tuerca de nylon | 24 | Ferretería | ~30 (est.) | Desde abajo de la melamina hasta cada separador (12) y para las cuñas y los soportes (12); los M3 × 6 del pedido solo cierran la placa por arriba |
+| Bridas de 10–15 cm con 10 bases adhesivas | 30 + 10 | Ferretería / Steren | ~30 (est.) | Agrupar y sujetar los cables a la melamina, con una brida antes de cada conector |
+| Velcro de 2 cm | 1 m | Ferretería | ~20 (est.) | Cerrar la LiPo en su charola |
 
 Ya los tienes, y alcanzan: borneras de 2 pines, cable 22 AWG, termorretráctil, jumpers, tornillos M3 × 6 con tuerca, XT60, portafusible e interruptor.
 
