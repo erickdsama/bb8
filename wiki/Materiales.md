@@ -102,7 +102,32 @@ La protoboard solo sirve para las pruebas de la Parte 1: no cabe en el disco y l
 | Bridas de 10–15 cm con 10 bases adhesivas | 30 + 10 | Ferretería / Steren | ~30 (est.) | Agrupar y sujetar los cables a la melamina, con una brida antes de cada conector |
 | Velcro de 2 cm | 1 m | Ferretería | ~20 (est.) | Cerrar la LiPo en su charola |
 
-Ya los tienes, y alcanzan: borneras de 2 pines, cable 22 AWG, termorretráctil, jumpers, tornillos M3 × 6 con tuerca, XT60, portafusible e interruptor.
+| Cable 18 AWG rojo y negro | 1 m de cada uno | Electrozone / Steren | ~40 (est.) | La potencia de 12 V hacia el L298N y los motores; el de 22 AWG del pedido se queda para señales y los bucks |
+| Jumpers hembra-hembra de 15–20 cm (JUMPER-H20, Electrozone) | 10 más | Electrozone | ~25 | Hacen falta unos 15 hacia el protoshield; tienes 10 |
+
+Ya los tienes, y alcanzan: borneras de 2 pines, cable 22 AWG, termorretráctil, tiras de pines macho, tornillos M3 × 6 con tuerca, XT60, portafusible e interruptor.
+
+#### Lista de cables del robot final
+
+Largos medidos sobre la vista superior de la base (artifact de diagramas, sección 3), con margen.
+
+| Cable | De → a | Calibre | Largo | Conexión |
+| --- | --- | --- | --- | --- |
+| Batería | LiPo → fusible → interruptor → bornera de 12 V | 12 AWG (cables XT60) y 18 AWG | 15–20 cm | XT60 en la LiPo; soldado al fusible y al interruptor; atornillado en la bornera |
+| Potencia del puente H | bornera de 12 V → L298N +12V y GND | 18 AWG | 10 cm | borne de tornillo |
+| Bucks | bornera de 12 V → XL4015 IN y LM2596 IN | 22 AWG | 10–15 cm | soldado al buck |
+| Pi | XL4015 OUT → micro USB de la Pi | el cable USB cortado | 25 cm | ya está hecho |
+| Motores | L298N OUT1·2 y OUT3·4 → M1·M2 de cada motor | cables del kit PH 2.0, empalmados a 22 AWG | 15 cm | PH 2.0 en el motor; borne de tornillo en el L298N |
+| Encoders | VCC, GND, C1 y C2 de cada motor → protoshield | cables del kit PH 2.0 | 15–20 cm | PH 2.0 en el motor; soldados al protoshield |
+| Control del puente H | ENA, IN1, IN2, IN3, IN4 y ENB → D5, D7, D8, D11, D12 y D6 | jumpers hembra-hembra | 15 cm | pines macho en el L298N y en el protoshield |
+| GND común | GND del L298N → GND del protoshield | 22 AWG | 10 cm | borne de tornillo y soldado |
+| Servo | señal → D9; 5 V y GND → salida del LM2596 | jumpers macho-hembra de 30–40 cm | 30–40 cm | conector del servo; la alimentación no pasa por el Arduino |
+| IMU | MPU6050 VCC, GND, SDA, SCL e INT → protoshield (5 V, GND, A4, A5, A2) | jumpers hembra-hembra | 20 cm | pines soldados en ambos lados |
+| ToF (Partes 1–4) | VL53L0X VIN, GND, SCL y SDA → protoshield | jumpers hembra-hembra | 20 cm | pasa a la cabeza en la Parte 5 |
+| Pi ↔ Arduino | USB de la Pi → USB-B del Uno | USB A–B corto | 15–30 cm | también lleva el GND común |
+| Divisor de batería (Parte 6) | 12 V → 10 kΩ → A0 → 4.7 kΩ → GND | 22 AWG | 10 cm | soldado en el protoshield |
+
+Los cables de 12 V van separados de los de señal (I2C y encoders), sujetos con bridas cada 8–10 cm y con una brida antes de cada conector.
 
 ### Carrito recomendado, ahora (Partes 2, 4 y 5)
 
