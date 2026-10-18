@@ -86,7 +86,7 @@ make probar      # both of the above
 - **Head:** the original Raspberry Pi **Zero W** (armv6, 512 MB, hostname `bb8-head`), not a Zero 2 W. Piper does not run there; the head speaks with `espeak-ng`.
   - The ReSpeaker 2-Mic HAT is on the Zero.
   - The WS2812 eye's data line goes to GPIO12 (PWM0, the HAT's Grove digital port), driven by the C helper `bb8-eye` (`partes/5-cabeza/eye/bb8_eye.c`, rpi_ws281x) through `/run/bb8-eye.sock`.
-  - The OV5647 camera (wide angle) and the ReSpeaker 2-Mic HAT are pending.
+  - The ReSpeaker is the v1 (WM8960 codec, ALSA card `wm8960soundcard`); it records on the Zero. The OV5647 camera (wide angle) is pending.
 
 Shopping list: `wiki/Materiales.md`. Nothing has been tested on real hardware yet; everything was validated against the dummy.
 

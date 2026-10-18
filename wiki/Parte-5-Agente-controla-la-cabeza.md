@@ -26,7 +26,7 @@ cabeza).
 
 Pi Zero W **original** (armv6, 512 MB), con su propio power bank 18650. Lleva:
 
-- **ReSpeaker 2-Mic Pi HAT v2.0** sobre los 40 pines: los dos micrófonos (a la izquierda y
+- **ReSpeaker 2-Mic Pi HAT v1** (WM8960) sobre los 40 pines: los dos micrófonos (a la izquierda y
   a la derecha de la cabeza), el códec de audio con salida de bocina y 3 LEDs APA102;
 - cámara OV5647 por CSI (cable de 15 a 22 pines: el conector de la Zero es más chico);
 - el ojo: el anillo WS2812 de 16 LED con los datos en **GPIO12 (PWM0)**, por el **puerto
@@ -56,10 +56,10 @@ Pi Zero W **original** (armv6, 512 MB), con su propio power bank 18650. Lleva:
 - Con dos micrófonos no se distingue adelante de atrás de la cabeza: por eso `look_at` hacia un candidato y una foto lo resuelven.
 - Mientras la cabeza habla, el micrófono se silencia.
 
-Instala el driver del HAT (overlay `respeaker-2mic-v2_0` de
-[seeed-linux-dtoverlays](https://github.com/Seeed-Studio/seeed-linux-dtoverlays)); la tarjeta
-aparece como `seeed2micvoicec`. Flags de `bb8-head`:
-- `--mic` (ALSA, por defecto `plughw:CARD=seeed2micvoicec`; vacío = sin micrófono);
+El HAT es la **v1** (códec WM8960, I2C 0x1a): `instalar_zero.sh` activa `dtoverlay=wm8960-soundcard`,
+que ya trae el kernel, y la tarjeta aparece como `wm8960soundcard`. Ajusta el volumen de captura
+con `alsamixer` y guárdalo con `sudo alsactl store`. Flags de `bb8-head`:
+- `--mic` (ALSA, por defecto `plughw:CARD=wm8960soundcard`; vacío = sin micrófono);
 - `--mic-spacing` (distancia entre cápsulas: mídela, por defecto 0.058 m);
 - `--mic-swap`: si al aplaudir a la derecha `listen` da un ángulo negativo, la tarjeta entrega los canales al revés.
 

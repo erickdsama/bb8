@@ -124,9 +124,11 @@ El instalador:
 - instala `bb8-head` y los certificados en `/etc/bb8/pki`;
 - instala `rpicam-apps-lite` (cámara), `alsa-utils` (micrófono y pitidos) y `espeak-ng`
   (voz: Piper no corre en armv6);
-- el driver del ReSpeaker 2-Mic HAT v2.0 va aparte (overlay `respeaker-2mic-v2_0` de
-  [seeed-linux-dtoverlays](https://github.com/Seeed-Studio/seeed-linux-dtoverlays)); revisa
-  con `arecord -l` que aparezca `seeed2micvoicec`;
+- activa el ReSpeaker 2-Mic HAT v1 (códec WM8960, I2C 0x1a) con `dtparam=i2s=on` y
+  `dtoverlay=wm8960-soundcard`, que ya vienen con el kernel. Tras reiniciar, `arecord -l`
+  debe mostrar `wm8960soundcard`. La v2.0 (0x18) usa en cambio el overlay
+  `respeaker-2mic-v2_0` de [seeed-linux-dtoverlays](https://github.com/Seeed-Studio/seeed-linux-dtoverlays)
+  y `--mic plughw:CARD=seeed2micvoicec`;
 - activa **SPI** (anillo NeoPixel) e **I2C** (VL53L0X) y apaga Bluetooth para ahorrar;
 - habilita `bb8-head`, que corre como `bb8` con los grupos `spi i2c video audio gpio`, no
   como root.
@@ -174,7 +176,7 @@ configuración.
 | `BB8_WAKEWORD_UMBRAL` | `0.5` | Sensibilidad de la wake word |
 | `BB8_MIC` | `cabeza` | `cabeza`: el ReSpeaker de la cabeza por el enlace (`GET /audio/stream`); `local`: un micrófono en la Pi 3 |
 | `BB8_MICROFONO` | el de por defecto | Con `BB8_MIC=local`: nombre o índice de `sounddevice` |
-| `BB8_HEAD_MIC`, `BB8_MIC_SWAP`, `BB8_EYE` (en la Zero) | `plughw:CARD=seeed2micvoicec`, `0`, `ws2812-pwm` con micrófono | Dispositivo ALSA del ReSpeaker, canales al revés, tipo de ojo (`ws2812-pwm`, `apa102`, `ws2812`, `none`) |
+| `BB8_HEAD_MIC`, `BB8_MIC_SWAP`, `BB8_EYE` (en la Zero) | `plughw:CARD=wm8960soundcard`, `0`, `ws2812-pwm` con micrófono | Dispositivo ALSA del ReSpeaker, canales al revés, tipo de ojo (`ws2812-pwm`, `apa102`, `ws2812`, `none`) |
 | `BB8_STT` | `local`, o `nube` si hay `BB8_STT_API_KEY` | Dónde se transcribe |
 | `BB8_STT_API_KEY` | — | Clave de la API de transcripción (Groq, OpenAI…) |
 | `BB8_STT_URL` | `https://api.groq.com/openai/v1/audio/transcriptions` | Endpoint compatible con OpenAI |

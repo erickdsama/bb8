@@ -178,7 +178,7 @@ func (v *vadStream) end() {
 
 // Mic captures from the HAT with arecord. It implements SoundDir and streams audio.
 type Mic struct {
-	Device  string  // ALSA device, e.g. "plughw:CARD=seeed2micvoicec"
+	Device  string  // ALSA device, e.g. "plughw:CARD=wm8960soundcard"
 	Spacing float64 // distance between the capsules, m
 	Swap    bool    // the card reports right first
 

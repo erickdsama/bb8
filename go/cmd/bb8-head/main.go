@@ -30,7 +30,7 @@ func main() {
 	body := flag.String("body", env("BB8_BODY_ADDR", "bb8.local:8772"), "body link address")
 	pki := flag.String("pki", env("BB8_PKI", "~/.bb8/pki"), "dir with ca.crt, bb8-head.crt, bb8-head.key")
 	sim := flag.String("sim", "", "forward to the simulated head at this URL instead of hardware")
-	mic := flag.String("mic", env("BB8_HEAD_MIC", "plughw:CARD=seeed2micvoicec"), `ReSpeaker ALSA device ("" = no microphone)`)
+	mic := flag.String("mic", env("BB8_HEAD_MIC", "plughw:CARD=wm8960soundcard"), `ReSpeaker ALSA device ("" = no microphone)`)
 	spacing := flag.Float64("mic-spacing", 0.058, "distance between the two capsules, m (measure it)")
 	swap := flag.Bool("mic-swap", os.Getenv("BB8_MIC_SWAP") == "1", "the card reports the right capsule first")
 	eye := flag.String("eye", env("BB8_EYE", ""), `eye: ws2812-pwm (WS2812 on GPIO12 via bb8-eye), ws2812 (WS2812 on SPI0, no HAT), apa102 (the HAT's LEDs) or none; default ws2812-pwm with a mic, else ws2812`)
