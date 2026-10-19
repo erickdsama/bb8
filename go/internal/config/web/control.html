@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BB-8 Control</title>
+<style>
+:root { --bg:#f6f5f2; --card:#fff; --ink:#1d1d1b; --mute:#6b6a65; --line:#e3e1db; --accent:#e8742a; --ok:#2f8a4c; --bad:#c23b2b; --key:#efede8; }
+@media (prefers-color-scheme: dark) { :root { --bg:#151514; --card:#1f1f1d; --ink:#ecebe6; --mute:#9a9891; --line:#33322f; --key:#2a2a27; } }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 system-ui, sans-serif; }
+header { display:flex; align-items:center; gap:12px; padding:16px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+h1 { font-size:18px; margin:0; }
+header a { color:var(--mute); font-size:13px; margin-left:auto; }
+.dot { width:10px; height:10px; border-radius:50%; background:var(--bad); display:inline-block; }
+.dot.on { background:var(--ok); }
+.pill { font-size:12px; color:var(--mute); }
+main { max-width:860px; margin:0 auto; padding:16px; display:grid; gap:16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+section { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--mute); margin:0 0 10px; }
+.pad { display:grid; grid-template-columns:repeat(3, 72px); grid-template-rows:repeat(3, 72px); gap:8px; justify-content:center; margin:6px 0 14px; }
+.pad button { font-size:26px; border-radius:14px; background:var(--key); color:var(--ink); border:1px solid var(--line); }
+.pad button:active { transform:scale(.96); }
+.pad #stop { background:var(--bad); color:#fff; font-size:15px; font-weight:600; border:0; }
+.pad #up { grid-area:1/2; } .pad #left { grid-area:2/1; } .pad #stop { grid-area:2/2; } .pad #right { grid-area:2/3; } .pad #down { grid-area:3/2; }
+button { font:inherit; cursor:pointer; border:0; border-radius:8px; padding:8px 14px; background:var(--accent); color:#fff; }
+button:disabled { opacity:.45; cursor:default; }
+.steps { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin:6px 0; font-size:13px; color:var(--mute); }
+.steps label { display:flex; gap:4px; align-items:center; background:var(--key); border:1px solid var(--line); border-radius:8px; padding:4px 8px; color:var(--ink); cursor:pointer; }
+.steps input { margin:0; }
+input[type=range] { width:100%; }
+input[type=text], input[type=color] { font:inherit; color:inherit; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:6px 8px; }
+input[type=text] { flex:1; min-width:0; }
+.line { display:flex; gap:8px; align-items:center; margin-top:8px; }
+dl { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; margin:0; font-size:14px; }
+dt { color:var(--mute); }
+dd { margin:0; font-variant-numeric:tabular-nums; }
+.flag { color:var(--bad); font-weight:600; }
+#log { font:12px/1.5 ui-monospace, monospace; color:var(--mute); max-height:220px; overflow:auto; margin:0; padding:0; list-style:none; }
+#log li.err { color:var(--bad); }
+.hint { font-size:12px; color:var(--mute); margin-top:8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>BB-8 Control</h1>
+  <span><span id="dot" class="dot"></span> <span class="pill" id="conn">connecting…</span></span>
+  <a id="cfg" href="/">Config</a>
+</header>
+<main>
+  <section>
+    <h2>Drive</h2>
+    <div class="pad">
+      <button id="up" title="Forward (↑)">▲</button>
+      <button id="left" title="Turn left (←)">◀</button>
+      <button id="stop" title="Stop (space)">STOP</button>
+      <button id="right" title="Turn right (→)">▶</button>
+      <button id="down" title="Back (↓)">▼</button>
+    </div>
+    <div class="steps">Distance
+      <label><input type="radio" name="dist" value="0.1" checked>10 cm</label>
+      <label><input type="radio" name="dist" value="0.2">20 cm</label>
+      <label><input type="radio" name="dist" value="0.5">50 cm</label>
+    </div>
+    <div class="steps">Turn
+      <label><input type="radio" name="ang" value="15">15°</label>
+      <label><input type="radio" name="ang" value="45" checked>45°</label>
+      <label><input type="radio" name="ang" value="90">90°</label>
+    </div>
+    <p class="hint">Keyboard: arrows to drive, space to stop. Each press is one MCP tool call (move / turn); the robot stops by itself.</p>
+  </section>
+
+  <section>
+    <h2>Head</h2>
+    <input id="head" type="range" min="-90" max="90" step="5" value="0">
+    <div class="line"><span class="pill" id="head-val">0°</span><span style="flex:1"></span><button id="center">Center</button></div>
+    <div class="line"><input id="say-text" type="text" placeholder="Something for BB-8 to say"><button id="say">Say</button></div>
+    <div class="line"><span class="pill">Eye</span><input id="eye" type="color" value="#2266ff"><span class="pill" id="head-link"></span></div>
+  </section>
+
+  <section>
+    <h2>State</h2>
+    <dl>
+      <dt>Arduino</dt><dd id="s-ard">–</dd>
+      <dt>Control</dt><dd id="s-ctl">–</dd>
+      <dt>Position</dt><dd id="s-pos">–</dd>
+      <dt>Heading</dt><dd id="s-hdg">–</dd>
+      <dt>Distance ahead</dt><dd id="s-tof">–</dd>
+      <dt>Tilt</dt><dd id="s-tilt">–</dd>
+      <dt>Battery</dt><dd id="s-bat">–</dd>
+      <dt>Flags</dt><dd id="s-flags">–</dd>
+    </dl>
+  </section>
+
+  <section>
+    <h2>Log</h2>
+    <ul id="log"></ul>
+  </section>
+</main>
+<script>
+// A small MCP client (streamable HTTP): initialize → Mcp-Session-Id → notifications/initialized → tools/call.
+const q = new URLSearchParams(location.search);
+let token = q.get("token") || "";
+try { if (token) localStorage.setItem("bb8-token", token); else token = localStorage.getItem("bb8-token") || ""; } catch (e) {}
+if (token) document.getElementById("cfg").href = "/?token=" + encodeURIComponent(token);
+const $ = (id) => document.getElementById(id);
+
+let session = null, nextId = 1, initializing = null;
+
+async function post(msg) {
+  const headers = { "Content-Type": "application/json", "Accept": "application/json, text/event-stream" };
+  if (token) headers.Authorization = "Bearer " + token;
+  if (session) headers["Mcp-Session-Id"] = session;
+  const r = await fetch("/mcp", { method: "POST", headers, body: JSON.stringify(msg) });
+  return r;
+}
+
+// The reply comes as JSON or as an SSE stream; take the message with our id.
+async function readReply(r, id) {
+  const text = await r.text();
+  if ((r.headers.get("Content-Type") || "").includes("text/event-stream")) {
+    for (const block of text.split(/\n\n/)) {
+      const data = block.split("\n").filter((l) => l.startsWith("data:")).map((l) => l.slice(5).trim()).join("\n");
+      if (!data) continue;
+      const m = JSON.parse(data);
+      if (m.id === id) return m;
+    }
+    throw new Error("no reply");
+  }
+  return JSON.parse(text);
+}
+
+async function init() {
+  session = null;
+  const id = nextId++;
+  const r = await post({ jsonrpc: "2.0", id, method: "initialize",
+    params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "bb8-control-page", version: "1" } } });
+  if (r.status === 401) throw new Error("unauthorized: open this page with ?token=…");
+  if (!r.ok) throw new Error("initialize: HTTP " + r.status);
+  session = r.headers.get("Mcp-Session-Id");
+  await readReply(r, id);
+  await post({ jsonrpc: "2.0", method: "notifications/initialized" });
+}
+
+async function ensureSession() {
+  if (session) return;
+  if (!initializing) initializing = init().finally(() => { initializing = null; });
+  await initializing;
+}
+
+async function callTool(name, args = {}, retry = true) {
+  await ensureSession();
+  const id = nextId++;
+  const r = await post({ jsonrpc: "2.0", id, method: "tools/call", params: { name, arguments: args } });
+  if ((r.status === 404 || r.status === 400) && retry) { session = null; return callTool(name, args, false); }
+  if (!r.ok) throw new Error(name + ": HTTP " + r.status);
+  const m = await readReply(r, id);
+  if (m.error) throw new Error(m.error.message);
+  const txt = (m.result.content || []).map((c) => c.text || "").join("");
+  let data; try { data = JSON.parse(txt); } catch (e) { data = { text: txt }; }
+  if (m.result.isError) throw new Error(txt);
+  return data;
+}
+
+function log(msg, err) {
+  const li = document.createElement("li");
+  li.textContent = new Date().toLocaleTimeString() + "  " + msg;
+  if (err) li.className = "err";
+  $("log").prepend(li);
+  while ($("log").children.length > 60) $("log").lastChild.remove();
+}
+
+function setConn(ok, txt) { $("dot").classList.toggle("on", ok); $("conn").textContent = txt; }
+
+// --- driving: one order at a time; STOP always goes through ---
+let busy = false;
+const motion = ["up", "down", "left", "right"];
+function setBusy(b) { busy = b; motion.forEach((k) => ($(k).disabled = b)); }
+const pick = (n) => parseFloat(document.querySelector(`input[name=${n}]:checked`).value);
+
+async function order(name, args) {
+  if (busy) return;
+  setBusy(true);
+  log(`→ ${name} ${JSON.stringify(args)}`);
+  try {
+    const r = await callTool(name, args);
+    log(`← ${name} ${JSON.stringify(r)}`, r.result && r.result !== "done");
+  } catch (e) { log(`✗ ${name}: ${e.message}`, true); }
+  setBusy(false);
+  refresh();
+}
+async function stop() {
+  try { await callTool("stop"); log("■ stop"); } catch (e) { log("✗ stop: " + e.message, true); }
+}
+
+$("up").onclick = () => order("move", { meters: pick("dist") });
+$("down").onclick = () => order("move", { meters: -pick("dist") });
+$("left").onclick = () => order("turn", { degrees: -pick("ang") });
+$("right").onclick = () => order("turn", { degrees: pick("ang") });
+$("stop").onclick = stop;
+
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT" && e.target.type === "text") return;
+  const k = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" }[e.key];
+  if (k) { e.preventDefault(); $(k).click(); }
+  if (e.key === " ") { e.preventDefault(); stop(); }
+});
+
+// --- head ---
+let headTimer;
+$("head").oninput = () => {
+  $("head-val").textContent = $("head").value + "°";
+  clearTimeout(headTimer);
+  headTimer = setTimeout(() => headTo(+$("head").value), 150);
+};
+async function headTo(deg) {
+  try { const r = await callTool("look_at", { degrees: deg }); if (r.result !== "done") log("look_at " + JSON.stringify(r), true); }
+  catch (e) { log("✗ look_at: " + e.message, true); }
+}
+$("center").onclick = () => { $("head").value = 0; $("head-val").textContent = "0°"; headTo(0); };
+$("say").onclick = async () => {
+  const text = $("say-text").value.trim();
+  if (!text) return;
+  try { log("← say " + JSON.stringify(await callTool("say", { text }))); } catch (e) { log("✗ say: " + e.message, true); }
+};
+$("eye").onchange = async () => {
+  try { log("← eye " + JSON.stringify(await callTool("set_eye_color", { color: $("eye").value }))); } catch (e) { log("✗ eye: " + e.message, true); }
+};
+
+// --- state, polled through get_pose ---
+const fmt = (v, d, u) => (v === null || v === undefined ? "–" : (+v).toFixed(d) + u);
+async function refresh() {
+  try {
+    const p = await callTool("get_pose");
+    setConn(true, "connected over MCP");
+    $("s-ard").textContent = p.arduino_connected ? (p.arduino || "connected") : "not connected";
+    $("s-ctl").textContent = p.control + (p.asleep ? " · asleep" : "");
+    $("s-pos").textContent = `x ${fmt(p.x_m, 2, " m")} · y ${fmt(p.y_m, 2, " m")}`;
+    $("s-hdg").textContent = fmt(p.heading_deg, 1, "°");
+    $("s-tof").textContent = p.tof_m === null ? "nothing in range" : fmt(p.tof_m, 2, " m");
+    $("s-tilt").textContent = fmt(p.tilt_deg, 1, "°");
+    $("s-bat").textContent = p.battery_v ? fmt(p.battery_v, 2, " V") : "–";
+    const flags = p.flags || [];
+    $("s-flags").innerHTML = flags.length ? flags.map((f) => `<span class="flag">${f}</span>`).join(", ") : "none";
+    const head = p.head && p.head.connected;
+    $("head-link").textContent = head ? "head connected" : "head offline (say / eye need it)";
+  } catch (e) {
+    session = null;
+    setConn(false, e.message);
+  }
+}
+refresh();
+setInterval(() => { if (!document.hidden) refresh(); }, 1000);
+</script>
+</body>
+</html>
