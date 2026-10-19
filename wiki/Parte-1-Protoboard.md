@@ -56,6 +56,20 @@ Ruedas en el aire la primera vez.
 
 `p2_motores_encoders` también sirve para medir pulsos por vuelta: `r`, gira la rueda
 10 vueltas a mano, divide `E` entre 10 y anótalo para `TICKS_PER_REV` (Parte 3).
+Ojo: p2 deja el motor **frenado** (sus dos cables unidos) y así no gira a mano; para
+contar vueltas sube una copia con el freno cambiado a "suelto" (`IN1 = IN2 = LOW`).
+
+### Resultado en el robot de Erick (18 oct 2026)
+
+| Qué | Valor |
+| --- | --- |
+| Conector del encoder (JGB37-520B) | `M1 · GND · C2 · C1 · VCC · M2`; cable: rojo M1, negro GND, verde C2, amarillo C1, azul VCC, blanco M2. Rojo–blanco ≈ 23 Ω, azul–negro ≈ 250 kΩ |
+| Cableado | C1 → D2/D3, C2 → D4/D10, VCC al **5V del Arduino** (no al riel del servo ni al de 12 V) |
+| ENA / ENB del L298N (HW-095) | Sin jumper, la señal va al pin de la **orilla**; el de adentro da 5 V |
+| Sentido | Con las mismas órdenes los dos giran igual; en espejo el izquierdo va al revés → `INVERTIR_MOTOR_IZQ 1` e `INVERTIR_ENC_IZQ 1` |
+| Pulsos por vuelta del eje | ≈ 776 → `motion.ticks_per_rev` en la configuración |
+| PWM mínimo que arranca | Entre 65 y 80 (sin carga, 12 V con el L298N) → `motion.pwm_min 90`, `motion.pwm_turn 110`, `motion.pwm_turn_min 90` |
+| Velocidad a PWM 255 | ~2500 pulsos/s (unas 190 rpm en el eje) |
 
 ## Firmware completo
 
