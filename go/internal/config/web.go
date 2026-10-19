@@ -10,12 +10,13 @@ import (
 	"time"
 )
 
-//go:embed web/index.html
+//go:embed web/index.html web/control.html
 var webFS embed.FS
 
 // Web serves the config UI and API:
 //
 //	GET   /                     the page
+//	GET   /control              drive page; it talks to /mcp like any MCP client
 //	GET   /api/config           {rev, values, live}
 //	GET   /api/config/schema    fields
 //	PATCH /api/config           {baseRev, values} → 409 with the latest config on a stale rev
@@ -40,6 +41,11 @@ func Web(s *Store, live func() map[string]any) http.Handler {
 	}
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		b, _ := webFS.ReadFile("web/index.html")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write(b)
+	})
+	mux.HandleFunc("GET /control", func(w http.ResponseWriter, r *http.Request) {
+		b, _ := webFS.ReadFile("web/control.html")
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, _ = w.Write(b)
 	})

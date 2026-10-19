@@ -47,6 +47,11 @@ Al terminar imprime la dirección de la página de configuración con el token:
 http://bb8.local:8765/?token=…
 ```
 
+Para manejarlo con botones abre **`http://bb8.local:8765/control?token=…`** (o el enlace
+*Control* de esa página): flechas para avanzar y girar, STOP, la cabeza, `say` y el ojo, y
+el estado en vivo. La página es un cliente MCP más: cada botón es una llamada a una
+herramienta (`move`, `turn`, `look_at`…), con los mismos límites que tiene Claude.
+
 Ábrela y pon ahí la clave de OpenRouter (`agent.api_key`), el modelo, tu ciudad
 (`home.city`) y los conectores (clima, calendario). Todo eso vive en
 `/var/lib/bb8/config.json` y `secrets.json` (0600), no en `/etc/bb8.env`. Los cambios se
