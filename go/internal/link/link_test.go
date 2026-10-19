@@ -101,3 +101,13 @@ func TestRejectsForeignCert(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestFirstIP(t *testing.T) {
+	out := "192.168.1.20    STREAM bb8.local\n192.168.1.20    DGRAM  \n"
+	if got := firstIP(out); got != "192.168.1.20" {
+		t.Fatalf("firstIP = %q", got)
+	}
+	if got := firstIP(""); got != "" {
+		t.Fatalf("empty output gave %q", got)
+	}
+}
