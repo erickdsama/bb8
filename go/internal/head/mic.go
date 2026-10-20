@@ -24,6 +24,7 @@ const (
 	chunkBytes     = 3200 // 100 ms of 16-bit mono per audio frame on the link
 	hangoverMS     = 600  // silence that ends an utterance
 	maxUtterMS     = 15000
+	noiseWindow    = 100   // 2 s of frames: the floor is the quietest of them
 	minVoiceRMS    = 150.0 // int16 units; below this is never voice
 	voiceOverNoise = 3.2   // ≈ +10 dB over the noise floor
 	// dBFS → approximate dB SPL for the HAT's MEMS mics (calibrate on the robot).
@@ -46,6 +47,8 @@ type vadStream struct {
 	sound   func(SoundEvent)
 
 	noise      float64
+	recent     [noiseWindow]float64 // frame levels, for the noise floor
+	recentN    int
 	active     bool
 	voicedRun  int
 	quietMS    int
@@ -95,6 +98,19 @@ func (v *vadStream) feed(l, r []float64, muted bool) {
 		mono[i] = (l[i] + r[i]) / 2
 	}
 	level := rms(mono)
+	// The EMA below only learns while nobody speaks, so a steady noise above
+	// the voice threshold (more mic gain, a fan) froze it and every frame looked
+	// voiced. Speech always has gaps: the quietest frame of the last 2 s is a
+	// floor the noise estimate can't stay under.
+	v.recent[v.recentN%noiseWindow] = level
+	v.recentN++
+	if v.recentN >= noiseWindow {
+		floor := v.recent[0]
+		for _, x := range v.recent[1:] {
+			floor = math.Min(floor, x)
+		}
+		v.noise = math.Max(v.noise, floor)
+	}
 	voiced := level > math.Max(v.noise*voiceOverNoise, minVoiceRMS)
 	frame := pcm(mono)
 	if !v.active {

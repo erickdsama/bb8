@@ -72,6 +72,9 @@ class MicrofonoRed:
         self.silenciado = threading.Event()
         self._activa = threading.Event()     # hay una frase llegando
         self._resto = np.zeros(0, dtype=np.int16)
+        # True when the last block was filler: the head's own VAD sent nothing,
+        # i.e. nobody is speaking. Escucha uses it to end a phrase.
+        self.relleno = True
         threading.Thread(target=self._leer, name="mic-red", daemon=True).start()
         log.info("Micrófono: la cabeza, vía %s", self.url)
 
@@ -124,12 +127,21 @@ class MicrofonoRed:
         self._resto = m[n:]
 
     def bloque(self, timeout: float | None = None) -> np.ndarray:
-        try:
-            return self._q.get(timeout=V.BLOQUE / V.TASA if not self._activa.is_set() else timeout)
-        except queue.Empty:
-            if self._activa.is_set():
-                raise
-            return np.zeros(V.BLOQUE, dtype=np.int16)   # nadie habla: silencio a ritmo real
+        # Poll in 80 ms steps: a phrase can start or the link can drop while we wait,
+        # and the old single get() raised Empty when audio_start raced with it.
+        limite = None if timeout is None else time.monotonic() + timeout
+        while True:
+            activa = self._activa.is_set()
+            try:
+                b = self._q.get(timeout=V.BLOQUE / V.TASA)
+                self.relleno = False
+                return b
+            except queue.Empty:
+                if not (activa or self._activa.is_set()):
+                    self.relleno = True
+                    return np.zeros(V.BLOQUE, dtype=np.int16)   # nadie habla: silencio a ritmo real
+                if limite is not None and time.monotonic() >= limite:
+                    raise
 
     def vaciar(self) -> None:
         while not self._q.empty():

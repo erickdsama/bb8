@@ -42,7 +42,9 @@ class Agente:
 
         hablante None = unregistered voice; "" = no voice registry (everyone counts as known).
         """
-        quien = "unknown" if hablante is None else (hablante or "someone")
+        # "" = no voices registered (voice ID off): the body lets it move, and the
+        # model must not read it as a stranger ("someone" made it refuse).
+        quien = "unknown" if hablante is None else (hablante or "voice ID off")
         r = await self._http.post("/agent/ask", json={"text": f"[Speaker: {quien}] {texto}",
                                                       "speaker_known": hablante is not None})
         out = r.json()

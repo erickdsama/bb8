@@ -12,6 +12,7 @@ import argparse
 import asyncio
 import logging
 import re
+import time
 
 import httpx
 
@@ -22,6 +23,7 @@ from .agente import Agente
 from .audio import abrir_microfono
 from .escucha import Escucha
 from .hablantes import Hablantes
+from .panel import Panel
 from .salida import Voz
 from .stt import crear_transcriptor
 
@@ -39,9 +41,21 @@ async def _energia(ruta: str) -> None:
         pass
 
 
+async def _registrar(audio, texto: str, respuesta: str) -> None:
+    """Keep the phrase, its transcript and the reply in the audio log (voice.audio_log)."""
+    try:
+        async with httpx.AsyncClient(timeout=3) as cli:
+            await cli.post(f"{V.MOTION_URL}/audio/phrase",
+                           params={"text": texto or "(nada)", "reply": respuesta or ""},
+                           content=audio.astype("int16").tobytes())
+    except httpx.HTTPError:
+        pass
+
+
 async def bucle(sin_registro: bool) -> None:
     mic = abrir_microfono()
-    escucha = Escucha(mic)
+    panel = Panel()
+    escucha = Escucha(mic, panel)
     stt = crear_transcriptor()
     hablantes = Hablantes()
     voz = Voz(mic)
@@ -51,33 +65,50 @@ async def bucle(sin_registro: bool) -> None:
     voz.pitido("wake")
     voz.ojo("blue", "breathe")
     log.info("✅ BB-8 escuchando (wake word: %s)", V.WAKEWORD)
+    seguimiento = 0   # >0: BB-8 just asked something, listen without the wake word
     try:
         while True:
-            await asyncio.to_thread(escucha.esperar_wakeword)
+            if seguimiento:
+                log.info("Follow-up %d: listening without the wake word", seguimiento)
+            else:
+                panel.evento("state", state="waiting")
+                await asyncio.to_thread(escucha.esperar_wakeword)
             await _energia("/actividad")
+            # Cyan + the shortest beep (0.18 s) say "listening". The head mutes its
+            # mic while it plays, so a long beep cut commands said in one go.
             voz.ojo("cyan")
-            voz.pitido("question")
-            audio = await asyncio.to_thread(escucha.grabar_frase)
+            voz.pitido("yes")
+            panel.evento("state", state="listening")
+            espera = V.ESPERA_SEGUIMIENTO_S if seguimiento else V.ESPERA_VOZ_S
+            audio = await asyncio.to_thread(escucha.grabar_frase, espera)
             if audio is None:
+                seguimiento = 0
                 voz.ojo("blue", "breathe")
                 continue
             voz.ojo("orange", "breathe")   # pensando
+            panel.evento("state", state="thinking")
+            t_stt = time.monotonic()
             tareas = [asyncio.to_thread(stt, audio), asyncio.to_thread(hablantes.identificar, audio)]
             if V.BUSCAR_CARA:
                 from .cara import mirar_a_quien_habla
                 tareas.append(mirar_a_quien_habla())
             res = await asyncio.gather(*tareas, return_exceptions=True)
             texto, ident = res[0], res[1]
+            panel.evento("heard", text=texto if isinstance(texto, str) else "",
+                         seconds=round(len(audio) / V.TASA, 1), stt_s=round(time.monotonic() - t_stt, 2))
             if isinstance(texto, Exception) or not texto:
+                await _registrar(audio, "", "")
                 log.warning("Transcripción vacía o fallida: %s", texto)
                 voz.pitido("sad")
                 voz.ojo("blue", "breathe")
+                seguimiento = 0
                 continue
             quien = "" if sin_registro or isinstance(ident, Exception) else ident[0]
             if A_DORMIR.search(texto) and quien is not None:
                 voz.pitido("yawn")
                 voz.decir(frase("buenas_noches"))
                 await _energia("/dormir")
+                seguimiento = 0
                 continue
             try:
                 respuesta = await agente.turno(texto, quien)
@@ -91,9 +122,16 @@ async def bucle(sin_registro: bool) -> None:
                     agente = Agente()
                     await agente.conectar()
             log.info("BB-8: %s", respuesta)
+            panel.evento("reply", text=respuesta)
+            await _registrar(audio, texto, respuesta)
             voz.ojo("green")
+            panel.evento("state", state="speaking")
             voz.decir(respuesta)
-            voz.ojo("blue", "breathe")
+            # A reply that asks something keeps the conversation open.
+            pregunta = respuesta.rstrip().endswith("?")
+            seguimiento = seguimiento + 1 if pregunta and seguimiento < V.SEGUIMIENTOS_MAX else 0
+            if not seguimiento:
+                voz.ojo("blue", "breathe")
     finally:
         await agente.cerrar()
 

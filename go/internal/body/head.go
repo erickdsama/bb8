@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -32,11 +33,26 @@ type Head struct {
 	tofAt   time.Time
 	state   map[string]any
 	uttHead map[uint64]float64 // utterance id → head angle at audio_start
+	lastEye map[string]any     // replayed on reconnect: the head shows "waiting" while unlinked
 }
 
 func NewHead(srv *link.Server) *Head {
 	h := &Head{Link: srv, state: map[string]any{}, Audio: NewAudioHub(), uttHead: map[uint64]float64{}}
 	srv.OnEvent = h.onEvent
+	prev := srv.OnConnect
+	srv.OnConnect = func(p *link.Peer) {
+		if prev != nil {
+			prev(p)
+		}
+		h.mu.Lock()
+		eye := h.lastEye
+		h.mu.Unlock()
+		if eye != nil {
+			if _, _, err := h.request(context.Background(), "eye", eye, 3*time.Second); err != nil {
+				slog.Warn("head: restoring eye", "err", err)
+			}
+		}
+	}
 	return h
 }
 
@@ -184,7 +200,11 @@ func (h *Head) Eye(ctx context.Context, color, pattern string, brightness float6
 	if brightness <= 0 || brightness > persona.MaxBrightness {
 		brightness = persona.MaxBrightness
 	}
-	r, _, err := h.request(ctx, "eye", map[string]any{"rgb": rgb, "pattern": pattern, "brightness": brightness}, 3*time.Second)
+	req := map[string]any{"rgb": rgb, "pattern": pattern, "brightness": brightness}
+	h.mu.Lock()
+	h.lastEye = req
+	h.mu.Unlock()
+	r, _, err := h.request(ctx, "eye", req, 3*time.Second)
 	if err != nil {
 		return fail(err)
 	}

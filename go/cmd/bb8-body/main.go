@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -145,6 +146,11 @@ func main() {
 	}
 	web := http.NewServeMux()
 	web.Handle("/", config.Web(cfg, live))
+	alog := body.NewAudioLog(func() bool { return cfg.Bool("voice.audio_log") })
+	alog.Routes(web, "/api/audio")
+	feed := body.NewVoiceFeed()
+	go feed.RunLevels(ctx, head.Audio)
+	web.HandleFunc("GET /api/voice/events", feed.SSEHandler)
 	brain.Routes(web, "/api/agent")
 	calendar.AuthHandlers(cfg, web)
 	web.HandleFunc("GET /api/connectors", func(w http.ResponseWriter, r *http.Request) {
@@ -158,6 +164,16 @@ func main() {
 
 	local := body.LocalAPI(svc, head, reg)
 	brain.Routes(local, "/agent")
+	local.HandleFunc("POST /voice/event", feed.PostHandler)                               // voz: live state for the /voice page
+	local.HandleFunc("POST /audio/phrase", func(w http.ResponseWriter, r *http.Request) { // voz: PCM body, ?text=
+		pcm, err := io.ReadAll(io.LimitReader(r.Body, 32000*30))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		alog.Add(pcm, r.URL.Query().Get("text"), r.URL.Query().Get("reply"))
+		w.WriteHeader(http.StatusNoContent)
+	})
 	serve(ctx, *apiAddr, body.Logged(local))
 
 	slog.Info("bb8-body ready", "mcp", "http://"+*mcpAddr+"/mcp", "web", "http://"+*mcpAddr+"/", "api", *apiAddr, "link", *linkAddr)

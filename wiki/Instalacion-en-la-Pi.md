@@ -107,6 +107,13 @@ Para la nube:
 
 Logs: `journalctl -fu bb8-body` (o el servicio que sea).
 
+Para ver la voz en vivo abre `http://bb8.local:8765/voice?token=…`:
+- volumen del micrófono y puntaje de «Oye BB-8» frente a su umbral;
+- estado (esperando, escuchando, pensando, hablando);
+- lo que se transcribió y lo que contestó BB-8;
+- con **voice → Keep recent voice clips** activado en la configuración, las últimas 20 frases
+  con su audio (solo en RAM).
+
 ## Pi Zero W (cabeza)
 
 Pi Zero W original (armv6) con Raspberry Pi OS Lite de 32 bits y hostname `bb8-head`.
@@ -182,7 +189,11 @@ configuración.
 | `BB8_MIC` | `cabeza` | `cabeza`: el ReSpeaker de la cabeza por el enlace (`GET /audio/stream`); `local`: un micrófono en la Pi 3 |
 | `BB8_MICROFONO` | el de por defecto | Con `BB8_MIC=local`: nombre o índice de `sounddevice` |
 | `BB8_HEAD_MIC`, `BB8_MIC_SWAP`, `BB8_EYE` (en la Zero) | `plughw:CARD=wm8960soundcard`, `0`, `ws2812-pwm` con micrófono | Dispositivo ALSA del ReSpeaker, canales al revés, tipo de ojo (`ws2812-pwm`, `apa102`, `ws2812`, `none`) |
-| `BB8_STT` | `local`, o `nube` si hay `BB8_STT_API_KEY` | Dónde se transcribe |
+| `BB8_STT` | `wyoming` si hay `BB8_STT_WYOMING`; si no `nube` con `BB8_STT_API_KEY`; si no `local` | Dónde se transcribe |
+| `BB8_STT_WYOMING` | — | `host:puerto` de un servidor Wyoming de transcripción en tu red (p. ej. `wyoming-faster-whisper` con `large-v3-turbo` en un PC con GPU, puerto 10300). Es lo que mejor entiende a 1 m |
+| `BB8_TTS_WYOMING` (en la Zero) | — | `host:puerto` de un servidor Wyoming de voz (Piper). Sin él, la cabeza habla con `espeak-ng` |
+| `BB8_ESPERA_SEGUIMIENTO_S` | `8` | Si BB-8 termina con una pregunta, escucha esta cantidad de segundos sin «Oye BB-8» (máximo 3 seguidas) |
+| `BB8_GUARDAR_FRASES` | — | Carpeta donde guardar cada frase grabada como WAV (depuración) |
 | `BB8_STT_API_KEY` | — | Clave de la API de transcripción (Groq, OpenAI…) |
 | `BB8_STT_URL` | `https://api.groq.com/openai/v1/audio/transcriptions` | Endpoint compatible con OpenAI |
 | `BB8_STT_MODELO` | `whisper-large-v3-turbo` | Modelo de la API (`whisper-1` en OpenAI) |

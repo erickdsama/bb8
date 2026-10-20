@@ -48,3 +48,32 @@ func TestVADStreamUtterance(t *testing.T) {
 		t.Fatal("muted mic streamed audio")
 	}
 }
+
+// A steady noise well above minVoiceRMS (high mic gain) must not keep an
+// utterance open forever: the floor catches up and the stream goes quiet.
+func TestVADStreamLoudNoise(t *testing.T) {
+	var ends int
+	vs := newVADStream(0.058, func(c AudioChunk) {
+		if c.Kind == "end" {
+			ends++
+		}
+	}, func(SoundEvent) {})
+	r := rand.New(rand.NewPCG(5, 6))
+	frame := func(amp float64) []float64 {
+		x := make([]float64, 320)
+		for i := range x {
+			x[i] = amp * r.NormFloat64()
+		}
+		return x
+	}
+	for f := 0; f < 400; f++ { // 8 s of noise at RMS 600
+		x := frame(600)
+		vs.feed(x, x, false)
+	}
+	if vs.active {
+		t.Fatalf("still in an utterance after 8 s of steady noise (noise=%.0f)", vs.noise)
+	}
+	if ends > 1 {
+		t.Fatalf("%d utterances from steady noise", ends)
+	}
+}
