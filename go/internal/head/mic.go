@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"log/slog"
 	"math"
@@ -17,9 +18,11 @@ import (
 )
 
 const (
-	MicRate        = 16000
-	frameSamples   = 320  // 20 ms
-	gccBlock       = 512  // 32 ms per GCC-PHAT block
+	MicRate        = 16000 // what the body gets: voice
+	CaptureRate    = 48000 // what the HAT records: 3× the time resolution for the direction
+	decim          = CaptureRate / MicRate
+	frameSamples   = 320  // 20 ms at MicRate
+	gccBlock       = 512  // 32 ms per GCC-PHAT block at MicRate (×decim at CaptureRate)
 	prerollFrames  = 15   // 300 ms kept before the voice starts
 	chunkBytes     = 3200 // 100 ms of 16-bit mono per audio frame on the link
 	hangoverMS     = 600  // silence that ends an utterance
@@ -59,12 +62,28 @@ type vadStream struct {
 	seq        int
 	bl, br     []float64
 	gcc        *GCC
+	d, blk     int        // capture rate / MicRate; GCC block length at the capture rate
+	lp         *decimator // capture rate → MicRate for the voice (nil when d == 1)
 	sumSq      float64
 	voicedSamp int
 }
 
 func newVADStream(spacing float64, emit func(AudioChunk), sound func(SoundEvent)) *vadStream {
-	return &vadStream{spacing: spacing, emit: emit, sound: sound, noise: 60, gcc: NewGCC(gccBlock)}
+	return newVADStreamAt(1, spacing, emit, sound)
+}
+
+// newVADStreamAt takes frames recorded at d×MicRate: the direction is computed
+// at that rate and the voice is low-passed and decimated to MicRate.
+func newVADStreamAt(d int, spacing float64, emit func(AudioChunk), sound func(SoundEvent)) *vadStream {
+	blk := gccBlock
+	for blk < gccBlock*d { // the FFT wants a power of two: 2048 (43 ms) at 48 kHz
+		blk *= 2
+	}
+	v := &vadStream{spacing: spacing, emit: emit, sound: sound, noise: 60, d: d, blk: blk, gcc: NewGCC(blk)}
+	if d > 1 {
+		v.lp = newDecimator(d)
+	}
+	return v
 }
 
 func rms(x []float64) float64 {
@@ -83,8 +102,8 @@ func pcm(mono []float64) []byte {
 	return b
 }
 
-// feed takes one 20 ms frame of left/right samples. muted drops the frame
-// (and ends any utterance), e.g. while the head itself is speaking.
+// feed takes one 20 ms frame of left/right samples at the capture rate. muted
+// drops the frame (and ends any utterance), e.g. while the head itself is speaking.
 func (v *vadStream) feed(l, r []float64, muted bool) {
 	if muted {
 		if v.active {
@@ -96,6 +115,9 @@ func (v *vadStream) feed(l, r []float64, muted bool) {
 	mono := make([]float64, len(l))
 	for i := range l {
 		mono[i] = (l[i] + r[i]) / 2
+	}
+	if v.lp != nil {
+		mono = v.lp.run(mono)
 	}
 	level := rms(mono)
 	// The EMA below only learns while nobody speaks, so a steady noise above
@@ -133,11 +155,11 @@ func (v *vadStream) feed(l, r []float64, muted bool) {
 	v.data(frame)
 	v.lenMS += 20
 	v.bl, v.br = append(v.bl, l...), append(v.br, r...)
-	for len(v.bl) >= gccBlock {
-		if rms(v.bl[:gccBlock]) > v.noise*2 {
-			v.gcc.Add(v.bl[:gccBlock], v.br[:gccBlock])
+	for len(v.bl) >= v.blk {
+		if rms(v.bl[:v.blk]) > v.noise*2 {
+			v.gcc.Add(v.bl[:v.blk], v.br[:v.blk])
 		}
-		v.bl, v.br = v.bl[gccBlock:], v.br[gccBlock:]
+		v.bl, v.br = v.bl[v.blk:], v.br[v.blk:]
 	}
 	if voiced {
 		v.quietMS = 0
@@ -184,7 +206,7 @@ func (v *vadStream) end() {
 	v.emit(AudioChunk{Kind: "end", ID: v.id})
 	v.active, v.voicedRun = false, 0
 	if v.gcc.Blocks() >= 3 && v.voicedSamp > 0 {
-		ang, ok := v.gcc.Angle(v.spacing, MicRate)
+		ang, ok := v.gcc.Angle(v.spacing, float64(MicRate*v.d))
 		if ok {
 			db := 20*math.Log10(math.Sqrt(v.sumSq/float64(v.voicedSamp))/32768) + levelOffsetDB
 			v.sound(SoundEvent{AngleDeg: math.Round(ang*10) / 10, LevelDB: math.Round(db*10) / 10, ID: v.id})
@@ -227,7 +249,7 @@ func (m *Mic) Run(ctx context.Context) {
 		slog.Warn("no arecord: head runs without microphone")
 		return
 	}
-	vs := newVADStream(m.Spacing, func(c AudioChunk) {
+	vs := newVADStreamAt(decim, m.Spacing, func(c AudioChunk) {
 		select {
 		case m.audio <- c:
 		default: // the link is slow: drop rather than block capture
@@ -251,7 +273,7 @@ func (m *Mic) Run(ctx context.Context) {
 }
 
 func (m *Mic) capture(ctx context.Context, vs *vadStream) error {
-	cmd := exec.CommandContext(ctx, "arecord", "-q", "-D", m.Device, "-f", "S16_LE", "-r", "16000", "-c", "2", "-t", "raw")
+	cmd := exec.CommandContext(ctx, "arecord", "-q", "-D", m.Device, "-f", "S16_LE", "-r", fmt.Sprint(CaptureRate), "-c", "2", "-t", "raw")
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		return err
@@ -263,13 +285,14 @@ func (m *Mic) capture(ctx context.Context, vs *vadStream) error {
 	m.ok.Store(true)
 	slog.Info("microphone capturing", "device", m.Device)
 	rd := bufio.NewReaderSize(out, 8192)
-	buf := make([]byte, frameSamples*4)
-	l, r := make([]float64, frameSamples), make([]float64, frameSamples)
+	const n = frameSamples * decim
+	buf := make([]byte, n*4)
+	l, r := make([]float64, n), make([]float64, n)
 	for {
 		if _, err := io.ReadFull(rd, buf); err != nil {
 			return err
 		}
-		for i := 0; i < frameSamples; i++ {
+		for i := 0; i < n; i++ {
 			a := float64(int16(binary.LittleEndian.Uint16(buf[4*i:])))
 			b := float64(int16(binary.LittleEndian.Uint16(buf[4*i+2:])))
 			if m.Swap {
@@ -279,4 +302,47 @@ func (m *Mic) capture(ctx context.Context, vs *vadStream) error {
 		}
 		vs.feed(l, r, m.muted())
 	}
+}
+
+// decimator low-passes (windowed sinc, cut at 0.45 of the output rate) and
+// keeps every d-th sample, carrying its filter state across frames. Frames
+// must be a multiple of d long (a 20 ms frame always is).
+type decimator struct {
+	d    int
+	taps []float64
+	hist []float64
+}
+
+func newDecimator(d int) *decimator {
+	const n = 48
+	taps := make([]float64, n)
+	fc := 0.45 / float64(d) // cutoff, cycles per input sample
+	sum := 0.0
+	for i := range taps {
+		x := float64(i) - float64(n-1)/2
+		sinc := 2 * fc
+		if x != 0 {
+			sinc = math.Sin(2*math.Pi*fc*x) / (math.Pi * x)
+		}
+		taps[i] = sinc * (0.54 - 0.46*math.Cos(2*math.Pi*float64(i)/float64(n-1))) // Hamming
+		sum += taps[i]
+	}
+	for i := range taps {
+		taps[i] /= sum
+	}
+	return &decimator{d: d, taps: taps, hist: make([]float64, n-1)}
+}
+
+func (z *decimator) run(x []float64) []float64 {
+	buf := append(z.hist, x...)
+	out := make([]float64, len(x)/z.d)
+	for j := range out {
+		acc := 0.0
+		for k, t := range z.taps {
+			acc += t * buf[j*z.d+k]
+		}
+		out[j] = acc
+	}
+	z.hist = append(make([]float64, 0, len(z.taps)-1), buf[len(buf)-(len(z.taps)-1):]...)
+	return out
 }
