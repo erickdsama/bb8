@@ -91,6 +91,7 @@ The Python stack used before took ~100 MB on the body (`bb8.motion_api` 40 MB + 
 | `agent` | OpenRouter tool loop; speaker profiles; publishes heard/tool/reply |
 | `people` | Profiles (role, notes), agent tools, `/people` page |
 | `events` | Robot → page bus, SSE at `/api/events` |
+| `navigate` | System 1 loop for `navigate_to`: JEV planner with local rules as fallback |
 | `connectors` | Connector interface + `weather` (Open-Meteo), `calendar` (Google provider), `websearch` (OpenRouter web plugin), `mcpclient` (remote MCP servers) |
 | `gamepad` | evdev |
 | `persona` | Emotions, colors, system prompt |
@@ -112,6 +113,7 @@ The Python stack used before took ~100 MB on the body (`bb8.motion_api` 40 MB + 
 | `listen(wait_s)` | Last thing the head's ReSpeaker heard and from where: the angle relative to the head, converted to two body-frame candidates (in front of / behind the head) |
 | `get_setting()` / `set_setting()` | Settings the agent may change (volume, city…) |
 | `weather`, `web_search`, `calendar_*` | Connector tools, while the connector is enabled |
+| `scan`, `navigate_to` | Head ToF sweep; drive to a room or furniture by itself (System 1) |
 | `people`, `remember_about`, `forget_about` | Who BB-8 knows; notes are for known voices only |
 | `<name>_<tool>` | Tools of a remote MCP server (`connectors.mcp.N.*`); known voices only by default |
 

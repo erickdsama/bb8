@@ -614,6 +614,11 @@ function events() {
   on("control", (d, at) => { activity("tx", "control: " + d.who, at); if (d.who === "manual") banner("The gamepad has control", true); });
   on("head", (d, at) => { activity(d.connected ? "rx" : "err", d.connected ? "head connected" : "head link dropped", at); if (!d.connected) banner("Head link dropped"); });
   on("person", (d, at) => activity("tx", "person: " + d.name + " · " + d.what + " (" + d.role + ")", at));
+  on("nav", (d, at) => {
+    if (d.done) { activity(d.done === "arrived" ? "rx" : "err", `🧭 ${d.target}: ${d.done}${d.reason ? " · " + d.reason : ""} (${d.steps} steps)`, at); return; }
+    const conf = d.confidence && d.by === "jev" ? " " + Math.round(d.confidence * 100) + "%" : "";
+    activity(d.result === "done" ? "tx" : "err", `🧭 ${d.step}. ${d.action} [${d.by}${conf}] → ${d.result}${d.reason ? " · " + d.reason : ""} · ${d.waypoint} ${d.distance_m} m`, at);
+  });
   on("config", (d, at) => activity("t", "config rev " + d.rev + " by " + d.source + ": " + (d.keys || []).join(", "), at));
 }
 if (token) $("people-link").href = "/people?token=" + encodeURIComponent(token);

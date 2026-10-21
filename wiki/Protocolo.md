@@ -166,6 +166,8 @@ The MCP server (`:8765/mcp`) and the agent see the same tool registry. Tools wit
 | `update_map` | `action` `add_furniture`/`move_furniture`/`remove_furniture`/`close_door`/`open_door`, `name`, `x`, `y`, `width_m`, `length_m`, `height_m` | `{"result":"done"}` |
 | `get_pose` | — | pose (below) |
 | `get_setting` / `set_setting` | `key`, `value` | Only fields marked `agent` in the schema. A safety limit returns `not writable by this source` |
+| `scan`* | `range_deg` 10…90 (default 90), `step_deg` 10…45 (default 30) | `{"result":"done","points":[{"deg":-90,"distance_m":1.2}…],"clearest_deg":30,"clearest_m":2.0,"closest_deg":-60,"closest_m":0.4}`. Sweeps the head, reads the ToF at each stop, looks ahead again |
+| `navigate_to`* | `target`: room or furniture name from the plan | `{"result":"arrived"|"gave_up"|"manual_override"|"cancelled"|"error","steps":[{"action","by","confidence","result"}],"waypoint":{…},"seconds"}` (§ 2.5) |
 | connector tools | e.g. `weather`, `web_search`, `calendar_today`, `calendar_next`, `calendar_add` | Present only while the connector is enabled. `weather` and `web` start enabled |
 | remote MCP tools | `<name>_<tool>` from `connectors.mcp.N.*` | Tools of a remote MCP server (Zapier, Composio, Home Assistant…). Refused for unknown voices unless `connectors.mcp.N.unknown_voices` |
 
@@ -232,7 +234,7 @@ Both are normalized to −180…180, with the turn since the sound (`turned_sinc
 | `GET /head` | — | head state: `connected`, `backend`, `camera`, `mic`, `config_rev`… |
 | `GET /audio/stream` | — | The head's voiced audio, as a stream (see below). Used by the voice front end (`BB8_MIC=cabeza`) |
 | `GET /agent` | — | `{"model":…, "ready": true}` |
-| `POST /agent/ask` | `{"text": "[Speaker: Erick] da una vuelta", "speaker": "Erick", "speaker_known": true}` | `{"reply":"…","tools_used":["turn"],"steps":2}`. `speaker` (optional) is the registered voice: the body applies that person's profile (§ 2.5), and a `guest` cannot move it or use KnownOnly tools |
+| `POST /agent/ask` | `{"text": "[Speaker: Erick] da una vuelta", "speaker": "Erick", "speaker_known": true}` | `{"reply":"…","tools_used":["turn"],"steps":2}`. `speaker` (optional) is the registered voice: the body applies that person's profile (§ 2.7), and a `guest` cannot move it or use KnownOnly tools |
 
 `GET /audio/stream` is a long-lived response (`application/x-bb8-audio`).
 - Every message is `[u32 BE length][JSON]`. A message with `"type": "audio"` is followed by `[u32 BE length][PCM]`, as s16le mono 16 kHz.
@@ -279,8 +281,28 @@ Both are normalized to −180…180, with the turn since the sound (`turned_sinc
 | `reply` | `text` or `error`, `tools` | the agent answers |
 | `person` | `name`, `role`, `what` (`added`, `seen`, `note`, `role`, `removed`) | the people store changes |
 | `config` | `rev`, `source`, `keys` | every applied config write |
+| `nav` | `target`, `step`, `action`, `by`, `confidence`, `result`, `waypoint`, `distance_m`; last one `done` | each `navigate_to` step |
 
-### 2.5 People
+### 2.5 Navigation (System 1)
+
+`navigate_to` runs a loop in `bb8-body` (`go/internal/navigate`), up to `navigation.max_steps` (30):
+1. `floorplan.Map.Waypoint`: the target if it is in this room, else the first open door of the route. It gives `turn_deg`, `distance_m`, `direct`, `arrive_m`, `final`.
+2. A state goes to the planner: waypoint, `ahead_m` (forward ToF), the last scan, the last 5 steps, `blocked_count`.
+3. The planner picks one action: `turn_to_waypoint`, `forward` (≤ 0.6 m), `forward_short` (0.25 m), `turn_to_clearest`, `turn_left`/`turn_right` (45°), `back_up` (0.2 m), `scan`, `arrived`, `give_up`.
+   - `navigation.planner` `auto`/`jev`: JEV (`POST https://api.typesafe.ai/v1/systemone`, one `choice` question `next_action` whose criteria are the actions) when `navigation.jev_api_key` is set. Below `navigation.min_confidence` (0.6), or on an error, the local rules decide that step.
+   - `local`: only the rules.
+4. The action runs through `motion.Service` like any order. `manual_override`, `cancelled`, `timeout` and `error` end the trip.
+
+Arriving is checked in code before asking: within `arrive_m`, or facing a piece of furniture that is right in front.
+
+### 2.6 Forward distance (ToF on the head)
+
+The VL53L0X is on the head, ~34 cm up, 10° down, 25° cone.
+- `D` is only forwarded while the head looks within ±15°. A forward `move` first turns the head ahead (`head_centered_from_deg` in the result).
+- With no reading (head link down, no sensor), a forward move is cut to `motion.blind_max_m` (0.3 m, ceiling 0.5) and returns `"blind": true`.
+- Low things (a shoe, a toy) are seen from ~0.6 m and then drop under the cone before 25 cm. Readings closer than `motion.obstacle_memory_m` (0.7 m; keep it under the ~0.9 m floor reading) are remembered and moved toward the robot with the wheels. The move brakes when one would be within 25 cm: `blocked` with `reason: obstacle_below_view`.
+
+### 2.7 People
 
 `<data>/people.json` keeps who BB-8 knows. Roles:
 - `owner` may do everything;

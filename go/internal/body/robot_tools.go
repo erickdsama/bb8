@@ -19,8 +19,10 @@ func RobotTools(m *motion.Service, h *Head) []Tool {
 	return []Tool{
 		{Name: "move", Moves: true,
 			Description: "Move forward (positive) or back (negative) in a straight line, -2 to 2 meters; stops by itself.\n\n" +
-				"Returns result: done (with real meters), blocked (obstacle; includes distance_m), manual_override, " +
-				"cancelled, timeout or error. Look with take_photo before moving more than 1 m.",
+				"Returns result: done (with real meters), blocked (obstacle; includes distance_m; reason obstacle_below_view " +
+				"means something low seen earlier is now under the sensor), manual_override, cancelled, timeout or error. " +
+				"Forward, the head turns ahead first (the distance sensor is on it). blind: true means there was no " +
+				"distance reading and the move was cut short. Look with take_photo before moving more than 1 m.",
 			Schema: Object(map[string]any{"meters": Num("meters, -2 to 2")}, "meters"),
 			Handler: Bind(func(_ context.Context, in struct {
 				Meters float64 `json:"meters"`
@@ -39,6 +41,24 @@ func RobotTools(m *motion.Service, h *Head) []Tool {
 			Description: "Turn only the head relative to the body: 0 forward, positive right, -90 to 90.",
 			Schema:      Object(map[string]any{"degrees": Num("degrees, + right")}, "degrees"),
 			Handler:     Bind(func(_ context.Context, in deg) (Output, error) { return Data(m.LookAt(in.Degrees)) })},
+		{Name: "scan", Moves: true,
+			Description: "Sweep the head and measure the distance (ToF) in each direction, then look ahead again. " +
+				"range_deg 10–90 (default 90) each side, step_deg 10–45 (default 30). Takes ~2 s. " +
+				"Returns points [{deg, distance_m}] relative to the body front (+ right; null = nothing within ~2 m), " +
+				"clearest_deg/clearest_m and closest_deg/closest_m. Use it before choosing where to go.",
+			Schema: Object(map[string]any{"range_deg": Num("each side, 10 to 90"), "step_deg": Num("10 to 45")}),
+			Handler: Bind(func(_ context.Context, in struct {
+				RangeDeg float64 `json:"range_deg"`
+				StepDeg  float64 `json:"step_deg"`
+			}) (Output, error) {
+				if in.RangeDeg == 0 {
+					in.RangeDeg = 90
+				}
+				if in.StepDeg == 0 {
+					in.StepDeg = 30
+				}
+				return Data(m.Scan(in.RangeDeg, in.StepDeg))
+			})},
 		{Name: "take_photo",
 			Description: "Take a photo (640 px) with the head camera, in the direction the head is looking.",
 			Schema:      Object(map[string]any{}),

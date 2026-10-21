@@ -37,6 +37,7 @@ import (
 	"github.com/erickdsama/bb8/go/internal/link"
 	"github.com/erickdsama/bb8/go/internal/mcpserver"
 	"github.com/erickdsama/bb8/go/internal/motion"
+	"github.com/erickdsama/bb8/go/internal/navigate"
 	"github.com/erickdsama/bb8/go/internal/people"
 	"github.com/erickdsama/bb8/go/internal/persona"
 	"github.com/erickdsama/bb8/go/internal/serial"
@@ -105,6 +106,7 @@ func main() {
 	}
 	cfg.Register(body.RobotFields()...)
 	cfg.Register(agent.Fields()...)
+	cfg.Register(navigate.Fields()...)
 
 	svc := motion.New(ser, "", floorplan.New(home(*mapPath), home(*mapState)), motion.Defaults())
 	ser.OnConnect = svc.ArduinoUp
@@ -156,6 +158,9 @@ func main() {
 	reg.Set("robot", body.RobotTools(svc, head))
 	reg.Set("settings", body.SettingTools(cfg))
 	reg.Set("people", folks.Tools())
+	nav := navigate.New(cfg, svc)
+	nav.Publish = bus.Publish
+	reg.Set("navigation", nav.Tools())
 	conns.Start()
 	brain := agent.New(cfg, reg, persona.Instructions)
 	brain.People, brain.Publish = folks, bus.Publish

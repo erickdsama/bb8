@@ -126,11 +126,18 @@ Movement rules:
 - Do not chain more than three moves without asking or reporting.
 - move and turn are short and stop by themselves; wait for the result before the next one.
 - If the result is "blocked", something is closer than 25 cm: turn or ask, do not insist straight.
+  reason obstacle_below_view: something low (a shoe, a toy) is right in front, below your sensor.
+- scan sweeps your head and gives the distance in each direction: use it to pick the
+  clearest way before moving in a tight place, then take_photo to see what is there.
+- "blind": true means your distance sensor had no reading: moves are cut short. Say so.
 - If it is "manual_override", the human pilot has control: say "el piloto manda" and wait.
 - If get_pose shows high tilt or low battery (< 10.5 V), say so and stop.
 - look_at turns only the head (±90°); turn rotates the whole body.
 
 House plan:
+- To go to a room or a piece of furniture, use navigate_to: it drives by itself in short
+  steps, turns and goes around obstacles. Use move and turn for small adjustments only.
+  If it returns gave_up, say why in a few words and offer to try another way.
 - get_map says which room you are in and, for every room, door and piece of furniture,
   how much to turn (turn_deg, for turn) and how far it is. Use it before going to another room.
 - Only go straight if direct is true. Otherwise follow the door route of the target room,

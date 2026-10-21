@@ -53,7 +53,7 @@ async def main() -> None:
         check("herramientas", set(tools) >= {"move", "turn", "stop", "look_at", "take_photo",
                                              "set_eye_color", "say", "express", "get_pose", "listen",
                                              "get_map", "set_position", "update_map", "weather", "web_search",
-                                             "people", "remember_about", "forget_about"}, tools)
+                                             "people", "remember_about", "forget_about", "scan", "navigate_to"}, tools)
 
         foto = await call("take_photo")
         img = next((c for c in foto if c.type == "image"), None) if isinstance(foto, list) else None
@@ -253,6 +253,17 @@ async def main() -> None:
         res = (await call("get_map"))["position"]
         check("inclinado → posición incierta en el plano", res["uncertain"] is True, res)
         await asyncio.sleep(1.5)
+
+        # ToF: barrido de la cabeza y navegación por pasos (System 1, reglas locales sin clave de JEV).
+        res = await call("scan", range_deg=90, step_deg=30)
+        check("scan: 7 direcciones y la más libre", res.get("result") == "done" and len(res.get("points", [])) == 7
+              and "clearest_deg" in res, {k: res.get(k) for k in ("result", "clearest_deg", "clearest_m", "closest_m")})
+        res = await call("navigate_to", target="silla")
+        check("navigate_to silla → arrived", res.get("result") == "arrived",
+              f"{res.get('result')} {res.get('reason', '')} · {[s['action'] for s in res.get('steps') or []]}")
+        res = await call("navigate_to", target="cocina")
+        check("navigate_to a algo que no está en el plano → error con los nombres",
+              res.get("result") == "error" and "silla" in res.get("reason", ""), res.get("reason"))
 
     print(f"\n{'Todo bien' if not fallos else f'{fallos} fallo(s)'}")
     sys.exit(1 if fallos else 0)

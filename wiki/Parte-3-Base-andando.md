@@ -97,6 +97,31 @@ incierta hasta que Claude la confirme. El plano no es fijo: Claude lo actualiza 
 dejando la versión anterior en `mi_casa.json.bak`; también puedes editarlo a mano con el
 servicio andando, se recarga solo. Formato completo en [Protocolo § 4](Protocolo.md).
 
+### Que llegue sola: `navigate_to` y JEV
+
+Con el plano, BB-8 puede ir sola a un cuarto o a un mueble (`navigate_to`, *"ve a la
+cocina"*). Avanza en pasos cortos: gira hacia la siguiente puerta, avanza, y si algo le
+estorba barre la cabeza (`scan`) y le da la vuelta. Cada paso lo decide un planificador
+rápido. El LLM solo le dice a dónde ir.
+
+- Con `navigation.jev_api_key` (tu clave de [TypeSafe](https://console.typesafe.ai)),
+  decide **JEV** (70–500 ms por paso). Si duda (confianza < `navigation.min_confidence`)
+  o falla, ese paso lo deciden las reglas locales.
+- Sin clave, solo las reglas locales.
+- La pestaña **Activity** de `/control` muestra cada paso, quién lo decidió y su confianza.
+
+### El sensor de distancia va en la cabeza
+
+El VL53L0X mira al frente desde la cabeza (34 cm de alto, 10° hacia abajo), así que gira
+con ella:
+
+- Antes de avanzar, la cabeza se endereza sola.
+- Si no hay lectura (la cabeza desconectada), avanza como máximo 30 cm
+  (`motion.blind_max_m`).
+- Las cosas bajas (un zapato, un juguete) se ven desde ~60 cm y luego quedan por debajo
+  del cono. BB-8 se acuerda de ellas y frena a 25 cm aunque ya no las vea
+  (`motion.obstacle_memory_m`).
+
 ## Rutina de prueba
 
 Con el servicio corriendo, base en el piso y 1 m libre al frente:
