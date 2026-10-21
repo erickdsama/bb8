@@ -11,7 +11,7 @@ y todo lo demás se calcula a partir de ellas.
 
 ```bash
 sudo apt install openscad xvfb
-bash cad/exportar.sh          # STL en cad/stl, plantilla de la plataforma en cad/plantillas, renders en cad/png
+bash cad/exportar.sh          # STL en cad/stl (una carpeta por parte), plantilla de la plataforma en cad/plantillas, renders en cad/png
 bash cad/exportar.sh png      # solo renders
 openscad cad/ensamble.scad    # el ensamble, con corte (corte=true) o explotado (explotar=1)
 ```
@@ -87,6 +87,10 @@ esfera, como pide la Parte 6.
 | Base con LiPo "centrada abajo" | LiPo bajo los motores y lastre a sus lados en la charola | Es el punto más bajo que deja la geometría |
 
 ## Piezas a imprimir
+
+Los STL están en [`cad/stl`](https://github.com/erickdsama/bb8/tree/main/cad/stl), una carpeta por parte:
+`parte2-base`, `parte5-poste`, `parte5-cabeza` y `parte6-esfera`. Cada carpeta se manda
+completa al servicio de impresión.
 
 PLA, boquilla 0.4. Los STL ya salen orientados. Cama mínima 220 × 220 × 170 mm (cada
 gajo mide hasta 165 mm por lado).

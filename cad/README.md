@@ -16,7 +16,7 @@ tubo, inclinación de los ball transfers…).
 | `poste.scad` | Pie del poste, soporte del servo, portaimanes |
 | `cabeza.scad` | Casco de la cabeza, plato interior, soportes del ojo y de la bocina, tapones de las bolas |
 | `ensamble.scad` | Todo junto, con corte y vista explotada |
-| `exportar.sh` | Genera `stl/`, `plantillas/` y `png/` |
+| `exportar.sh` | Genera `stl/` (una carpeta por parte), `plantillas/` y `png/` |
 
 ```bash
 sudo apt install openscad xvfb      # o OpenSCAD desde openscad.org

@@ -54,7 +54,7 @@ para `systemctl poweroff`.
 El modelo ya está hecho: [Diseño 3D](Diseno-3D.md#esfera) tiene los 14 gajos, los 6
 círculos, la tapa de carga y la bayoneta de la junta, en OpenSCAD paramétrico y en STL.
 
-1. Imprime los gajos de [`cad/stl`](https://github.com/erickdsama/bb8/tree/main/cad/stl) (6 círculos naranjas + 14 piezas blancas que forman los 8 gajos), con espigas de filamento de 1.75 mm.
+1. Imprime los gajos de [`cad/stl/parte6-esfera`](https://github.com/erickdsama/bb8/tree/main/cad/stl/parte6-esfera) (6 círculos naranjas + 14 piezas blancas que forman los 8 gajos), con espigas de filamento de 1.75 mm.
 2. Imprime con capa de 0.28 mm y 10–15 % de relleno (~2–3 kg de PLA).
 3. Pega, **refuerza por dentro** (fibra de vidrio o segunda capa de resina), lija, primer, pinta y laca.
 4. Prueba que la base rueda dentro de la esfera **antes** de poner imanes y lastre; si las ruedas giran pero la esfera no, los ball transfers tocan primero.

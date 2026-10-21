@@ -1,6 +1,6 @@
 """Convierte STL ASCII (lo que exporta OpenSCAD 2021) a STL binario, en su lugar.
 
-    python3 cad/herramientas/stl_binario.py cad/stl/*.stl
+    python3 cad/herramientas/stl_binario.py cad/stl/*/*.stl
 """
 import struct
 import sys
