@@ -38,7 +38,7 @@ Tienda física (sucursales Tecnológico y Torres). Buscador: `uv run tools/elect
 | --- | --- | --- | --- | --- |
 | AR-CARGA12 | Buck XL4015 5 A ajustable (para la Pi 3) | 1 | 75 | 3 |
 | 699-927 | Cable USB a micro USB 1 m (se corta y se suelda al XL4015) | 1 | 40 | 3 |
-| RL4 | Rueda loca: domo de acero Ø32 con bola de ~16 mm, brida de 2 agujeros 50 × 22 mm (agujeros Ø5 a 35 mm), 25.4 mm de la brida a la punta de la bola | 2 | 140 | 2 |
+| RL4 | Rueda loca: domo de acero Ø32 con bola de 1″ (se ven 18 mm), brida de 2 agujeros 50 × 22 mm (agujeros Ø5 a 35 mm), 25.4 mm de la brida a la punta de la bola | 2 | 140 | 2 |
 | PM15 | Puntas de multímetro con caimanes | 1 | 30 | 1 |
 | JUMPER-EXT20 / JUMPER-H20 | Jumpers macho-hembra y hembra-hembra 20 cm | 10 + 10 | 45 | 1 |
 | R330E-1/4W, 4.7 kΩ, 10 kΩ, 100 kΩ | Resistencias | 5 + 2 + 2 + 2 | ~12 | 5, 6 |

@@ -38,7 +38,7 @@ caja_pcd   = 31;     // 6 × M3 en un círculo de 31 mm (centrado en la caja)
 
 // ───────────────────────── Ruedas ─────────────────────────
 rueda_d       = 65;
-rueda_ancho   = 26;
+rueda_ancho   = 25;   // medida (65 × 25)
 rueda_offset  = 20;    // cara de la caja → plano medio de la rueda: soporte 4 mm + buje + cople hex
 hueco_motores = 44;    // separación entre los dos motores, al centro. Con motores de 30 mm las
                        // ruedas se quedan a 94 mm: más adentro el eje baja y la LiPo choca con el casco
@@ -71,7 +71,7 @@ lipo_z_inf  = lipo_z_sup - lipo[2];
 
 // ───────────────────────── Ruedas locas RL4 (Electrozone) ─────────────────────────
 // Domo de acero sobre una brida de 2 agujeros (medidas de Erick, 20 oct).
-bola_d       = 15.9;   // MEDIR: se ven ~16 mm (5/8″)
+bola_d       = 25.4;   // 1″: se ven 18 mm por la boca del domo y sale ~3 mm
 bt_y         = 110;    // a 90° de las ruedas, adelante y atrás
 bt_brida     = [50, 22];   // largo × ancho de la brida
 bt_brida_e   = 1.5;
