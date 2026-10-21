@@ -60,7 +60,7 @@ esfera, como pide la Parte 6.
 - Todo cuelga de un plato interior: el **power bank va debajo del plato**, atrás, para bajar el centro de gravedad; arriba van la Pi Zero 2 W (separadores M2.5), el PAM8403, el soporte del ojo y el de la bocina.
 - **Ojo principal** a 38° de elevación: mica ahumada de 50 × 3 mm, el anillo WS2812 de 16 LED detrás y la OV5647 en un bolsillo del mismo soporte, con la lente en el centro del anillo.
 - **Ojo chico** a 28° a la derecha, sin tapa: el VL53L0X detrás, mirando **al frente** (no hacia afuera de la ventana, para que el software tome su distancia como "adelante") y 10° hacia abajo. Al montarlo, centra el chip del sensor en la ventana. Con su campo de 25°, el piso aparece hasta ~0.8 m, lejos de los 25 cm del freno.
-- Bocina atrás y hacia arriba (45°) con rejilla hexagonal; dos agujeros de antena en la tapa; ranura del USB del power bank atrás, abajo.
+- Bocina atrás y hacia arriba (45°) con rejilla hexagonal; dos antenas impresas en la tapa (corta Ø9 × 28 mm, larga Ø5 × 90 mm, con alambre de acero adentro); ranura del USB del power bank atrás, abajo.
 - El casco baja sobre el plato y se fija con 3 tornillos M3 avellanados radiales a tuercas atrapadas en el plato.
 
 ### Esfera
@@ -110,6 +110,7 @@ gajo mide hasta 165 mm por lado).
 | `cabeza_plato` | 1 | De cabeza (ya viene así), 30 % |
 | `cabeza_soporte_ojo`, `cabeza_soporte_bocina` | 1 y 1 | Con soportes |
 | `cabeza_tapon` | 3 | |
+| `cabeza_antena_corta`, `cabeza_antena_larga` | 1 y 1 | De pie, 100 % de relleno, en gris. Mete un alambre de acero de 1.5 mm por el canal del centro, pásalo por la tapa y dóblalo por dentro |
 
 Tamaño y peso (sólido, PLA 1.24 g/cm³; es un tope, con relleno las piezas gruesas pesan menos):
 
