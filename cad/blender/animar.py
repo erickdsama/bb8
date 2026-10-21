@@ -35,7 +35,8 @@ PLAT_INF = Z_EJE + CAJA_D / 2 + 3
 PLAT_SUP = PLAT_INF + PLAT_E
 LIPO = (47.0, 139.0, 25.0)
 LIPO_INF = Z_EJE - MOTOR_D / 2 - 2 - LIPO[2]
-BOLA_D, BT_Y = 25.4, 110.0
+BOLA_D, BT_Y = 15.9, 110.0
+RL4_ALTO, RL4_DOMO, RL4_BRIDA = 25.4, 32.0, (50.0, 22.0)   # brida → punta de la bola
 BT_R = RI - BOLA_D / 2
 BT_Z = -math.sqrt(BT_R**2 - BT_Y**2)
 TUBO_D = 25.0
@@ -241,9 +242,13 @@ def base(padre):
         c = Vector((0, s * BT_Y, BT_Z))
         prim("esf", f"Rueda loca {nombre}", "Metal", padre, c, dim=(BOLA_D,) * 3, segments=32, ring_count=16)
         u = c.normalized()
-        prim("cil", f"RL4 {nombre}", "Metal", padre, c - u * (BOLA_D / 2 + 3), apuntar(u).to_euler(), dim=(36, 36, 10), vertices=32)
+        cara = c - u * (RL4_ALTO - BOLA_D / 2)          # cara de la brida, contra la cuña
+        prim("esf", f"RL4 {nombre} domo", "Metal", padre, cara, apuntar(u).to_euler(),
+             dim=(RL4_DOMO, RL4_DOMO, 2 * (RL4_ALTO - 3)), segments=32, ring_count=16)
+        prim("cubo", f"RL4 {nombre} brida", "Metal", padre, cara - u * 0.75, apuntar(u).to_euler(),
+             dim=(RL4_BRIDA[1], RL4_BRIDA[0], 1.5))
         # cuña de madera entre la rueda loca y la melamina
-        arriba = c - u * (BOLA_D / 2 + 8)
+        arriba = cara - u * 1.5
         caja(f"Cuna {nombre}", "Melamina", padre, -20, min(arriba.y, s * 80) if s > 0 else arriba.y - 0,
              arriba.z, 40, abs(arriba.y - s * 80) + 0.01, PLAT_INF - arriba.z)
 
