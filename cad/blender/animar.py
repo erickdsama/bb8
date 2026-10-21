@@ -30,7 +30,7 @@ A_RUEDA = 20 + CAJA_L + MOTOR_L + 44 / 2                  # 94: los motores no s
 X_CONTACTO = A_RUEDA + RUEDA_A / 2 - 2
 Z_EJE = -(math.sqrt(RI**2 - X_CONTACTO**2) - RUEDA_D / 2)  # −89.6
 X_CARA = A_RUEDA - 20
-PLAT_D, PLAT_E = 210.0, 15.0
+PLAT_D, PLAT_E = 210.0, 6.0   # MDF de 6 mm en láser
 PLAT_INF = Z_EJE + CAJA_D / 2 + 3
 PLAT_SUP = PLAT_INF + PLAT_E
 LIPO = (47.0, 139.0, 25.0)
@@ -86,7 +86,7 @@ def materiales():
     mat("Blanco", (0.85, 0.84, 0.80), 0.35)
     mat("Naranja", (0.85, 0.32, 0.04), 0.4)
     mat("Impreso", (0.95, 0.45, 0.10), 0.55)
-    mat("Melamina", (0.75, 0.62, 0.45), 0.6)
+    mat("Melamina", (0.55, 0.40, 0.26), 0.7)   # MDF
     mat("Metal", (0.75, 0.75, 0.78), 0.25, metal=1.0)
     mat("Motor", (0.25, 0.25, 0.27), 0.35, metal=0.8)
     mat("Hule", (0.03, 0.03, 0.03), 0.8)
@@ -215,7 +215,7 @@ def base(padre):
         bpy.ops.object.modifier_apply(modifier=b.name)
         bpy.data.objects.remove(h, do_unlink=True)
 
-    # La base real (Parte 2): los motores cuelgan de la melamina en sus soportes impresos,
+    # La base real (Parte 2): los motores cuelgan de la plataforma de MDF en sus soportes impresos,
     # la LiPo va abajo con velcro y adelante y atrás hay una rueda loca RL4 sobre una cuña
     # de madera.
 
@@ -228,11 +228,11 @@ def base(padre):
         cil_x(f"Eje {s}", "Metal", padre, x, lado * A_RUEDA, 0, Z_EJE, 6)
         cil_x(f"Llanta {s}", "Hule", padre, lado * (A_RUEDA - RUEDA_A / 2), lado * (A_RUEDA + RUEDA_A / 2), 0, Z_EJE, RUEDA_D)
         cil_x(f"Rin {s}", "Rin", padre, lado * (A_RUEDA - RUEDA_A / 2 + 3), lado * (A_RUEDA + RUEDA_A / 2 + 0.5), 0, Z_EJE, RUEDA_D - 14)
-        # soporte impreso en ABS (cad/stl/parte2-base), atornillado a la melamina
+        # soporte impreso en ABS (cad/stl/parte2-base), atornillado a la plataforma
         stl(f"parte2-base/base_soporte_motor{'' if lado > 0 else '_izq'}.stl", f"Soporte motor {s}", "Impreso", padre, RX180)
 
     caja("LiPo", "LiPo", padre, -LIPO[0] / 2, -LIPO[1] / 2, LIPO_INF, *LIPO)
-    for k, yv in enumerate((-40, 40)):          # 2 tiras de velcro que la cuelgan de la melamina
+    for k, yv in enumerate((-40, 40)):          # 2 tiras de velcro que la cuelgan de la plataforma
         caja(f"Velcro {k + 1}", "Negro", padre, -LIPO[0] / 2 - 1.5, yv - 10, LIPO_INF - 1.5, 1.5, 20, PLAT_INF - LIPO_INF + 1.5)
         caja(f"Velcro {k + 1}b", "Negro", padre, LIPO[0] / 2, yv - 10, LIPO_INF - 1.5, 1.5, 20, PLAT_INF - LIPO_INF + 1.5)
         caja(f"Velcro {k + 1}c", "Negro", padre, -LIPO[0] / 2 - 1.5, yv - 10, LIPO_INF - 1.5, LIPO[0] + 3, 20, 1.5)
@@ -246,7 +246,7 @@ def base(padre):
              dim=(RL4_DOMO, RL4_DOMO, 2 * (RL4_ALTO - 3)), segments=32, ring_count=16)
         prim("cubo", f"RL4 {nombre} brida", "Metal", padre, cara - u * 0.75, apuntar(u).to_euler(),
              dim=(RL4_BRIDA[1], RL4_BRIDA[0], 1.5))
-        # cuña de madera entre la rueda loca y la melamina
+        # cuña de madera entre la rueda loca y la plataforma
         arriba = cara - u * 1.5
         caja(f"Cuna {nombre}", "Melamina", padre, -20, min(arriba.y, s * 80) if s > 0 else arriba.y - 0,
              arriba.z, 40, abs(arriba.y - s * 80) + 0.01, PLAT_INF - arriba.z)
