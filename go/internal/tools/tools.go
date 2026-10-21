@@ -22,6 +22,7 @@ type Tool struct {
 	Description string
 	Schema      map[string]any // JSON schema, type object
 	Moves       bool           // moves the robot: refused for unknown voices
+	KnownOnly   bool           // acts outside the robot (a remote MCP tool): also refused for unknown voices
 	Handler     Handler
 }
 
@@ -30,7 +31,10 @@ type CallOpts struct {
 	SpeakerKnown bool // false for an unrecognized voice
 }
 
-var ErrUnknownVoice = errors.New("unknown voice: movement tools are only for known voices")
+var (
+	ErrUnknownVoice = errors.New("unknown voice: movement tools are only for known voices")
+	ErrKnownOnly    = errors.New("unknown voice: this tool is only for known voices")
+)
 
 type Registry struct {
 	mu       sync.RWMutex
@@ -94,6 +98,9 @@ func (r *Registry) Call(ctx context.Context, name string, args json.RawMessage, 
 	}
 	if t.Moves && !o.SpeakerKnown {
 		return Output{}, ErrUnknownVoice
+	}
+	if t.KnownOnly && !o.SpeakerKnown {
+		return Output{}, ErrKnownOnly
 	}
 	if len(args) == 0 {
 		args = json.RawMessage("{}")

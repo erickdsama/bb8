@@ -6,6 +6,7 @@ package connectors
 import (
 	"log/slog"
 	"strings"
+	"sync"
 
 	"github.com/erickdsama/bb8/go/internal/config"
 	"github.com/erickdsama/bb8/go/internal/tools"
@@ -34,6 +35,12 @@ type Connector interface {
 	Status(c *config.Store) Status
 }
 
+// DefaultOn is implemented by connectors that start enabled (no account needed).
+type DefaultOn interface{ DefaultOn() bool }
+
+// Closer is implemented by connectors that hold connections (MCP sessions).
+type Closer interface{ Close() }
+
 // EnabledKey is the on/off switch every connector has.
 func EnabledKey(id string) string { return "connectors." + id + ".enabled" }
 
@@ -41,35 +48,49 @@ type Manager struct {
 	cfg  *config.Store
 	reg  *tools.Registry
 	list []Connector
+	mu   map[string]*sync.Mutex // one apply at a time per connector
 }
 
 func NewManager(cfg *config.Store, reg *tools.Registry, cs ...Connector) *Manager {
-	m := &Manager{cfg: cfg, reg: reg, list: cs}
+	m := &Manager{cfg: cfg, reg: reg, list: cs, mu: map[string]*sync.Mutex{}}
 	for _, c := range cs {
-		cfg.Register(config.Field{Key: EnabledKey(c.ID()), Label: "Enabled", Type: config.Bool, Default: false})
+		m.mu[c.ID()] = &sync.Mutex{}
+		on := false
+		if d, ok := c.(DefaultOn); ok {
+			on = d.DefaultOn()
+		}
+		cfg.Register(config.Field{Key: EnabledKey(c.ID()), Label: "Enabled", Type: config.Bool, Default: on})
 		cfg.Register(c.Fields()...)
 	}
 	return m
 }
 
-// Start registers tools now and again whenever a connector's settings (or home.*) change.
+// Start registers tools now and again whenever a connector's settings (or home.*)
+// change. Each apply runs in its own goroutine: an MCP server that is slow or
+// offline must not hold up the boot or a config write.
 func (m *Manager) Start() {
 	for _, c := range m.list {
-		m.apply(c)
+		go m.apply(c)
 	}
 	m.cfg.Subscribe(func(ch config.Change) {
 		for _, c := range m.list {
 			if ch.Touches("connectors."+c.ID()+".") || ch.Touches("home.") {
-				m.apply(c)
+				go m.apply(c)
 			}
 		}
 	})
 }
 
 func (m *Manager) apply(c Connector) {
+	mu := m.mu[c.ID()]
+	mu.Lock()
+	defer mu.Unlock()
 	owner := "connector:" + c.ID()
 	if !m.cfg.Bool(EnabledKey(c.ID())) {
 		m.reg.Set(owner, nil)
+		if cl, ok := c.(Closer); ok {
+			cl.Close()
+		}
 		return
 	}
 	ts := c.Tools(m.cfg)

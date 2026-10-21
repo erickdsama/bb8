@@ -29,7 +29,8 @@ func New() *Weather {
 	}
 }
 
-func (w *Weather) ID() string { return "weather" }
+func (w *Weather) ID() string      { return "weather" }
+func (w *Weather) DefaultOn() bool { return true } // Open-Meteo needs no key
 
 func (w *Weather) Fields() []config.Field {
 	return []config.Field{{Key: "connectors.weather.units", Label: "Units", Type: config.Enum,

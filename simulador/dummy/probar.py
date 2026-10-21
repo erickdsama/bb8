@@ -52,7 +52,7 @@ async def main() -> None:
         tools = [t.name for t in (await s.list_tools()).tools]
         check("herramientas", set(tools) >= {"move", "turn", "stop", "look_at", "take_photo",
                                              "set_eye_color", "say", "express", "get_pose", "listen",
-                                             "get_map", "set_position", "update_map"}, tools)
+                                             "get_map", "set_position", "update_map", "weather", "web_search"}, tools)
 
         foto = await call("take_photo")
         img = next((c for c in foto if c.type == "image"), None) if isinstance(foto, list) else None

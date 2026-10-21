@@ -89,7 +89,7 @@ The Python stack used before took ~100 MB on the body (`bb8.motion_api` 40 MB + 
 | `head` | Head side: Real and Sim backends, beeps, VL53L0X, mic (VAD + GCC-PHAT direction + audio stream) |
 | `config` | Store, schema, SSE web UI |
 | `agent` | OpenRouter tool loop |
-| `connectors` | Connector interface + `weather`, `calendar` (Google provider) |
+| `connectors` | Connector interface + `weather` (Open-Meteo), `calendar` (Google provider), `websearch` (OpenRouter web plugin), `mcpclient` (remote MCP servers) |
 | `gamepad` | evdev |
 | `persona` | Emotions, colors, system prompt |
 
@@ -109,7 +109,8 @@ The Python stack used before took ~100 MB on the body (`bb8.motion_api` 40 MB + 
 | `get_map()` / `set_position()` / `update_map()` | House plan: room, how far and how much to turn toward each thing; fix the position; record changes |
 | `listen(wait_s)` | Last thing the head's ReSpeaker heard and from where: the angle relative to the head, converted to two body-frame candidates (in front of / behind the head) |
 | `get_setting()` / `set_setting()` | Settings the agent may change (volume, city…) |
-| `weather`, `calendar_*` | Connector tools, while the connector is enabled |
+| `weather`, `web_search`, `calendar_*` | Connector tools, while the connector is enabled |
+| `<name>_<tool>` | Tools of a remote MCP server (`connectors.mcp.N.*`); known voices only by default |
 
 ## Hearing
 

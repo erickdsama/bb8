@@ -8,7 +8,7 @@ micrófono: wake word, transcripción e identificación de voz.
 
 | Código | Hace |
 | --- | --- |
-| [`go/internal/tools`](https://github.com/erickdsama/bb8/tree/main/go/internal/tools), [`body/robot_tools.go`](https://github.com/erickdsama/bb8/blob/main/go/internal/body/robot_tools.go) | Un solo registro de herramientas: `move`, `turn`, `stop`, `look_at`, `take_photo`, `set_eye_color`, `say`, `express`, `listen`, `get_map`, `set_position`, `update_map`, `get_pose`, `get_setting`, `set_setting` y las de los conectores (`weather`, `calendar_*`) |
+| [`go/internal/tools`](https://github.com/erickdsama/bb8/tree/main/go/internal/tools), [`body/robot_tools.go`](https://github.com/erickdsama/bb8/blob/main/go/internal/body/robot_tools.go) | Un solo registro de herramientas: `move`, `turn`, `stop`, `look_at`, `take_photo`, `set_eye_color`, `say`, `express`, `listen`, `get_map`, `set_position`, `update_map`, `get_pose`, `get_setting`, `set_setting` y las de los conectores (`weather`, `web_search`, `calendar_*` y las de servidores MCP externos, `<nombre>_<herramienta>`) |
 | [`go/internal/mcpserver`](https://github.com/erickdsama/bb8/tree/main/go/internal/mcpserver) | Servidor MCP en `:8765/mcp` (token desde la red) |
 | [`go/internal/agent`](https://github.com/erickdsama/bb8/tree/main/go/internal/agent) | Agente propio: cualquier modelo de OpenRouter con herramientas; `POST /agent/ask` |
 | [`go/internal/persona`](https://github.com/erickdsama/bb8/blob/main/go/internal/persona/persona.go) | Personalidad y reglas: el system prompt para Claude y para el agente |
@@ -35,6 +35,15 @@ igual con el [simulador](Simulador.md).
 En la página de configuración (`http://bb8.local:8765/?token=…`) pon `agent.api_key` (tu
 clave de [OpenRouter](https://openrouter.ai)) y, si quieres, otro `agent.model`. Pruébalo
 con el chat de la misma página: *"da una vuelta y dime qué ves"*.
+
+BB-8 también contesta preguntas generales. Para lo que cambia (noticias, precios, horarios)
+usa `web_search`, que busca con el plugin web de OpenRouter y la misma clave (~$0.02 por
+búsqueda; `connectors.web.model` puede ser un modelo más barato). El clima (`weather`)
+viene encendido y solo necesita `home.city`.
+
+Para Gmail, listas, Google, IFTTT o la casa, conecta un servidor MCP externo (Zapier,
+Composio, Home Assistant…) en `connectors.mcp.1.name`, `.url` y `.token`. Sus herramientas
+aparecen como `<nombre>_<herramienta>`, y por defecto una voz desconocida no las puede usar.
 
 ## Paso 3: micrófono y altavoz
 

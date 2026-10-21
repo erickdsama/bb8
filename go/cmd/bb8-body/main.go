@@ -28,7 +28,9 @@ import (
 	"github.com/erickdsama/bb8/go/internal/config"
 	"github.com/erickdsama/bb8/go/internal/connectors"
 	"github.com/erickdsama/bb8/go/internal/connectors/calendar"
+	"github.com/erickdsama/bb8/go/internal/connectors/mcpclient"
 	"github.com/erickdsama/bb8/go/internal/connectors/weather"
+	"github.com/erickdsama/bb8/go/internal/connectors/websearch"
 	"github.com/erickdsama/bb8/go/internal/floorplan"
 	"github.com/erickdsama/bb8/go/internal/gamepad"
 	"github.com/erickdsama/bb8/go/internal/link"
@@ -130,7 +132,7 @@ func main() {
 	body.Wire(cfg, svc, head)
 
 	reg := tools.NewRegistry()
-	conns := connectors.NewManager(cfg, reg, weather.New(), calendar.New())
+	conns := connectors.NewManager(cfg, reg, weather.New(), calendar.New(), websearch.New(), mcpclient.New())
 	reg.Set("robot", body.RobotTools(svc, head))
 	reg.Set("settings", body.SettingTools(cfg))
 	conns.Start()

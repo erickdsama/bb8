@@ -166,7 +166,8 @@ The MCP server (`:8765/mcp`) and the agent see the same tool registry. Tools wit
 | `update_map` | `action` `add_furniture`/`move_furniture`/`remove_furniture`/`close_door`/`open_door`, `name`, `x`, `y`, `width_m`, `length_m`, `height_m` | `{"result":"done"}` |
 | `get_pose` | — | pose (below) |
 | `get_setting` / `set_setting` | `key`, `value` | Only fields marked `agent` in the schema. A safety limit returns `not writable by this source` |
-| connector tools | e.g. `weather`, `calendar_today`, `calendar_next`, `calendar_add` | Present only while the connector is enabled |
+| connector tools | e.g. `weather`, `web_search`, `calendar_today`, `calendar_next`, `calendar_add` | Present only while the connector is enabled. `weather` and `web` start enabled |
+| remote MCP tools | `<name>_<tool>` from `connectors.mcp.N.*` | Tools of a remote MCP server (Zapier, Composio, Home Assistant…). Refused for unknown voices unless `connectors.mcp.N.unknown_voices` |
 
 Color names: `red, green, blue, white, orange, yellow, purple, cyan, off`. Brightness is capped at 0.3 (the ring draws ~1 A at full white).
 
