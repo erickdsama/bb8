@@ -47,10 +47,10 @@ L298N_AG = [[3, 3], [40, 3], [3, 40], [40, 40]];   // MEDIR
 
 // ───────────── Plataforma ─────────────
 module plataforma_2d() {
-    // la rueda cruza la plataforma: medio ancho de la muesca a la altura de su cara inferior
-    dz = plat_z_inf - z_eje;
-    muesca_y = sqrt(rueda_d * rueda_d / 4 - dz * dz) + 4;
-    muesca_x = a_rueda - rueda_ancho / 2 - 4;
+    // muesca para la llanta completa (Ø + 4 mm por lado) y 6 mm libres por dentro: no depende
+    // de la altura del eje, del desfase de la caja ni de lo que se abombe la goma
+    muesca_y = rueda_d / 2 + 4;
+    muesca_x = a_rueda - rueda_ancho / 2 - 6;
     difference() {
         circle(d = plat_d, $fn = 180);
         for (l = [-1, 1]) translate([l > 0 ? muesca_x : -muesca_x - plat_d, -muesca_y]) square([plat_d, 2 * muesca_y]);
