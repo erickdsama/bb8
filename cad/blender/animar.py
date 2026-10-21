@@ -215,9 +215,9 @@ def base(padre):
         bpy.ops.object.modifier_apply(modifier=b.name)
         bpy.data.objects.remove(h, do_unlink=True)
 
-    # La base real (Parte 2): los motores cuelgan de la melamina con 2 abrazaderas sinfín
-    # cada uno, la LiPo va abajo con velcro y adelante y atrás hay una rueda loca RL4 sobre
-    # una cuña de madera. Nada impreso.
+    # La base real (Parte 2): los motores cuelgan de la melamina en sus soportes impresos,
+    # la LiPo va abajo con velcro y adelante y atrás hay una rueda loca RL4 sobre una cuña
+    # de madera.
 
     for lado in (-1, 1):
         s = "der" if lado > 0 else "izq"
@@ -228,9 +228,8 @@ def base(padre):
         cil_x(f"Eje {s}", "Metal", padre, x, lado * A_RUEDA, 0, Z_EJE, 6)
         cil_x(f"Llanta {s}", "Hule", padre, lado * (A_RUEDA - RUEDA_A / 2), lado * (A_RUEDA + RUEDA_A / 2), 0, Z_EJE, RUEDA_D)
         cil_x(f"Rin {s}", "Rin", padre, lado * (A_RUEDA - RUEDA_A / 2 + 3), lado * (A_RUEDA + RUEDA_A / 2 + 0.5), 0, Z_EJE, RUEDA_D - 14)
-        for k, xa in enumerate((x - lado * 6, x - lado * 16)):          # abrazaderas en la caja de engranes
-            cil_x(f"Abrazadera {s} {k + 1}", "Metal", padre, xa - 4, xa + 4, EXC, Z_EJE, CAJA_D + 2.5)
-            caja(f"Tornillo abrazadera {s} {k + 1}", "Metal", padre, xa - 4, EXC - 5, Z_EJE + CAJA_D / 2, 8, 10, PLAT_INF - Z_EJE - CAJA_D / 2)
+        # soporte impreso en ABS (cad/stl/parte2-base), atornillado a la melamina
+        stl(f"parte2-base/base_soporte_motor{'' if lado > 0 else '_izq'}.stl", f"Soporte motor {s}", "Impreso", padre, RX180)
 
     caja("LiPo", "LiPo", padre, -LIPO[0] / 2, -LIPO[1] / 2, LIPO_INF, *LIPO)
     for k, yv in enumerate((-40, 40)):          # 2 tiras de velcro que la cuelgan de la melamina

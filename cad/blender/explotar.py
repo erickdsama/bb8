@@ -2,7 +2,7 @@
 
 Corre después de animar.py. Del segundo 12.5 al 14 la esfera desaparece, la cabeza sube
 y sale de cuadro, y las piezas de la base se separan por capas: tarjetas arriba,
-melamina, abrazaderas, motores y llantas hacia los lados, ruedas locas, y la LiPo abajo.
+melamina, soportes de motor, motores y llantas hacia los lados, ruedas locas, y la LiPo abajo.
 """
 import math
 
@@ -23,7 +23,7 @@ def desplazamiento(nombre):
         return (0, 0, 450)   # el poste sale de cuadro
     if nombre.startswith("Plataforma"):
         return (0, 0, 160)
-    if nombre.startswith(("Abrazadera", "Tornillo abrazadera")):
+    if nombre.startswith("Soporte motor"):
         return (lado * 30, 0, 125)
     if nombre.startswith(("Caja engranes", "Motor", "Encoder")):
         return (lado * 30, 0, 80)
