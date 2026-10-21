@@ -11,7 +11,7 @@ solo tiene esta lista.
 
 | Pieza | Nota |
 | --- | --- |
-| Plataforma de MDF 6 mm, cortada en láser en FabLab con [`plataforma.dxf`](https://github.com/erickdsama/bb8/blob/main/cad/plantillas/plataforma.dxf) | Agujeros y muescas exactos, sin plantilla ni taladro, y pesa menos arriba del eje. 3 mm se pandea; la melamina de 12–15 mm con la plantilla de papel sigue sirviendo |
+| Plataforma de MDF 12 mm, cortada con la plantilla carta o en láser con [`plataforma.dxf`](https://github.com/erickdsama/bb8/blob/main/cad/plantillas/plataforma.dxf) | Si cambias el grosor, cámbialo también en `plat_e` (cad/parametros.scad): la muesca de las llantas y la altura de todo lo de arriba dependen de él |
 | 2 ruedas de goma 65 mm con **cople hexagonal para eje D de 6 mm** | La "Llanta de Goma 65 mm" de UNIT **con accesorios** sí entra (buje hex 12 mm); la de motor TT es otra. Forrarlas con cinta de silicona. Ver [Materiales](Materiales.md) |
 | 2 soportes de motor JGB37 | |
 | 2 ruedas locas RL4 (bola de acero de 1″, brida de 2 agujeros 50 × 22) | Van en soportes impresos inclinados hacia el centro de la esfera |

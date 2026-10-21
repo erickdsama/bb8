@@ -1,6 +1,6 @@
 // BB-8 · base motriz (Partes 2 y 6).
 //
-// La plataforma (MDF de 6 mm en láser) va arriba y todo lo pesado cuelga debajo: motores
+// La plataforma (MDF de 12 mm) va arriba y todo lo pesado cuelga debajo: motores
 // en soportes impresos, la LiPo en una charola justo bajo los motores y, a los lados de la
 // LiPo, dos compartimentos para 1–1.5 kg de lastre. Las ruedas locas RL4 van adelante y
 // atrás en soportes inclinados que apuntan al centro de la esfera. Todo impreso en PETG.
