@@ -57,7 +57,7 @@ círculos, la tapa de carga y la bayoneta de la junta, en OpenSCAD paramétrico 
 1. Imprime los gajos de [`cad/stl/parte6-esfera`](https://github.com/erickdsama/bb8/tree/main/cad/stl/parte6-esfera) (6 círculos naranjas + 14 piezas blancas que forman los 8 gajos), con espigas de filamento de 1.75 mm.
 2. Imprime con capa de 0.28 mm y 10–15 % de relleno (~2–3 kg de PLA).
 3. Pega, **refuerza por dentro** (fibra de vidrio o segunda capa de resina), lija, primer, pinta y laca.
-4. Prueba que la base rueda dentro de la esfera **antes** de poner imanes y lastre; si las ruedas giran pero la esfera no, los ball transfers tocan primero.
+4. Prueba que la base rueda dentro de la esfera **antes** de poner imanes y lastre; si las ruedas giran pero la esfera no, las ruedas locas tocan primero.
 5. Recorta el poste para que los imanes queden a 2–3 mm de la pared.
 6. Lastre hasta 1–1.5 kg en total, lo más abajo posible; prueba que la base no vuelque al frenar.
 7. Cabeza: cúpula impresa con 3 bolas de acero de 1/2″ para que los imanes no rocen la pintura (unas ruedecitas solo ruedan en un sentido). Imanes N42 20 × 5 mm: 4 en el poste cara N arriba, 4 en la cabeza cara S abajo.

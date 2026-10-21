@@ -68,13 +68,17 @@ module mpu6050() pcb(21, 16, "navy");
 module lipo() color("#335") translate([-lipo[0] / 2, -lipo[1] / 2, 0]) cube(lipo);
 
 // Ball transfer 1″: origen al centro de la cara de la brida, la bola sale hacia +z.
+// Rueda loca RL4: origen al centro de la cara de la brida, la bola hacia +z; la brida
+// larga va sobre y.
 module ball_transfer() {
     color("silver") translate([0, 0, -bt_brida_e]) difference() {
-        cylinder(d = bt_brida_d, h = bt_brida_e);
-        for (k = [0 : 2]) rotate([0, 0, 90 + 120 * k]) translate([bt_pcd / 2, 0, -1]) cylinder(d = 5, h = 5);
+        hull() for (y = [-1, 1]) translate([0, y * bt_agujero_sep / 2, 0]) cylinder(d = bt_brida[1], h = bt_brida_e);
+        for (y = [-1, 1]) translate([0, y * bt_agujero_sep / 2, -1]) cylinder(d = bt_agujero_d, h = 5);
     }
-    color("silver") translate([0, 0, -bt_brida_e - bt_cuerpo_L]) cylinder(d = bt_cuerpo_d, h = bt_cuerpo_L);
-    color("silver") cylinder(d1 = bola_d + 6, d2 = bola_d + 1, h = bt_bola_fuera - bola_d / 2);
+    color("silver") intersection() {
+        scale([1, 1, 2 * (bt_bola_fuera - 3) / bt_domo_d]) sphere(d = bt_domo_d);
+        translate([0, 0, bt_domo_d]) cube(2 * bt_domo_d, center = true);
+    }
     color("lightsteelblue") translate([0, 0, bt_bola_fuera - bola_d / 2]) sphere(d = bola_d);
 }
 

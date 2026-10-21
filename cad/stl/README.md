@@ -11,8 +11,9 @@ perímetros, soportes) y cuánto pesa está en la wiki: [Diseño 3D](../../wiki/
 | [`parte5-cabeza`](parte5-cabeza) | 5 · Cabeza | `cabeza_casco`, `cabeza_plato`, `cabeza_soporte_ojo`, `cabeza_soporte_bocina`, `cabeza_tapon`, `cabeza_antena_corta`, `cabeza_antena_larga` | 1, 1, 1, 1, 3, 1, 1 |
 | [`parte6-esfera`](parte6-esfera) | 6 · Esfera | 14 gajos (`esfera_gajo_A_*`, `esfera_gajo_B_*`), `esfera_circulo`, `esfera_tapa_carga` | 1 de cada gajo, 5 círculos, 1 tapa |
 
-- Los soportes de motor (`base_soporte_motor*`) solo hacen falta si los motores no van
-  sujetos con abrazaderas o soportes en L comprados.
+- Toda la base (`parte2-base`) va en **PETG**: soportes de motor, charola con lastre, 2
+  soportes de rueda loca RL4 (`base_soporte_bt`, imprime 2; el de atrás es el mismo) y el
+  panel de carga. La esfera y el casco de la cabeza van en ABS.
 - Antes de mandar los 14 gajos, imprime un gajo A y un gajo B y prueba que la bayoneta
   cierre.
 
