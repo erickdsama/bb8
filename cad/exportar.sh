@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Exporta los STL (cad/stl), la plantilla de la plataforma (cad/plantillas) y los
-# renders (cad/png). Requiere OpenSCAD (2021.01 o más nuevo) y, para los PNG sin
-# pantalla, xvfb-run.
+# Exporta los STL (cad/stl, una carpeta por parte), la plantilla de la plataforma
+# (cad/plantillas) y los renders (cad/png). Requiere OpenSCAD (2021.01 o más nuevo)
+# y, para los PNG sin pantalla, xvfb-run.
 #
 #   bash cad/exportar.sh            # todo
 #   bash cad/exportar.sh png        # solo los renders (segundos)
@@ -11,10 +11,15 @@ cd "$(dirname "$0")"
 QUE=${1:-todo}
 export FN=${FN:-48}
 JOBS=${JOBS:-$(nproc)}
-mkdir -p stl png plantillas
+mkdir -p stl/parte2-base stl/parte5-poste stl/parte5-cabeza stl/parte6-esfera png plantillas
 
-pieza() {   # archivo.scad  nombre  parte
-    openscad -q -D "\$fn=$FN" -D "parte=\"$3\"" -o "stl/$2.stl" "$1" && echo "  stl/$2.stl"
+pieza() {   # archivo.scad  nombre  parte; la carpeta sale del prefijo del nombre
+    local d
+    case $2 in
+        base_*) d=parte2-base ;; poste_*) d=parte5-poste ;;
+        cabeza_*) d=parte5-cabeza ;; esfera_*) d=parte6-esfera ;;
+    esac
+    openscad -q -D "\$fn=$FN" -D "parte=\"$3\"" -o "stl/$d/$2.stl" "$1" && echo "  stl/$d/$2.stl"
 }
 export -f pieza
 
@@ -30,7 +35,7 @@ if [[ $QUE == todo || $QUE == stl ]]; then
         for p in pie_poste soporte_servo portaimanes; do echo "poste.scad poste_$p $p"; done
         for p in casco plato tapon soporte_ojo soporte_bocina; do echo "cabeza.scad cabeza_$p $p"; done
     } | xargs -P "$JOBS" -L 1 bash -c 'pieza "$0" "$1" "$2"'
-    python3 herramientas/stl_binario.py stl/*.stl > /dev/null
+    python3 herramientas/stl_binario.py stl/*/*.stl > /dev/null
     openscad -q -D 'parte="plataforma_2d"' -o plantillas/plataforma.svg base.scad
     openscad -q -D 'parte="plataforma_2d"' -o plantillas/plataforma.dxf base.scad
 fi

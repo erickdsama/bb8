@@ -126,7 +126,7 @@ consumo real de los motores.
 | P-MOSFET AO3401 (SOT-23) | 2 | Mercado Libre | ~80 | Reposo profundo de la Pi; el IRF520 no sirve. Necesita placa adaptadora SOT-23 o soldar fino |
 | ~~Resistencias 100 kΩ, 10 kΩ y 4.7 kΩ~~ | — | UNIT / Steren | ~30 (est.) | Pull-up del MOSFET y divisor de batería en A0. **Comprado: 330 Ω ×5, 4.7 kΩ ×2, 10 kΩ ×2, 100 kΩ ×2 en Electrozone (16 oct)** |
 | XT60 hembra de panel + extensión JST-XH 4 pines | 1 | Amazon / UNIT | ~140 (est.) | Puerto de carga en la tapa del casco |
-| Impresión 3D por servicio (gajos de la esfera y cabeza) | 1 | Servicio local | ~2,000–3,000 (est.) | No hay impresora: se manda a imprimir con los STL de `cad/stl` (~1.6 kg de PLA). Los soportes de motor se compran y el poste es varilla roscada |
+| Impresión 3D por servicio (gajos de la esfera y cabeza) | 1 | Servicio local | ~2,000–3,000 (est.) | No hay impresora: se manda a imprimir con los STL de `cad/stl` (una carpeta por parte) (~1.6 kg de PLA). Los soportes de motor se compran y el poste es varilla roscada |
 | Primer, pintura blanca/naranja/plata, laca, lijas | 1 | Tlapalería | 300–500 (est.) | |
 | Lastre (pesas o plomo) | 200–400 g | Mercado Libre | ~50 (est.) | |
 

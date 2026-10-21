@@ -33,7 +33,7 @@ def caja(tri):
 
 if __name__ == "__main__":
     carpeta = pathlib.Path(__file__).resolve().parent.parent / "stl"
-    for ruta in sorted(carpeta.glob("*.stl")):
+    for ruta in sorted(carpeta.glob("*/*.stl")):
         t = leer(ruta)
         v = volumen(t) / 1000
         x, y, z = caja(t)
