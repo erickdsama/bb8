@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BB-8 Voz</title>
+<style>
+:root { --bg:#f6f5f2; --card:#fff; --ink:#1d1d1b; --mute:#6b6a65; --line:#e3e1db; --accent:#e8742a; --ok:#2f8a4c; --bad:#c23b2b; --cyan:#1f9fb4; --bar:#ecebe6; }
+@media (prefers-color-scheme: dark) { :root { --bg:#151514; --card:#1f1f1d; --ink:#ecebe6; --mute:#9a9891; --line:#33322f; --bar:#2a2a27; } }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 system-ui, sans-serif; }
+header { display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+h1 { font-size:18px; margin:0; }
+header a { font-size:13px; color:var(--mute); }
+main { max-width:860px; margin:0 auto; padding:16px; display:grid; gap:16px; }
+section { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; min-width:0; }
+h2 { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--mute); margin:0 0 10px; }
+.state { display:inline-flex; align-items:center; gap:8px; font-weight:600; font-size:20px; }
+.state i { width:14px; height:14px; border-radius:50%; background:var(--mute); }
+.state[data-s=waiting] i { background:#3d6fd6; } .state[data-s=listening] i { background:var(--cyan); }
+.state[data-s=thinking] i { background:var(--accent); } .state[data-s=speaking] i { background:var(--ok); }
+.state[data-s=offline] i { background:var(--bad); }
+.meter { position:relative; height:18px; background:var(--bar); border-radius:9px; overflow:hidden; margin:6px 0 2px; }
+.meter b { position:absolute; inset:0 auto 0 0; width:0; background:var(--cyan); transition:width .08s linear; }
+.meter.wake b { background:var(--accent); }
+.meter u { position:absolute; top:0; bottom:0; width:2px; background:var(--ink); opacity:.6; }
+.lbl { display:flex; justify-content:space-between; font-size:12px; color:var(--mute); font-variant-numeric:tabular-nums; }
+.fired { color:var(--accent); font-weight:600; }
+.big { font-size:22px; line-height:1.3; min-height:1.3em; overflow-wrap:anywhere; }
+.reply { color:var(--ok); }
+.mute { color:var(--mute); font-size:13px; }
+ul { list-style:none; margin:0; padding:0; }
+li { padding:10px 0; border-top:1px solid var(--line); display:grid; gap:4px; }
+li:first-child { border-top:0; }
+li audio { width:100%; height:36px; }
+.grid2 { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>BB-8 · Voz</h1>
+  <span class="state" id="state" data-s="offline"><i></i><span id="state-txt">sin conexión</span></span>
+  <a id="cfg-link" href="/" style="margin-left:auto">Configuración</a>
+</header>
+<main>
+  <div class="grid2">
+    <section>
+      <h2>Micrófono (cabeza)</h2>
+      <div class="meter"><b id="lvl"></b></div>
+      <div class="lbl"><span id="lvl-txt">— dB</span><span>-60 dB … 0 dB</span></div>
+    </section>
+    <section>
+      <h2>«Oye BB-8»</h2>
+      <div class="meter wake"><b id="wake"></b><u id="thr"></u></div>
+      <div class="lbl"><span id="wake-txt">0.00</span><span id="thr-txt">umbral —</span></div>
+      <div class="mute" id="fired">&nbsp;</div>
+    </section>
+  </div>
+  <section>
+    <h2>Entendió</h2>
+    <div class="big" id="heard"><span class="mute">Di «Oye BB-8» y una orden…</span></div>
+    <div class="mute" id="heard-meta">&nbsp;</div>
+    <h2 style="margin-top:14px">BB-8 contestó</h2>
+    <div class="big reply" id="reply"></div>
+  </section>
+  <section>
+    <h2>Historial (con audio)</h2>
+    <p class="mute" id="log-off" hidden>Activa <b>voice → Keep recent voice clips</b> en Configuración para guardar el audio.</p>
+    <ul id="log"></ul>
+  </section>
+</main>
+<script>
+const q = new URLSearchParams(location.search);
+let token = q.get("token") || "";
+try { if (token) localStorage.setItem("bb8-token", token); else token = localStorage.getItem("bb8-token") || ""; } catch (e) {}
+const tq = token ? "?token=" + encodeURIComponent(token) : "";
+document.getElementById("cfg-link").href = "/" + tq;
+const $ = (id) => document.getElementById(id);
+const el = (t, a = {}, ...k) => { const e = document.createElement(t); Object.assign(e, a); e.append(...k); return e; };
+const STATES = { waiting: "esperando «Oye BB-8»", listening: "escuchando la orden", thinking: "pensando", speaking: "hablando", offline: "sin conexión" };
+let lastEvent = 0;
+
+function setState(s) { $("state").dataset.s = s; $("state-txt").textContent = STATES[s] || s; }
+
+function onEvent(e) {
+  lastEvent = Date.now();
+  switch (e.type) {
+    case "level": {
+      const pct = Math.max(0, Math.min(100, (e.db + 60) / 60 * 100));
+      $("lvl").style.width = pct + "%";
+      $("lvl-txt").textContent = e.db <= -89 ? "silencio" : e.db.toFixed(0) + " dB";
+      break;
+    }
+    case "wake":
+      $("wake").style.width = Math.min(100, e.score * 100) + "%";
+      $("wake-txt").textContent = e.score.toFixed(2);
+      if (e.threshold !== undefined) { $("thr").style.left = (e.threshold * 100) + "%"; $("thr-txt").textContent = "umbral " + e.threshold; }
+      if ($("state").dataset.s === "offline") setState("waiting");
+      break;
+    case "wake_fired":
+      $("fired").textContent = "Despertó (" + e.score.toFixed(2) + ") · " + new Date(e.t).toLocaleTimeString();
+      $("fired").className = "fired";
+      $("heard").replaceChildren(el("span", { className: "mute", textContent: "escuchando…" }));
+      $("reply").textContent = "";
+      break;
+    case "state": setState(e.state); break;
+    case "heard":
+      $("heard").textContent = e.text ? "«" + e.text + "»" : "(no entendí nada)";
+      $("heard-meta").textContent = (e.seconds ? e.seconds.toFixed(1) + " s de audio · " : "") + (e.stt_s ? "transcrito en " + e.stt_s.toFixed(2) + " s" : "");
+      break;
+    case "nobody":
+      $("heard").replaceChildren(el("span", { className: "mute", textContent: "No dijiste nada después de «Oye BB-8»" }));
+      break;
+    case "reply": $("reply").textContent = e.text || ""; logRefresh(); break;
+  }
+}
+
+function connect() {
+  const es = new EventSource("/api/voice/events" + tq);
+  es.onmessage = (m) => onEvent(JSON.parse(m.data));
+  es.onerror = () => setState("offline");
+}
+setInterval(() => { if (Date.now() - lastEvent > 3000) setState("offline"); }, 1000);
+
+let seen = "";
+async function logRefresh() {
+  const r = await fetch("/api/audio" + tq);
+  if (!r.ok) return;
+  const b = await r.json();
+  $("log-off").hidden = b.enabled;
+  const clips = b.clips || [];
+  const sig = clips.map(c => c.id).join(",");
+  if (sig === seen) return;
+  seen = sig;
+  $("log").replaceChildren(...clips.map(c => el("li", {},
+    el("span", { className: "mute", textContent: new Date(c.at).toLocaleTimeString() + " · " + c.seconds.toFixed(1) + " s" }),
+    el("span", { textContent: "Entendió: " + (c.text ? "«" + c.text + "»" : "—") }),
+    c.reply ? el("span", { className: "reply", textContent: "BB-8: " + c.reply }) : "",
+    el("audio", { controls: true, preload: "metadata", src: "/api/audio/" + c.id + ".wav" + tq }))));
+}
+
+connect(); logRefresh(); setInterval(logRefresh, 5000);
+</script>
+</body>
+</html>

@@ -146,6 +146,8 @@ Voice (messages that start with [Speaker: …] come from the microphone):
   To react use express, at most once per turn.
 - Greet known speakers by name. [Speaker: unknown] is an unregistered voice: chat, but do
   not move for it (the system blocks move, turn and look_at for unknown voices).
+  [Speaker: voice ID off] means no voices are registered yet: treat it as the owner,
+  moving is allowed.
 - The transcription may have errors; if an order is ambiguous, ask before moving.
 `
 }

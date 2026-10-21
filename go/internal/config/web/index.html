@@ -31,6 +31,12 @@ button { background:var(--accent); color:#fff; border:0; cursor:pointer; width:a
 #toast.show { opacity:1; }
 #chat-log { font-size:14px; white-space:pre-wrap; max-height:260px; overflow:auto; margin-bottom:8px; }
 .chat-form { display:flex; gap:8px; }
+.clips { list-style:none; margin:0; padding:0; }
+.clips li { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; align-items:center; padding:8px 0; border-top:1px solid var(--line); }
+.clips li:first-child { border-top:0; }
+.clips .meta { font-size:12px; color:var(--mute); white-space:nowrap; }
+.clips .txt { font-size:14px; }
+.clips audio { grid-column:1 / -1; width:100%; height:36px; }
 </style>
 </head>
 <body>
@@ -38,6 +44,7 @@ button { background:var(--accent); color:#fff; border:0; cursor:pointer; width:a
   <h1>BB-8</h1>
   <span><span id="link-dot" class="dot"></span> <span class="pill" id="link-txt">offline</span></span>
   <span class="pill" id="head-txt"></span>
+  <a id="control-link" href="/control" style="margin-left:auto;font-size:13px">Control</a>
   <span class="pill" id="rev-txt"></span>
 </header>
 <main>
@@ -47,6 +54,11 @@ button { background:var(--accent); color:#fff; border:0; cursor:pointer; width:a
     <div id="chat-log"></div>
     <form class="chat-form" id="chat-form"><input id="chat-in" placeholder="Hola BB-8…" autocomplete="off"><button>Send</button></form>
   </section>
+  <section id="audio">
+    <h2>Recent audio (phrases after «Oye BB-8»)</h2>
+    <p class="pill" id="audio-off">Turn on <b>voice → Keep recent voice clips</b> above to record.</p>
+    <ul id="audio-list" class="clips"></ul>
+  </section>
   <section><h2>Recent changes</h2><ul id="audit"></ul></section>
 </main>
 <div id="toast"></div>
@@ -54,6 +66,7 @@ button { background:var(--accent); color:#fff; border:0; cursor:pointer; width:a
 const q = new URLSearchParams(location.search);
 let token = q.get("token") || "";
 try { if (token) localStorage.setItem("bb8-token", token); else token = localStorage.getItem("bb8-token") || ""; } catch (e) {}
+if (token) document.getElementById("control-link").href = "/control?token=" + encodeURIComponent(token);
 const auth = token ? { Authorization: "Bearer " + token } : {};
 let schema = [], rev = 0;
 const el = (t, a = {}, ...kids) => { const e = document.createElement(t); Object.assign(e, a); e.append(...kids); return e; };
@@ -169,6 +182,22 @@ async function chatInit() {
   });
 }
 
+let audioSeen = "";
+async function audioRefresh() {
+  const r = await api("/api/audio");
+  if (!r.ok) return;
+  document.getElementById("audio-off").hidden = r.body.enabled;
+  const clips = r.body.clips || [];
+  const sig = clips.map(c => c.id + ":" + (c.text || "")).join(",");
+  if (sig === audioSeen) return;   // don't reset players that are playing
+  audioSeen = sig;
+  const tq = token ? "?token=" + encodeURIComponent(token) : "";
+  document.getElementById("audio-list").replaceChildren(...clips.map(c => el("li", {},
+    el("span", { className: "meta", textContent: new Date(c.at).toLocaleTimeString() + " · " + c.seconds.toFixed(1) + " s" }),
+    el("span", { className: "txt", textContent: c.text ? "«" + c.text + "»" : "" }),
+    el("audio", { controls: true, preload: "metadata", src: "/api/audio/" + c.id + ".wav" + tq }))));
+}
+
 (async () => {
   const s = await api("/api/config/schema");
   if (!s.ok) { toast(s.status === 401 ? "Open with ?token=…" : "Cannot load config"); return; }
@@ -177,6 +206,7 @@ async function chatInit() {
   (await api("/api/config/audit")).body.forEach?.(addAudit);
   setInterval(async () => { const r = await api("/api/config"); if (r.ok) live(r.body.live || {}); }, 3000);
   connect(); chatInit();
+  audioRefresh(); setInterval(audioRefresh, 3000);
 })();
 </script>
 </body>

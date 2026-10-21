@@ -22,7 +22,10 @@
 #include "ws2811.h"
 
 #define GPIO_PIN 12 // PWM0 (ALT0); on the ReSpeaker HAT: Grove digital port
-#define DMA_CHAN 10
+// Not 10: on the Zero W with the ReSpeaker (WM8960) the kernel gives DMA 10 to I2S
+// capture, and taking it kills arecord. Free hardware channels there: 12-14
+// (see /sys/kernel/debug/dmaengine/summary and brcm,dma-channel-mask 0x7f35).
+#define DMA_CHAN 13
 
 static volatile sig_atomic_t running = 1;
 

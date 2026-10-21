@@ -304,7 +304,7 @@ Head hardware (Pi Zero W, armv6):
 - **Eye:** 16-LED WS2812 ring on GPIO12 (PWM0, the HAT's Grove digital port), driven by the `bb8-eye` C helper (rpi_ws281x, PWM + DMA, root). `bb8-head` sends it raw RGB frames (3 bytes per LED) on the unix socket `/run/bb8-eye.sock` (systemd `bb8-eye.socket`).
 - **Sound:** beeps synthesized in Go and played with `aplay`; speech with `espeak-ng`.
 - **ToF:** VL53L0X on I2C1.
-- **Microphone:** ReSpeaker 2-Mic HAT v2.0, ALSA card `seeed2micvoicec`, captured with `arecord -c 2 -r 16000`.
+- **Microphone:** ReSpeaker 2-Mic HAT v1 (WM8960), ALSA card `wm8960soundcard`, captured with `arecord -c 2 -r 16000`.
   - An energy VAD runs with an adaptive noise floor (+10 dB to start, 600 ms hangover).
   - Direction of arrival uses GCC-PHAT between the two capsules over 32 ms Hann blocks, evaluated at sub-sample lags.
   - The mic is muted while the head speaks, and for 400 ms after.

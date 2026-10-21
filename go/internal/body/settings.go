@@ -36,6 +36,8 @@ func RobotFields() []config.Field {
 		n("motion.track_width_m", "Track width (m)", d.TrackWidthM, 0.05, 0.4, "Calibration."),
 		{Key: "head.eye_brightness", Label: "Eye brightness", Type: config.Number, Default: 0.3, Min: config.F(0.02), Max: config.F(0.3), Agent: true},
 		{Key: "head.volume", Label: "Speaker volume", Type: config.Number, Default: 0.7, Min: config.F(0), Max: config.F(1), Agent: true},
+		{Key: "voice.audio_log", Label: "Keep recent voice clips", Type: config.Bool, Default: false,
+			Help: "The last 20 phrases the head heard, in RAM only, playable below. For tuning the microphone."},
 		{Key: "voice.speed", Label: "Speech speed", Type: config.Number, Default: 1.0, Min: config.F(0.5), Max: config.F(2), Agent: true,
 			Help: "Read by the voice front end."},
 		{Key: "home.city", Label: "City", Type: config.String, Default: "", Agent: true, Help: "Used by weather and to talk about local time."},

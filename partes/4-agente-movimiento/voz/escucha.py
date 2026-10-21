@@ -62,28 +62,43 @@ def _cargar_wakeword(nombre: str):
 
 
 class Escucha:
-    def __init__(self, mic: Microfono):
+    def __init__(self, mic: Microfono, panel=None):
         from openwakeword.vad import VAD
 
         self.mic = mic
+        self.panel = panel
         self.ww = _cargar_wakeword(V.WAKEWORD)
         self.vad = VAD()
 
     def esperar_wakeword(self) -> float:
         """Bloquea hasta oír la wake word. Devuelve la puntuación."""
         self.ww.reset()
+        pico, n = 0.0, 0
         while True:
             pred = self.ww.predict(self.mic.bloque())
-            score = max(pred.values()) if pred else 0.0
+            score = float(max(pred.values())) if pred else 0.0
+            pico, n = max(pico, score), n + 1
+            if self.panel and n >= 3:   # ~4 per second to the /voice page
+                self.panel.evento("wake", score=round(pico, 2), threshold=V.WAKEWORD_UMBRAL)
+                pico, n = 0.0, 0
             if score >= V.WAKEWORD_UMBRAL:
                 log.info("Wake word (%.2f)", score)
+                if self.panel:
+                    self.panel.evento("wake", score=round(score, 2), threshold=V.WAKEWORD_UMBRAL)
+                    self.panel.evento("wake_fired", score=round(score, 2))
                 return score
 
-    def grabar_frase(self) -> np.ndarray | None:
-        """Graba desde ya hasta 0.8 s de silencio. None si nadie habló."""
+    def grabar_frase(self, espera_s: float = V.ESPERA_VOZ_S) -> np.ndarray | None:
+        """Graba desde ya hasta una pausa. None si nadie habló.
+
+        The tail of "Oye BB-8" is still arriving when the wake word fires: it must
+        not count as the command, or a short pause before speaking ended the phrase
+        (1 s phrases transcribed as "Gracias."). So the command starts only after
+        MIN_VOZ_S of speech, and the user gets ESPERA_VOZ_S to begin.
+        """
         self.vad.reset_states()
         bloques: list[np.ndarray] = []
-        hablo = False
+        voz_s = 0.0
         silencio = 0.0
         dur = V.BLOQUE / V.TASA
         while True:
@@ -92,16 +107,39 @@ class Escucha:
             except queue.Empty:
                 continue
             bloques.append(b)
-            voz = self.vad.predict(b, frame_size=640) >= V.VAD_UMBRAL
+            relleno = getattr(self.mic, "relleno", None)
+            if relleno is not None:
+                # Head mic: its VAD tracks the noise floor and only streams while
+                # someone talks. Silero missed quiet far speech; a fixed loudness
+                # threshold never ended with a high mic gain.
+                voz = not relleno
+            else:
+                fuerte = float(np.sqrt(np.mean(b.astype(np.float32) ** 2))) > V.VOZ_RMS
+                voz = fuerte or self.vad.predict(b, frame_size=640) >= V.VAD_UMBRAL
             if voz:
-                hablo, silencio = True, 0.0
+                voz_s, silencio = voz_s + dur, 0.0
             else:
                 silencio += dur
+            hablo = voz_s >= V.MIN_VOZ_S
             t = len(bloques) * dur   # tiempo de audio, no de reloj
-            if not hablo and t > V.ESPERA_VOZ_S:
+            if not hablo and t > espera_s:
+                log.info("Nobody spoke within %.0f s", espera_s)
+                if self.panel:
+                    self.panel.evento("nobody")
                 return None
             if hablo and silencio >= V.SILENCIO_FIN_S:
                 break
             if t > V.GRABACION_MAX_S:
                 break
-        return np.concatenate(bloques)
+        log.info("Phrase: %.1f s of audio", len(bloques) * dur)
+        audio = np.concatenate(bloques)
+        if V.GUARDAR_FRASES:   # debugging: what the transcriber gets
+            import time
+            import wave
+            V.GUARDAR_FRASES.mkdir(parents=True, exist_ok=True)
+            with wave.open(str(V.GUARDAR_FRASES / f"frase-{time.strftime('%H%M%S')}.wav"), "wb") as w:
+                w.setnchannels(1)
+                w.setsampwidth(2)
+                w.setframerate(V.TASA)
+                w.writeframes(audio.astype(np.int16).tobytes())
+        return audio

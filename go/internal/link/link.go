@@ -16,6 +16,8 @@ import (
 	"io"
 	"log/slog"
 	"net"
+	"os/exec"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -345,7 +347,7 @@ func Dial(ctx context.Context, addr string, cfg *tls.Config, h Handler, ev Event
 	backoff := 500 * time.Millisecond
 	for ctx.Err() == nil {
 		d := tls.Dialer{NetDialer: &net.Dialer{Timeout: 3 * time.Second}, Config: cfg}
-		c, err := d.DialContext(ctx, "tcp", addr)
+		c, err := d.DialContext(ctx, "tcp", resolveMDNS(ctx, addr))
 		if err != nil {
 			slog.Warn("link: cannot reach body", "addr", addr, "err", err, "retry_in", backoff)
 			select {
@@ -368,4 +370,36 @@ func Dial(ctx context.Context, addr string, cfg *tls.Config, h Handler, ev Event
 		cancel()
 		slog.Warn("link: disconnected", "err", err)
 	}
+}
+
+// resolveMDNS turns "name.local:port" into "ip:port" through the system resolver.
+// The binaries are static (no cgo), so Go's own resolver only asks DNS and never
+// sees mDNS; getent goes through nsswitch (nss-mdns). The TLS ServerName is fixed
+// to the body's cert name, so dialing by IP keeps the check intact. On any
+// failure the address is returned unchanged.
+func resolveMDNS(ctx context.Context, addr string) string {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil || !strings.HasSuffix(host, ".local") {
+		return addr
+	}
+	cctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(cctx, "getent", "ahostsv4", host).Output()
+	if err != nil {
+		return addr
+	}
+	if ip := firstIP(string(out)); ip != "" {
+		return net.JoinHostPort(ip, port)
+	}
+	return addr
+}
+
+// firstIP reads the first address from getent output ("192.168.1.20 STREAM bb8.local").
+func firstIP(out string) string {
+	for _, line := range strings.Split(out, "\n") {
+		if f := strings.Fields(line); len(f) > 0 && net.ParseIP(f[0]) != nil {
+			return f[0]
+		}
+	}
+	return ""
 }

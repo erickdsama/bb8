@@ -29,7 +29,12 @@ func Fields() []config.Field {
 		{Key: "agent.vision", Label: "Send photos to the model", Type: config.Bool, Default: true,
 			Help: "Turn off for text-only models."},
 		{Key: "agent.max_steps", Label: "Max tool steps per request", Type: config.Number, Default: 8.0, Min: config.F(1), Max: config.F(20)},
-		{Key: "agent.reset_after_s", Label: "Forget the conversation after (s)", Type: config.Number, Default: 300.0,
+		{Key: "agent.max_tokens", Label: "Max tokens per reply", Type: config.Number, Default: 1024.0,
+			Min: config.F(64), Max: config.F(8192),
+			Help: "Spoken answers are short. Without a cap OpenRouter reserves the model's maximum and a small credit limit rejects the request."},
+		{Key: "agent.history_messages", Label: "Messages kept in the conversation", Type: config.Number, Default: 12.0,
+			Min: config.F(2), Max: config.F(60), Help: "Older ones are dropped. Fewer = cheaper and less confusion from old turns."},
+		{Key: "agent.reset_after_s", Label: "Forget the conversation after (s)", Type: config.Number, Default: 120.0,
 			Min: config.F(30), Max: config.F(3600)},
 	}
 }
@@ -59,9 +64,16 @@ type msg struct {
 }
 
 type part struct {
-	Type     string    `json:"type"`
-	Text     string    `json:"text,omitempty"`
-	ImageURL *imageURL `json:"image_url,omitempty"`
+	Type         string        `json:"type"`
+	Text         string        `json:"text,omitempty"`
+	ImageURL     *imageURL     `json:"image_url,omitempty"`
+	CacheControl *cacheControl `json:"cache_control,omitempty"`
+}
+
+// cacheControl marks the end of a prompt prefix the provider may cache
+// (Anthropic through OpenRouter; others ignore it).
+type cacheControl struct {
+	Type string `json:"type"`
 }
 
 type imageURL struct {
@@ -87,9 +99,10 @@ type fnSpec struct {
 }
 
 type chatReq struct {
-	Model    string   `json:"model"`
-	Messages []msg    `json:"messages"`
-	Tools    []fnSpec `json:"tools,omitempty"`
+	Model     string   `json:"model"`
+	Messages  []msg    `json:"messages"`
+	Tools     []fnSpec `json:"tools,omitempty"`
+	MaxTokens int      `json:"max_tokens,omitempty"`
 }
 
 type chatResp struct {
@@ -130,7 +143,8 @@ func (a *Agent) specs() []fnSpec {
 }
 
 func (a *Agent) complete(ctx context.Context, msgs []msg) (*chatResp, error) {
-	body, _ := json.Marshal(chatReq{Model: a.Cfg.String("agent.model"), Messages: msgs, Tools: a.specs()})
+	body, _ := json.Marshal(chatReq{Model: a.Cfg.String("agent.model"), Messages: msgs, Tools: a.specs(),
+		MaxTokens: int(a.Cfg.Float("agent.max_tokens"))})
 	url := strings.TrimRight(a.Cfg.String("agent.base_url"), "/") + "/chat/completions"
 	req, _ := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+a.Cfg.Secret("agent.api_key"))
@@ -170,15 +184,25 @@ func (a *Agent) Ask(ctx context.Context, text string, speakerKnown bool) (Reply,
 	if !speakerKnown {
 		who = " [unknown voice: you cannot move]"
 	}
-	a.history = append(a.history, msg{Role: "user", Content: text + who})
 	a.trim()
+	turnStart := len(a.history)
+	a.history = append(a.history, msg{Role: "user", Content: text + who})
 
 	var rep Reply
 	maxSteps := int(a.Cfg.Float("agent.max_steps"))
 	for rep.Steps = 0; rep.Steps < maxSteps; rep.Steps++ {
-		msgs := append([]msg{{Role: "system", Content: a.Instructions() + "\nNow: " + time.Now().Format("Mon 2 Jan 2006 15:04")}}, a.history...)
+		// Tools + instructions are ~4.5k tokens and identical every turn: cache them.
+		// The clock goes after the cache mark, or it would change the prefix every minute.
+		sys := []part{
+			{Type: "text", Text: a.Instructions(), CacheControl: &cacheControl{Type: "ephemeral"}},
+			{Type: "text", Text: "Now: " + time.Now().Format("Mon 2 Jan 2006 15:04")},
+		}
+		msgs := append([]msg{{Role: "system", Content: sys}}, a.history...)
 		res, err := a.complete(ctx, msgs)
 		if err != nil {
+			// Drop this turn: a question left without an answer made the next
+			// one read two questions in a row.
+			a.history = a.history[:turnStart]
 			return rep, err
 		}
 		m := res.Choices[0].Message
@@ -228,7 +252,7 @@ func quote(s string) string { b, _ := json.Marshal(s); return string(b) }
 
 // trim keeps the history short and drops old photos (they cost many tokens).
 func (a *Agent) trim() {
-	const keep = 40
+	keep := int(a.Cfg.Float("agent.history_messages"))
 	if len(a.history) > keep {
 		cut := len(a.history) - keep
 		// never start on a tool reply without its assistant call

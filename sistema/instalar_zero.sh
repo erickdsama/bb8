@@ -48,6 +48,11 @@ grep -q "dtoverlay=disable-bt" "$CONFIG" || echo "dtoverlay=disable-bt" >> "$CON
 # rpi_ws281x uses the PWM block: the onboard (PWM) audio must be off. The HAT's audio is I2S.
 if grep -q "^dtparam=audio=on" "$CONFIG"; then sed -i 's/^dtparam=audio=on/dtparam=audio=off/' "$CONFIG"
 else grep -q "^dtparam=audio=off" "$CONFIG" || echo "dtparam=audio=off" >> "$CONFIG"; fi
+# ReSpeaker 2-Mic HAT v1 (WM8960 codec at I2C 0x1a): the overlay ships with the kernel.
+# The v2.0 (TLV320AIC3104, 0x18) needs Seeed's respeaker-2mic-v2_0 overlay instead.
+if grep -q "^#dtparam=i2s=on" "$CONFIG"; then sed -i 's/^#dtparam=i2s=on/dtparam=i2s=on/' "$CONFIG"
+else grep -q "^dtparam=i2s=on" "$CONFIG" || echo "dtparam=i2s=on" >> "$CONFIG"; fi
+grep -q "dtoverlay=wm8960-soundcard" "$CONFIG" || echo "dtoverlay=wm8960-soundcard" >> "$CONFIG"
 
 systemctl disable --now bb8-cabeza 2>/dev/null || true   # old Python head
 rm -f /etc/systemd/system/bb8-cabeza.service
@@ -55,4 +60,4 @@ cp "$UNIT" /etc/systemd/system/bb8-head.service
 systemctl daemon-reload
 systemctl enable --now bb8-eye.socket bb8-head
 echo "Done. Logs: journalctl -fu bb8-head  (it should say 'link: connected to body')"
-echo "Reboot once so SPI, I2C and dtparam=audio=off apply (the eye needs PWM free)."
+echo "Reboot once so SPI, I2C and dtparam=audio=off and the ReSpeaker apply (the eye needs PWM free)."

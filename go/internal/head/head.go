@@ -109,9 +109,17 @@ func (h *Head) onEvent(p *link.Peer, typ string, body json.RawMessage, _ []byte)
 	}
 }
 
+// WaitingRGB is the eye while the head has no body: from power-on until the link
+// is up, and again whenever it drops. The body restores its last color on connect.
+var WaitingRGB = [3]uint8{255, 110, 0}
+
 // Run keeps the link to the body up until ctx ends.
 func (h *Head) Run(ctx context.Context, addr string, cfg *tls.Config) {
-	link.Dial(ctx, addr, cfg, h.handle, h.onEvent, h.pump)
+	_ = h.B.Eye(WaitingRGB, "breathe", 0.3)
+	link.Dial(ctx, addr, cfg, h.handle, h.onEvent, func(ctx context.Context, p *link.Peer) {
+		h.pump(ctx, p)
+		_ = h.B.Eye(WaitingRGB, "breathe", 0.3)
+	})
 }
 
 // pump pushes state once and the ToF every 100 ms while connected.

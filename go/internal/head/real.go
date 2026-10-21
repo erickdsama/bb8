@@ -38,6 +38,7 @@ import (
 //     voiced audio streamed to the body. Its speaker output is the HAT's codec.
 type Real struct {
 	camera string
+	tts    string // Wyoming TTS host:port
 	eye    *ringEye
 	tof    *VL53L0X
 	tofMM  atomic.Int64 // -1 = no reading
@@ -61,10 +62,11 @@ type RealConfig struct {
 	MicDevice  string
 	MicSpacing float64
 	MicSwap    bool
+	TTS        string // Wyoming text-to-speech host:port (Piper); "" = espeak-ng only
 }
 
 func NewReal(ctx context.Context, c RealConfig) *Real {
-	r := &Real{sound: NoSoundDir{}}
+	r := &Real{sound: NoSoundDir{}, tts: c.TTS}
 	if c.MicDevice != "" {
 		m := NewMic(c.MicDevice, c.MicSpacing, c.MicSwap)
 		r.sound, r.mic = m, m
@@ -152,7 +154,11 @@ func (r *Real) Say(ctx context.Context, text, sound string) (float64, error) {
 	// The mic would hear BB-8 itself: mute it while speaking and a bit after.
 	if r.mic != nil {
 		r.mic.Mute(30 * time.Second)
-		defer r.mic.Mute(400 * time.Millisecond)
+		tail := 400 * time.Millisecond // room echo after speech
+		if text == "" {
+			tail = 120 * time.Millisecond // a short beep (the "listening" cue): give the mic back fast
+		}
+		defer r.mic.Mute(tail)
 	}
 	vol := r.volume.Load().(float64)
 	key := sound
@@ -162,6 +168,16 @@ func (r *Real) Say(ctx context.Context, text, sound string) (float64, error) {
 	wav, _ := BeepWAV(key, 0.6*vol, int(time.Now().UnixNano()%4))
 	if err := play(ctx, wav); err != nil {
 		return 0, fmt.Errorf("aplay: %w", err)
+	}
+	if text != "" && r.tts != "" {
+		wav, err := wyomingTTS(ctx, r.tts, text, vol)
+		if err == nil {
+			err = play(ctx, wav)
+		}
+		if err == nil {
+			return math.Round(time.Since(t0).Seconds()*100) / 100, nil
+		}
+		slog.Warn("tts server failed, using espeak-ng", "addr", r.tts, "err", err)
 	}
 	if text != "" {
 		if _, err := exec.LookPath("espeak-ng"); err != nil {

@@ -47,6 +47,11 @@ Al terminar imprime la dirección de la página de configuración con el token:
 http://bb8.local:8765/?token=…
 ```
 
+Para manejarlo con botones abre **`http://bb8.local:8765/control?token=…`** (o el enlace
+*Control* de esa página): flechas para avanzar y girar, STOP, la cabeza, `say` y el ojo, y
+el estado en vivo. La página es un cliente MCP más: cada botón es una llamada a una
+herramienta (`move`, `turn`, `look_at`…), con los mismos límites que tiene Claude.
+
 Ábrela y pon ahí la clave de OpenRouter (`agent.api_key`), el modelo, tu ciudad
 (`home.city`) y los conectores (clima, calendario). Todo eso vive en
 `/var/lib/bb8/config.json` y `secrets.json` (0600), no en `/etc/bb8.env`. Los cambios se
@@ -102,6 +107,13 @@ Para la nube:
 
 Logs: `journalctl -fu bb8-body` (o el servicio que sea).
 
+Para ver la voz en vivo abre `http://bb8.local:8765/voice?token=…`:
+- volumen del micrófono y puntaje de «Oye BB-8» frente a su umbral;
+- estado (esperando, escuchando, pensando, hablando);
+- lo que se transcribió y lo que contestó BB-8;
+- con **voice → Keep recent voice clips** activado en la configuración, las últimas 20 frases
+  con su audio (solo en RAM).
+
 ## Pi Zero W (cabeza)
 
 Pi Zero W original (armv6) con Raspberry Pi OS Lite de 32 bits y hostname `bb8-head`.
@@ -124,9 +136,11 @@ El instalador:
 - instala `bb8-head` y los certificados en `/etc/bb8/pki`;
 - instala `rpicam-apps-lite` (cámara), `alsa-utils` (micrófono y pitidos) y `espeak-ng`
   (voz: Piper no corre en armv6);
-- el driver del ReSpeaker 2-Mic HAT v2.0 va aparte (overlay `respeaker-2mic-v2_0` de
-  [seeed-linux-dtoverlays](https://github.com/Seeed-Studio/seeed-linux-dtoverlays)); revisa
-  con `arecord -l` que aparezca `seeed2micvoicec`;
+- activa el ReSpeaker 2-Mic HAT v1 (códec WM8960, I2C 0x1a) con `dtparam=i2s=on` y
+  `dtoverlay=wm8960-soundcard`, que ya vienen con el kernel. Tras reiniciar, `arecord -l`
+  debe mostrar `wm8960soundcard`. La v2.0 (0x18) usa en cambio el overlay
+  `respeaker-2mic-v2_0` de [seeed-linux-dtoverlays](https://github.com/Seeed-Studio/seeed-linux-dtoverlays)
+  y `--mic plughw:CARD=seeed2micvoicec`;
 - activa **SPI** (anillo NeoPixel) e **I2C** (VL53L0X) y apaga Bluetooth para ahorrar;
 - habilita `bb8-head`, que corre como `bb8` con los grupos `spi i2c video audio gpio`, no
   como root.
@@ -174,8 +188,12 @@ configuración.
 | `BB8_WAKEWORD_UMBRAL` | `0.5` | Sensibilidad de la wake word |
 | `BB8_MIC` | `cabeza` | `cabeza`: el ReSpeaker de la cabeza por el enlace (`GET /audio/stream`); `local`: un micrófono en la Pi 3 |
 | `BB8_MICROFONO` | el de por defecto | Con `BB8_MIC=local`: nombre o índice de `sounddevice` |
-| `BB8_HEAD_MIC`, `BB8_MIC_SWAP`, `BB8_EYE` (en la Zero) | `plughw:CARD=seeed2micvoicec`, `0`, `ws2812-pwm` con micrófono | Dispositivo ALSA del ReSpeaker, canales al revés, tipo de ojo (`ws2812-pwm`, `apa102`, `ws2812`, `none`) |
-| `BB8_STT` | `local`, o `nube` si hay `BB8_STT_API_KEY` | Dónde se transcribe |
+| `BB8_HEAD_MIC`, `BB8_MIC_SWAP`, `BB8_EYE` (en la Zero) | `plughw:CARD=wm8960soundcard`, `0`, `ws2812-pwm` con micrófono | Dispositivo ALSA del ReSpeaker, canales al revés, tipo de ojo (`ws2812-pwm`, `apa102`, `ws2812`, `none`) |
+| `BB8_STT` | `wyoming` si hay `BB8_STT_WYOMING`; si no `nube` con `BB8_STT_API_KEY`; si no `local` | Dónde se transcribe |
+| `BB8_STT_WYOMING` | — | `host:puerto` de un servidor Wyoming de transcripción en tu red (p. ej. `wyoming-faster-whisper` con `large-v3-turbo` en un PC con GPU, puerto 10300). Es lo que mejor entiende a 1 m |
+| `BB8_TTS_WYOMING` (en la Zero) | — | `host:puerto` de un servidor Wyoming de voz (Piper). Sin él, la cabeza habla con `espeak-ng` |
+| `BB8_ESPERA_SEGUIMIENTO_S` | `8` | Si BB-8 termina con una pregunta, escucha esta cantidad de segundos sin «Oye BB-8» (máximo 3 seguidas) |
+| `BB8_GUARDAR_FRASES` | — | Carpeta donde guardar cada frase grabada como WAV (depuración) |
 | `BB8_STT_API_KEY` | — | Clave de la API de transcripción (Groq, OpenAI…) |
 | `BB8_STT_URL` | `https://api.groq.com/openai/v1/audio/transcriptions` | Endpoint compatible con OpenAI |
 | `BB8_STT_MODELO` | `whisper-large-v3-turbo` | Modelo de la API (`whisper-1` en OpenAI) |

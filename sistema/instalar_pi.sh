@@ -52,6 +52,7 @@ if [ $VOZ = 1 ]; then
   apt-get install -y python3-venv libportaudio2 libopenblas0
   sudo -u bb8 python3 -m venv .venv
   sudo -u bb8 .venv/bin/pip install --no-cache-dir -r requirements.txt -r partes/4-agente-movimiento/requirements-voz.txt
+  sudo -u bb8 .venv/bin/pip install --no-cache-dir --no-deps openwakeword==0.6.0   # see requirements-voz.txt
   sudo -u bb8 .venv/bin/pip install --no-deps -e .
   sudo -u bb8 mkdir -p partes/4-agente-movimiento/voz/modelos
   for ext in onnx onnx.json; do
