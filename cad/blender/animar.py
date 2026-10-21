@@ -305,9 +305,11 @@ def base(padre):
         rot = apuntar(u).to_euler()
         cara = c - u * (RL4_ALTO - BOLA_D / 2)          # cara de la brida
         prim("esf", f"RL4 {nombre} bola", "Metal", padre, c, dim=(BOLA_D,) * 3, segments=32, ring_count=16)
-        d = prim("esf", f"RL4 {nombre} domo", "Metal", padre, cara, rot,
-                 dim=(RL4_DOMO, RL4_DOMO, 2 * (RL4_ALTO - 3)), segments=32, ring_count=16)
-        corte(d, cara, u)
+        # domo: falda cilíndrica + media esfera de Ø32; su punta queda 3 mm abajo de la de la bola
+        falda = RL4_ALTO - 3 - RL4_DOMO / 2
+        prim("cil", f"RL4 {nombre} falda", "Metal", padre, cara + u * falda / 2, rot, dim=(RL4_DOMO, RL4_DOMO, falda), vertices=48)
+        d = prim("esf", f"RL4 {nombre} domo", "Metal", padre, cara + u * falda, rot, dim=(RL4_DOMO,) * 3, segments=48, ring_count=24)
+        corte(d, cara + u * falda, u)
         # brida de 2 agujeros: 50 × 22 con las puntas redondas (en el marco de apuntar, el largo va en y)
         prim("cubo", f"RL4 {nombre} brida", "Metal", padre, cara - u * 0.75, rot, dim=(RL4_BRIDA[1], RL4_BRIDA[0] - RL4_BRIDA[1], 1.5))
         for k in (-1, 1):
