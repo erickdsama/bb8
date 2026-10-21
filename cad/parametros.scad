@@ -141,6 +141,12 @@ ojo2_z      = 4;              // altura del ojo chico (debajo del plato)
 ojo2_inclin = 10;             // el ToF mira 10° hacia abajo
 ojo2_d      = 16;
 tof         = [25, 13, 1.6];  // MEDIR: GY-530 / CJMCU-530
+// Antenas impresas en la tapa, hacia atrás: [x, y, Ø del agujero]
+antena_corta_pos = [0, -0.45, 6];   // y en fracciones de cab_tapa_r
+antena_larga_pos = [9, -0.72, 4];
+antena_corta = [9, 28];       // Ø y alto sobre la tapa
+antena_larga = [5, 90];       // Ø de la varilla y alto total; base Ø10 × 14
+alambre_d   = 1.8;            // canal para un alambre de acero (clip o cuerda de piano de 1.5 mm)
 // Bocina 4 Ω 5 W y power bank
 bocina_d    = 40;             // MEDIR: la de UNIT puede ser de 40 o 50 mm
 bocina_prof = 20;

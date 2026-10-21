@@ -8,7 +8,7 @@
 // El casco baja sobre el plato y se fija con 3 tornillos M3 radiales.
 //
 // Uso: openscad -D 'parte="casco"' -o cabeza_casco.stl cabeza.scad
-//   partes: casco  plato  tapon (imprime 3)  soporte_ojo  soporte_bocina  vista
+//   partes: casco  plato  tapon (imprime 3)  soporte_ojo  soporte_bocina  antena_corta  antena_larga  vista
 // Las piezas sueltas salen ya orientadas para imprimir.
 
 include <parametros.scad>
@@ -60,8 +60,8 @@ module casco() {
         translate([0, 0, zc]) apuntar(n_boc) for (i = [-3 : 3], j = [-3 : 3])
             let(x = 6 * (i + j / 2), y = 6 * j * sqrt(3) / 2)
                 if (x * x + y * y < pow(bocina_d / 2 - 4, 2)) translate([x, y, Rd - 10]) cylinder(d = 3, h = 20, $fn = 12);
-        // antenas (Ø6 y Ø4) en la tapa, hacia atrás
-        for (p = [[0, -cab_tapa_r * 0.45, 6], [9, -cab_tapa_r * 0.72, 4]]) translate([p[0], p[1], cab_z_tope - 10]) cylinder(d = p[2], h = 20, $fn = 24);
+        // agujeros de las antenas en la tapa, hacia atrás
+        for (p = [antena_corta_pos, antena_larga_pos]) translate([p[0], p[1] * cab_tapa_r, cab_z_tope - 10]) cylinder(d = p[2], h = 20, $fn = 24);
         // puerto USB del power bank, atrás bajo la antena
         translate([0, -Rc, 2]) cube([13, 30, 7], center = true);
         // tornillos M3 avellanados al plato
@@ -237,6 +237,36 @@ module tapon() difference() {
     translate([0, 0, -1]) cylinder(d = 3, h = 10, $fn = 12);    // grasa / sacarlo con un clavo
 }
 
+// ───────────── Antenas ─────────────
+// Se imprimen de pie, con la espiga abajo. La espiga entra en el agujero de la tapa y se
+// pega por dentro. Un alambre de acero por el centro las hace casi irrompibles: atraviesa
+// la tapa y se dobla por dentro.
+espiga_ant = cab_pared + 3.5;
+
+module antena_corta() difference() {
+    union() {
+        cylinder(d = antena_corta_pos[2] - 0.3, h = espiga_ant, $fn = 32);
+        translate([0, 0, espiga_ant]) {
+            cylinder(d1 = antena_corta[0] + 1, d2 = antena_corta[0], h = antena_corta[1] - antena_corta[0] / 2, $fn = 48);
+            translate([0, 0, antena_corta[1] - antena_corta[0] / 2]) sphere(d = antena_corta[0], $fn = 48);
+        }
+    }
+    translate([0, 0, -1]) cylinder(d = alambre_d, h = espiga_ant + antena_corta[1] - 3, $fn = 12);
+}
+
+module antena_larga() difference() {
+    union() {
+        cylinder(d = antena_larga_pos[2] - 0.3, h = espiga_ant, $fn = 32);
+        translate([0, 0, espiga_ant]) {
+            cylinder(d = 10, h = 12, $fn = 48);
+            translate([0, 0, 12]) cylinder(d1 = 10, d2 = antena_larga[0], h = 2, $fn = 48);
+            cylinder(d = antena_larga[0], h = antena_larga[1] - 3, $fn = 32);
+            translate([0, 0, antena_larga[1] - 3]) cylinder(d = antena_larga[0] + 2, h = 3, $fn = 32);   // remate
+        }
+    }
+    translate([0, 0, -1]) cylinder(d = alambre_d, h = espiga_ant + antena_larga[1] - 2, $fn = 12);
+}
+
 // ───────────── Vista ─────────────
 module cabeza_completa(con_casco = true) {
     if (con_casco) color("white") casco();
@@ -255,6 +285,8 @@ module cabeza_completa(con_casco = true) {
     }
     translate(p_ojo2 - (cab_pared + 2.2 + (tof[0] / 2 + 3) * tan(ojo2_azim)) * n_tof) apuntar(n_tof) rotate([0, 0, 90]) vl53l0x();
     en_bocina() bocina();
+    color("silver") for (a = [[antena_corta_pos, 0], [antena_larga_pos, 1]]) let(q = a[0])
+        translate([q[0], q[1] * cab_tapa_r, cab_z_tope - espiga_ant]) if (a[1] == 0) antena_corta(); else antena_larga();
 }
 
 if (parte == "vista") cabeza_completa();
@@ -263,3 +295,5 @@ else if (parte == "plato") rotate([180, 0, 0]) plato();
 else if (parte == "tapon") tapon();
 else if (parte == "soporte_ojo") soporte_ojo();
 else if (parte == "soporte_bocina") soporte_bocina();
+else if (parte == "antena_corta") antena_corta();
+else if (parte == "antena_larga") antena_larga();
