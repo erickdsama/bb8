@@ -293,7 +293,7 @@ def cabeza(padre):
         stl(f"parte5-cabeza/cabeza_antena_{nombre}.stl", f"Antena {nombre}", "Gris", padre,
             Matrix.Translation((x, y * TAPA_R, Z_TOPE - ESPIGA_ANT)))
     out = os.path.join(CAD, "blender", "out")
-    for f, nombre, m in (("ojo_mica.stl", "Mica", "Mica"), ("ojo_anillo.stl", "Anillo del ojo", "Ojo")):
+    for f, nombre, m in (("ojo_domo.stl", "Domo del ojo", "Mica"), ("ojo_anillo.stl", "Anillo del ojo", "Ojo")):
         if os.path.exists(os.path.join(out, f)):
             stl(os.path.join(out, f), nombre, m, padre)
     sup = PLATO_Z + PLATO_E

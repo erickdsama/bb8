@@ -69,9 +69,9 @@ con `alsamixer` y guárdalo con `sudo alsactl store`. Flags de `bb8-head`:
 - El anillo a blanco pleno pide ~1 A: aliméntalo del power bank. El brillo se limita a 0.3 en el código.
 - Alimenta el PAM8403 a 5 V, nunca a 11.1 V.
 
-El casco de la cabeza, el plato interior y los soportes del ojo (anillo + cámara) y de
-la bocina están en el [Diseño 3D](Diseno-3D.md#cabeza). En esa cabeza el VL53L0X va en
-el ojo chico, conectado a la Zero.
+El casco de la cabeza, el plato interior y los soportes del ojo (domo + anillo), de la
+cámara y de la bocina están en el [Diseño 3D](Diseno-3D.md#cabeza). En esa cabeza la
+cámara va en el ojo chico y el VL53L0X en el círculo bajo el ojo principal, conectado a la Zero.
 
 ## Instalar en la Zero
 

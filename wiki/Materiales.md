@@ -127,7 +127,7 @@ consumo real de los motores.
 | ~~Resistencias 100 kΩ, 10 kΩ y 4.7 kΩ~~ | — | UNIT / Steren | ~30 (est.) | Pull-up del MOSFET y divisor de batería en A0. **Comprado: 330 Ω ×5, 4.7 kΩ ×2, 10 kΩ ×2, 100 kΩ ×2 en Electrozone (16 oct)** |
 | XT60 hembra de panel + extensión JST-XH 4 pines | 1 | Amazon / UNIT | ~140 (est.) | Puerto de carga en la tapa del casco |
 | Impresión 3D por servicio (gajos de la esfera y cabeza) | 1 | Servicio local | ~2,000–3,000 (est.) | No hay impresora: se manda a imprimir con los STL de `cad/stl` (una carpeta por parte) (~1.6 kg de PLA). Los soportes de motor se compran y el poste es varilla roscada |
-| Mica acrílica ahumada **clara** Ø 50 × 3 mm, corte láser | 2–3 | FabLab Juárez | ~50 (est.) | Tapa del ojo principal; el soporte del ojo la aprieta por dentro. Ahumado oscuro deja negras las fotos de la cámara. El ojo chico (ToF) va sin tapa |
+| Esfera de acrílico transparente de 5 cm, de las que se abren en dos (manualidades / adornos) + Tamiya TS-71 Smoke en aerosol | 1 | Papelería / tienda de modelismo | ~150 (est.) | Ojo principal: una mitad pintada por dentro en 2–3 capas ligeras; los LED la iluminan. La cámara va en el ojo chico y el sensor de distancia en el círculo de abajo, los dos sin tapa |
 | Primer, pintura blanca/naranja/plata, laca, lijas | 1 | Tlapalería | 300–500 (est.) | |
 | Lastre (pesas o plomo) | 200–400 g | Mercado Libre | ~50 (est.) | |
 

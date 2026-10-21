@@ -5,7 +5,7 @@
 // su propio origen en ese polo (Blender la sube a z = Re).
 //
 // Uso: openscad -D 'pieza="esfera_blanca"' -o esfera_blanca.stl piezas.scad
-//   piezas: esfera_blanca  esfera_naranja  cabeza  antenas  ojo_mica  ojo_anillo
+//   piezas: esfera_blanca  esfera_naranja  cabeza  antenas  ojo_domo  ojo_anillo
 
 include <../parametros.scad>
 use <../esfera.scad>
@@ -23,5 +23,5 @@ else if (pieza == "esfera_naranja") esfera_mundo() for (e = EJES) apuntar(e)
     if (e == [0, 0, -1]) tapa_carga(); else circulo();
 else if (pieza == "cabeza") casco();
 else if (pieza == "antenas") antenas();
-else if (pieza == "ojo_mica") ojo_mica();
+else if (pieza == "ojo_domo") ojo_domo();
 else if (pieza == "ojo_anillo") ojo_anillo();
