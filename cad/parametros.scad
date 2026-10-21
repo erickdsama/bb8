@@ -52,9 +52,9 @@ x_contacto = a_rueda + rueda_ancho / 2 - chaflan_llanta;
 z_eje = -(sqrt(Ri * Ri - x_contacto * x_contacto) - rueda_d / 2);
 angulo_contacto = asin(x_contacto / Ri);   // inclinación de la pared donde pisa la rueda
 
-// ───────────────────────── Plataforma (melamina) ─────────────────────────
+// ───────────────────────── Plataforma (MDF 6 mm) ─────────────────────────
 plat_d      = 210;    // 20–22 cm
-plat_e      = 15;     // melamina 15 mm
+plat_e      = 6;      // MDF de 6 mm cortado en láser (FabLab) con plantillas/plataforma.dxf
 cuna_techo  = 3;      // material del soporte de motor encima de la caja
 plat_z_inf  = z_eje + caja_d / 2 + cuna_techo;   // cara de abajo de la plataforma
 plat_z_sup  = plat_z_inf + plat_e;               // cara de arriba

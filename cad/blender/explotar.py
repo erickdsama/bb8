@@ -2,7 +2,7 @@
 
 Corre después de animar.py. Del segundo 12.5 al 14 la esfera desaparece, la cabeza sube
 y sale de cuadro, y las piezas de la base se separan por capas: tarjetas arriba,
-melamina, soportes de motor, motores y llantas hacia los lados, ruedas locas, y la LiPo abajo.
+plataforma de MDF, soportes de motor, motores y llantas hacia los lados, ruedas locas, y la LiPo abajo.
 """
 import math
 
