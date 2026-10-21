@@ -267,6 +267,17 @@ module antena_larga() difference() {
     translate([0, 0, -1]) cylinder(d = alambre_d, h = espiga_ant + antena_larga[1] - 2, $fn = 12);
 }
 
+// Las dos antenas en su lugar (para la vista y para Blender).
+module antenas() for (a = [[antena_corta_pos, 0], [antena_larga_pos, 1]]) let(q = a[0])
+    translate([q[0], q[1] * cab_tapa_r, cab_z_tope - espiga_ant]) if (a[1] == 0) antena_corta(); else antena_larga();
+
+// Mica y anillo del ojo en su lugar (para Blender).
+module ojo_mica() en_ojo() translate([0, 0, z_mica]) cylinder(d = ojo_mica_d, h = 3);
+module ojo_anillo() en_ojo() translate([0, 0, z_anillo]) difference() {
+    cylinder(d = anillo[0], h = anillo[2], $fn = 96);
+    translate([0, 0, -1]) cylinder(d = anillo[1], h = anillo[2] + 2, $fn = 96);
+}
+
 // ───────────── Vista ─────────────
 module cabeza_completa(con_casco = true) {
     if (con_casco) color("white") casco();
@@ -285,8 +296,7 @@ module cabeza_completa(con_casco = true) {
     }
     translate(p_ojo2 - (cab_pared + 2.2 + (tof[0] / 2 + 3) * tan(ojo2_azim)) * n_tof) apuntar(n_tof) rotate([0, 0, 90]) vl53l0x();
     en_bocina() bocina();
-    color("silver") for (a = [[antena_corta_pos, 0], [antena_larga_pos, 1]]) let(q = a[0])
-        translate([q[0], q[1] * cab_tapa_r, cab_z_tope - espiga_ant]) if (a[1] == 0) antena_corta(); else antena_larga();
+    color("silver") antenas();
 }
 
 if (parte == "vista") cabeza_completa();
