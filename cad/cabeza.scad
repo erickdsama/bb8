@@ -40,7 +40,9 @@ module perfil(p) {
 // direcciones (desde el centro del domo) del ojo y de la bocina
 n_ojo = [0, cos(ojo_elev), sin(ojo_elev)];
 n_boc = [0, -cos(bocina_elev), sin(bocina_elev)];
-n_ojo2 = [sin(ojo2_azim) * cos(ojo2_inclin), cos(ojo2_azim) * cos(ojo2_inclin), -sin(ojo2_inclin)];
+// El ojo chico está a 28° a la derecha, pero el ToF mira al frente (y 10° abajo): el
+// software toma su distancia como "adelante" con la cabeza centrada.
+n_tof = [0, cos(ojo2_inclin), -sin(ojo2_inclin)];
 // radio exterior de la banda a la altura z
 function r_banda(z) = cab_r_borde + (Rc - cab_r_borde) * (z - z_borde) / (cab_z_ancho - z_borde);
 p_ojo2 = [sin(ojo2_azim) * r_banda(ojo2_z), cos(ojo2_azim) * r_banda(ojo2_z), ojo2_z];
@@ -52,8 +54,8 @@ module casco() {
         translate([0, 0, -Re]) sphere(r_hueco, $fn = 360);
         // ojo principal
         translate([0, 0, zc]) apuntar(n_ojo) cylinder(d = ojo_hueco_d, h = Rd + 5, $fn = 96);
-        // ojo chico (VL53L0X)
-        translate(p_ojo2) apuntar(n_ojo2) cylinder(d = ojo2_d, h = 20, center = true, $fn = 48);
+        // ojo chico (VL53L0X): perforado hacia el frente, por fuera se ve un poco ovalado
+        translate(p_ojo2) apuntar(n_tof) cylinder(d = ojo2_d, h = 20, center = true, $fn = 48);
         // rejilla de la bocina: hexágono de agujeros de 3 mm
         translate([0, 0, zc]) apuntar(n_boc) for (i = [-3 : 3], j = [-3 : 3])
             let(x = 6 * (i + j / 2), y = 6 * j * sqrt(3) / 2)
@@ -146,17 +148,18 @@ POS_PIZERO = [-32.5, -18];
 function agujeros_pizero() = [for (p = [[3.5, 3.5], [61.5, 3.5], [3.5, 26.5], [61.5, 26.5]]) POS_PIZERO + p];
 
 module soporte_tof() {
-    // placa vertical que cuelga del plato con un bolsillo para el módulo
-    q = p_ojo2 - (cab_pared + 2.2) * n_ojo2;
+    // placa vertical que cuelga del plato con un bolsillo para el módulo. El módulo queda
+    // de frente y la pared va girada 28°: se mete más para que su orilla no toque el casco.
+    q = p_ojo2 - (cab_pared + 2.2 + (tof[0] / 2 + 3) * tan(ojo2_azim)) * n_tof;
     h = unitario([q[0], q[1]]) * (plato_r - 22);
     intersection() {
     hueco_interior();
     difference() {
         hull() {
-            translate(q) apuntar(n_ojo2) translate([0, 0, -1.5 - tof[2]]) cube([tof[1] + 6, tof[0] + 6, 3], center = true);
+            translate(q) apuntar(n_tof) translate([0, 0, -1.5 - tof[2]]) cube([tof[1] + 6, tof[0] + 6, 3], center = true);
             translate([h[0] - 10, h[1] - 10, plato_z]) cube([20, 20, 1]);
         }
-        translate(q) apuntar(n_ojo2) {
+        translate(q) apuntar(n_tof) {
             translate([-tof[1] / 2 - 0.3, -tof[0] / 2 - 0.3, -tof[2] - 0.2]) cube([tof[1] + 0.6, tof[0] + 0.6, 10]);
             translate([-6, -6, -20]) cube([12, 12, 21]);            // conector y cables por detrás
         }
@@ -250,7 +253,7 @@ module cabeza_completa(con_casco = true) {
         translate([0, 0, z_disco]) camara_ov5647();
         color("#334", 0.6) translate([0, 0, z_mica]) cylinder(d = ojo_mica_d, h = 3);
     }
-    translate(p_ojo2 - (cab_pared + 2.2) * n_ojo2) apuntar(n_ojo2) rotate([0, 0, 90]) vl53l0x();
+    translate(p_ojo2 - (cab_pared + 2.2 + (tof[0] / 2 + 3) * tan(ojo2_azim)) * n_tof) apuntar(n_tof) rotate([0, 0, 90]) vl53l0x();
     en_bocina() bocina();
 }
 
