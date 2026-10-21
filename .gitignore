@@ -14,3 +14,8 @@ ww_trabajo/
 
 # Go binaries (go build -o bin/ ./go/cmd/...)
 bin/
+
+# Blender: piezas exportadas y escenas
+cad/blender/out/
+cad/blender/*.blend
+cad/blender/*.blend1

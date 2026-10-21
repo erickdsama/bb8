@@ -11,7 +11,7 @@ solo tiene esta lista.
 
 | Pieza | Nota |
 | --- | --- |
-| Melamina 12–15 mm, 30 × 30 cm | 3 mm de MDF se pandea con 1.5 kg encima |
+| Plataforma de MDF 6 mm, cortada en láser en FabLab con [`plataforma.dxf`](https://github.com/erickdsama/bb8/blob/main/cad/plantillas/plataforma.dxf) | Agujeros y muescas exactos, sin plantilla ni taladro, y pesa menos arriba del eje. 3 mm se pandea; la melamina de 12–15 mm con la plantilla de papel sigue sirviendo |
 | 2 ruedas de goma 65 mm con **cople hexagonal para eje D de 6 mm** | La "Llanta de Goma 65 mm" de UNIT **con accesorios** sí entra (buje hex 12 mm); la de motor TT es otra. Forrarlas con cinta de silicona. Ver [Materiales](Materiales.md) |
 | 2 soportes de motor JGB37 | |
 | 2 ball transfers de 1″, bola metálica | Resbalan mejor sobre el casco que una rueda loca |

@@ -26,9 +26,9 @@ ceja_tapa  = 8;                // ceja que sostiene la tapa de carga (mm de arco
 
 // ───────────────────────── Motores JGB37-520B (encoder, 319 RPM) ─────────────────────────
 caja_d     = 37;     // diámetro de la caja de engranes
-caja_L     = 22;     // MEDIR: largo de la caja; 19–29 según la reducción
+caja_L     = 22;     // medido (20 oct 2026)
 motor_d    = 35;     // motor 520 + disco del encoder
-motor_L    = 50;     // MEDIR: motor + encoder, sin la caja
+motor_L    = 30;     // medido (20 oct 2026): 52 mm en total sin el eje, menos la caja
 excentrico = 7;      // el eje de salida va 7 mm fuera del centro de la caja
 eje_d      = 6;      // eje D de 6 mm (5.5 entre planos)
 eje_L      = 15.5;
@@ -38,9 +38,10 @@ caja_pcd   = 31;     // 6 × M3 en un círculo de 31 mm (centrado en la caja)
 
 // ───────────────────────── Ruedas ─────────────────────────
 rueda_d       = 65;
-rueda_ancho   = 26;
+rueda_ancho   = 25;   // medida (65 × 25)
 rueda_offset  = 20;    // cara de la caja → plano medio de la rueda: soporte 4 mm + buje + cople hex
-hueco_motores = 4;     // separación entre los dos motores, al centro
+hueco_motores = 44;    // separación entre los dos motores, al centro. Con motores de 30 mm las
+                       // ruedas se quedan a 94 mm: más adentro el eje baja y la LiPo choca con el casco
 chaflan_llanta = 2;    // el borde exterior de la llanta (forrada) es redondeado
 
 // Plano medio de cada rueda (distancia al centro en x): los dos motores coaxiales
@@ -51,9 +52,9 @@ x_contacto = a_rueda + rueda_ancho / 2 - chaflan_llanta;
 z_eje = -(sqrt(Ri * Ri - x_contacto * x_contacto) - rueda_d / 2);
 angulo_contacto = asin(x_contacto / Ri);   // inclinación de la pared donde pisa la rueda
 
-// ───────────────────────── Plataforma (melamina) ─────────────────────────
+// ───────────────────────── Plataforma (MDF 6 mm) ─────────────────────────
 plat_d      = 210;    // 20–22 cm
-plat_e      = 15;     // melamina 15 mm
+plat_e      = 6;      // MDF de 6 mm cortado en láser (FabLab) con plantillas/plataforma.dxf
 cuna_techo  = 3;      // material del soporte de motor encima de la caja
 plat_z_inf  = z_eje + caja_d / 2 + cuna_techo;   // cara de abajo de la plataforma
 plat_z_sup  = plat_z_inf + plat_e;               // cara de arriba
@@ -68,15 +69,21 @@ z_motor_inf = z_eje - motor_d / 2;
 lipo_z_sup  = z_motor_inf - 2;          // la LiPo va justo debajo de los motores
 lipo_z_inf  = lipo_z_sup - lipo[2];
 
-// ───────────────────────── Ball transfers 1″ ─────────────────────────
-bola_d       = 25.4;
-bt_y         = 110;    // a 90° de las ruedas, adelante y atrás (fuera de la charola)
-bt_brida_d   = 55;     // MEDIR: brida redonda de 3 agujeros (CY-25A típico)
-bt_brida_e   = 3;
-bt_pcd       = 44;     // MEDIR
-bt_cuerpo_d  = 36;     // MEDIR: cuerpo detrás de la brida
-bt_cuerpo_L  = 16;     // MEDIR
-bt_bola_fuera = 17;    // MEDIR: cuánto sale la bola de la cara de la brida
+// ───────────────────────── Ruedas locas RL4 (Electrozone) ─────────────────────────
+// Domo de acero sobre una brida de 2 agujeros (medidas de Erick, 20 oct).
+bola_d       = 25.4;   // 1″: se ven 18 mm por la boca del domo y sale ~3 mm
+bt_y         = 110;    // a 90° de las ruedas, adelante y atrás
+bt_brida     = [50, 22];   // largo × ancho de la brida
+bt_brida_e   = 1.5;
+bt_agujero_d = 5;
+bt_agujero_sep = 35;   // entre centros (5 mm de orilla + 2.5 de radio, en cada lado)
+bt_domo_d    = 32;     // domo (del escaneo)
+bt_bola_fuera = 25.4;  // cara de la brida → punta de la bola (la bola sale ~3 mm del domo)
+// heredados del ball transfer redondo; base.scad todavía los usa para su soporte impreso (no se usa)
+bt_brida_d   = 55;
+bt_pcd       = 44;
+bt_cuerpo_d  = 36;
+bt_cuerpo_L  = 16;
 // centro de la bola: toca el casco por dentro
 bt_c_r = Ri - bola_d / 2;
 bt_c_z = -sqrt(bt_c_r * bt_c_r - bt_y * bt_y);
@@ -128,19 +135,35 @@ plato_z     = 16;             // cara de abajo del plato interior (el power bank
 plato_e     = 4;
 bolita_d    = 12.7;           // 3 bolas de acero 1/2″ en copas (o mini ball transfers)
 bolita_r    = 60;             // radio del círculo de las 3 copas
-// Ojo principal: anillo WS2812 16 LED + cámara OV5647 detrás de su centro
+// Ojo principal: media esfera de acrílico transparente pintada por dentro con Tamiya TS-71
+// (humo); apagado se ve negro, el anillo WS2812 de 16 LED la ilumina desde su base.
 ojo_elev    = 38;             // elevación del ojo vista desde el centro del domo
-ojo_hueco_d = 40;
-ojo_mica_d  = 50;             // mica de acrílico ahumado 3 mm
+ojo_domo_d  = 50;             // MEDIR: esfera de acrílico de 5 cm, una mitad
+ojo_sobresale = 8;            // cuánto sale el domo de la cara del casco
+ojo_hueco_d = ojo_domo_d + 0.6;
 anillo      = [44.5, 31.8, 1.6];  // diámetro ext., int., grosor del PCB (MEDIR: UNIT dice 45)
-camara      = [25, 24, 1];        // OV5647 tipo cámara v1; agujeros M2 21 × 12.5
-camara_lente = 8.5;
-// Ojo chico (holoproyector): VL53L0X
+// Ojo chico: la cámara OV5647 (módulo para Pi Zero, 72.4°) ve por un agujero en cono;
+// desde fuera solo se ve el lente dentro de un aro de 16 mm.
 ojo2_azim   = 28;             // a la derecha del ojo principal
-ojo2_z      = 4;              // altura del ojo chico (debajo del plato)
-ojo2_inclin = 10;             // el ToF mira 10° hacia abajo
-ojo2_d      = 16;
+ojo2_z      = 4;              // altura del lente (debajo del plato)
+ojo2_inclin = 5;              // la cámara mira 5° hacia abajo
+ojo2_d      = 16;             // aro decorativo, 0.8 mm de hondo (se pinta negro)
+camara      = [25, 24, 1];    // tarjeta; el lente queda 2.5 mm arriba de su centro
+camara_lente = 8.5;           // bloque cuadrado del lente
+camara_lente_alto = 6;        // MEDIR: de la cara de la tarjeta a la punta del lente
+camara_fov  = 72.4;
+// Sensor de distancia VL53L0X detrás del círculo chico bajo el ojo principal
+tof_azim    = 6;
+tof_z       = 4;
+tof_inclin  = 10;             // mira 10° hacia abajo
+tof_hueco   = 8;
 tof         = [25, 13, 1.6];  // MEDIR: GY-530 / CJMCU-530
+// Antenas impresas en la tapa, hacia atrás: [x, y, Ø del agujero]
+antena_corta_pos = [0, -0.45, 6];   // y en fracciones de cab_tapa_r
+antena_larga_pos = [9, -0.72, 4];
+antena_corta = [9, 28];       // Ø y alto sobre la tapa
+antena_larga = [5, 90];       // Ø de la varilla y alto total; base Ø10 × 14
+alambre_d   = 1.8;            // canal para un alambre de acero (clip o cuerda de piano de 1.5 mm)
 // Bocina 4 Ω 5 W y power bank
 bocina_d    = 40;             // MEDIR: la de UNIT puede ser de 40 o 50 mm
 bocina_prof = 20;
