@@ -379,6 +379,12 @@ func (s *Service) odo() (floorplan.Odo, float64) {
 	return floorplan.Odo{X: s.x, Y: s.y, Heading: s.status.YawDeg}, s.traveled
 }
 
+// Where is the pose on the house plan (see floorplan.Map.Where).
+func (s *Service) Where() (x, y, heading float64, place string, ok bool) {
+	o, _ := s.odo()
+	return s.Map.Where(o)
+}
+
 func (s *Service) Pose() Result {
 	s.mu.Lock()
 	st, x, y, t := s.status, s.x, s.y, s.statusT

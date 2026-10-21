@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/erickdsama/bb8/go/internal/config"
+	"github.com/erickdsama/bb8/go/internal/people"
 	"github.com/erickdsama/bb8/go/internal/tools"
 )
 
@@ -44,6 +45,8 @@ type Agent struct {
 	Reg          *tools.Registry
 	Instructions func() string
 	HTTP         *http.Client
+	People       *people.Store              // optional: speaker profiles and the "people you know" line
+	Publish      func(typ string, data any) // optional: heard, reply and tool events for the pages
 
 	mu      sync.Mutex
 	history []msg
@@ -169,11 +172,66 @@ func (a *Agent) complete(ctx context.Context, msgs []msg) (*chatResp, error) {
 	return &out, nil
 }
 
+// Turn is one request: the text, the registered voice that said it (empty for
+// the web page, an MCP client or no voice ID) and whether that voice is known.
+type Turn struct {
+	Text    string
+	Speaker string
+	Known   bool
+}
+
 // Ask runs one user turn: model → tools → model … until it answers in text.
 func (a *Agent) Ask(ctx context.Context, text string, speakerKnown bool) (Reply, error) {
+	return a.AskAs(ctx, Turn{Text: text, Known: speakerKnown})
+}
+
+func (a *Agent) publish(typ string, data any) {
+	if a.Publish != nil {
+		a.Publish(typ, data)
+	}
+}
+
+// profile looks the speaker up (adding a new registered voice as family) and returns
+// the note for the model and whether this person may act. A guest is treated like
+// an unknown voice for Moves and KnownOnly tools.
+func (a *Agent) profile(t Turn) (string, bool) {
+	if a.People == nil || t.Speaker == "" || !t.Known {
+		return "", t.Known
+	}
+	p, err := a.People.Seen(t.Speaker)
+	if err != nil {
+		slog.Warn("people", "err", err)
+		return "", t.Known
+	}
+	note := " [Profile: " + p.Name + " is " + string(p.Role)
+	if !p.CanAct() {
+		note += ", may chat but not move you or use external tools"
+	}
+	if len(p.Notes) > 0 {
+		ns := make([]string, len(p.Notes))
+		for i, n := range p.Notes {
+			ns[i] = n.Text
+		}
+		note += ". Notes: " + strings.Join(ns, "; ")
+	}
+	return note + "]", p.CanAct()
+}
+
+// AskAs is Ask with the speaker's identity.
+func (a *Agent) AskAs(ctx context.Context, t Turn) (rep Reply, err error) {
 	if err := a.Ready(); err != nil {
 		return Reply{}, err
 	}
+	a.publish("heard", map[string]any{"text": t.Text, "speaker": t.Speaker})
+	defer func() {
+		if err != nil {
+			a.publish("reply", map[string]any{"error": err.Error(), "tools": rep.ToolsUsed})
+		} else {
+			a.publish("reply", map[string]any{"text": rep.Text, "tools": rep.ToolsUsed})
+		}
+	}()
+	text := t.Text
+	prof, speakerKnown := a.profile(t)
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if time.Since(a.last) > time.Duration(a.Cfg.Float("agent.reset_after_s"))*time.Second {
@@ -186,16 +244,24 @@ func (a *Agent) Ask(ctx context.Context, text string, speakerKnown bool) (Reply,
 	}
 	a.trim()
 	turnStart := len(a.history)
-	a.history = append(a.history, msg{Role: "user", Content: text + who})
+	a.history = append(a.history, msg{Role: "user", Content: text + prof + who})
 
-	var rep Reply
 	maxSteps := int(a.Cfg.Float("agent.max_steps"))
 	for rep.Steps = 0; rep.Steps < maxSteps; rep.Steps++ {
 		// Tools + instructions are ~4.5k tokens and identical every turn: cache them.
 		// The clock goes after the cache mark, or it would change the prefix every minute.
+		now := "Now: " + time.Now().Format("Mon 2 Jan 2006 15:04")
+		if city := a.Cfg.String("home.city"); city != "" {
+			now += ". Home: " + city
+		}
+		if a.People != nil {
+			if s := a.People.Summary(); s != "" {
+				now += ". People you know: " + s
+			}
+		}
 		sys := []part{
 			{Type: "text", Text: a.Instructions(), CacheControl: &cacheControl{Type: "ephemeral"}},
-			{Type: "text", Text: "Now: " + time.Now().Format("Mon 2 Jan 2006 15:04")},
+			{Type: "text", Text: now},
 		}
 		msgs := append([]msg{{Role: "system", Content: sys}}, a.history...)
 		res, err := a.complete(ctx, msgs)
@@ -227,6 +293,13 @@ func (a *Agent) Ask(ctx context.Context, text string, speakerKnown bool) (Reply,
 				content = string(b)
 			}
 			slog.Info("agent tool", "name", tc.Function.Name, "args", tc.Function.Arguments, "err", err)
+			ev := map[string]any{"name": tc.Function.Name}
+			if err != nil {
+				ev["error"] = err.Error()
+			} else if m, ok := out.Data.(map[string]any); ok && m["result"] != nil {
+				ev["result"] = m["result"]
+			}
+			a.publish("tool", ev)
 			a.history = append(a.history, msg{Role: "tool", ToolCallID: tc.ID, Content: content})
 		}
 		if len(images) > 0 && a.Cfg.Bool("agent.vision") {
@@ -280,6 +353,7 @@ func (a *Agent) Routes(mux *http.ServeMux, prefix string) {
 	mux.HandleFunc("POST "+prefix+"/ask", func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
 			Text         string `json:"text"`
+			Speaker      string `json:"speaker"` // registered voice name, if any
 			SpeakerKnown *bool  `json:"speaker_known"`
 		}
 		if err := json.NewDecoder(io.LimitReader(r.Body, 1<<16)).Decode(&in); err != nil || strings.TrimSpace(in.Text) == "" {
@@ -287,7 +361,7 @@ func (a *Agent) Routes(mux *http.ServeMux, prefix string) {
 			return
 		}
 		known := in.SpeakerKnown == nil || *in.SpeakerKnown
-		rep, err := a.Ask(r.Context(), in.Text, known)
+		rep, err := a.AskAs(r.Context(), Turn{Text: in.Text, Speaker: strings.TrimSpace(in.Speaker), Known: known})
 		if err != nil {
 			writeJSON(w, 502, map[string]any{"error": err.Error(), "tools_used": rep.ToolsUsed})
 			return

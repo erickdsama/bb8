@@ -232,7 +232,7 @@ Both are normalized to −180…180, with the turn since the sound (`turned_sinc
 | `GET /head` | — | head state: `connected`, `backend`, `camera`, `mic`, `config_rev`… |
 | `GET /audio/stream` | — | The head's voiced audio, as a stream (see below). Used by the voice front end (`BB8_MIC=cabeza`) |
 | `GET /agent` | — | `{"model":…, "ready": true}` |
-| `POST /agent/ask` | `{"text": "[Speaker: Erick] da una vuelta", "speaker_known": true}` | `{"reply":"…","tools_used":["turn"],"steps":2}` |
+| `POST /agent/ask` | `{"text": "[Speaker: Erick] da una vuelta", "speaker": "Erick", "speaker_known": true}` | `{"reply":"…","tools_used":["turn"],"steps":2}`. `speaker` (optional) is the registered voice: the body applies that person's profile (§ 2.5), and a `guest` cannot move it or use KnownOnly tools |
 
 `GET /audio/stream` is a long-lived response (`application/x-bb8-audio`).
 - Every message is `[u32 BE length][JSON]`. A message with `"type": "audio"` is followed by `[u32 BE length][PCM]`, as s16le mono 16 kHz.
@@ -256,6 +256,38 @@ Both are normalized to −180…180, with the turn since the sound (`turned_sinc
 | `GET /api/connectors` | — | `[{"id": "weather", "state": "ok"}, {"id": "calendar", "state": "needs_auth", "detail": "…"}]` |
 | `GET /api/connectors/calendar/auth` | — | Starts Google OAuth. The callback stores the refresh token as a secret |
 | `GET /api/agent`, `POST /api/agent/ask` | as in § 2.2 | the web chat box |
+| `GET /api/events` | `?types=pose,alert` (optional), `Last-Event-ID` or `?since=` to replay | SSE robot → page feed (§ 2.4) |
+| `GET /people` | — | people page (HTML) |
+| `GET /api/people` | — | `[{"name","role","notes":[{"text","at"}],"voice","created","last_seen"}]` |
+| `PUT /api/people/{name}` | `{"role": "family"}` | creates or changes the role (`owner`, `family`, `guest`) |
+| `POST /api/people/{name}/notes` | `{"text": "…"}` | adds a note (≤ 200 chars, 20 per person) |
+| `DELETE /api/people/{name}/notes?text=…` | — | `{"removed": 1}`: notes containing the text |
+| `DELETE /api/people/{name}` | — | 204 |
+
+### 2.4 Robot → page events
+
+`GET /api/events` is SSE: `id: <n>`, `event: <type>`, `data: {"id","type","at","data"}`. The last 100 events are kept, so a page that reconnects gets what it missed. A slow page drops events; the robot never waits for it.
+
+| Type | `data` | When |
+| --- | --- | --- |
+| `pose` | `x`, `y`, `heading_deg`, `head_deg`, `tilt_deg`, `battery_v`, `tof_m`, `plan: {x, y, heading_deg, room}` | ≤ 2 Hz, only after 1 cm, 1°, a head step or 0.1 V |
+| `alert` | `kind` (`obstacle`, `tilt`, `watchdog`, `battery_low`, `imu`), `on`, `distance_m` / `battery_v` | an Arduino flag turns on or off |
+| `control` | `who`: `llm`, `manual`, `idle` | on change |
+| `head` | `connected` | the head link comes up or drops |
+| `heard` | `text`, `speaker` | the agent gets a request |
+| `tool` | `name`, `result` or `error` | each tool the agent calls |
+| `reply` | `text` or `error`, `tools` | the agent answers |
+| `person` | `name`, `role`, `what` (`added`, `seen`, `note`, `role`, `removed`) | the people store changes |
+| `config` | `rev`, `source`, `keys` | every applied config write |
+
+### 2.5 People
+
+`<data>/people.json` keeps who BB-8 knows. Roles:
+- `owner` may do everything;
+- `family` (the default for a registered voice heard for the first time) may move it and use external tools;
+- `guest` (the default for someone BB-8 is told about) may only chat.
+
+The agent can add people and notes (`remember_about`, `forget_about`; known voices only). Only the web page changes roles. Every turn the agent gets the speaker's role and notes, plus one line with everyone's name and role.
 
 Config storage:
 - `--data` (`/var/lib/bb8` on the Pi) holds `config.json` (`{"rev", "values"}`) and `secrets.json` (mode 0600). Writes are atomic.

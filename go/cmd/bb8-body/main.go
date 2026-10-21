@@ -31,11 +31,13 @@ import (
 	"github.com/erickdsama/bb8/go/internal/connectors/mcpclient"
 	"github.com/erickdsama/bb8/go/internal/connectors/weather"
 	"github.com/erickdsama/bb8/go/internal/connectors/websearch"
+	"github.com/erickdsama/bb8/go/internal/events"
 	"github.com/erickdsama/bb8/go/internal/floorplan"
 	"github.com/erickdsama/bb8/go/internal/gamepad"
 	"github.com/erickdsama/bb8/go/internal/link"
 	"github.com/erickdsama/bb8/go/internal/mcpserver"
 	"github.com/erickdsama/bb8/go/internal/motion"
+	"github.com/erickdsama/bb8/go/internal/people"
 	"github.com/erickdsama/bb8/go/internal/persona"
 	"github.com/erickdsama/bb8/go/internal/serial"
 	"github.com/erickdsama/bb8/go/internal/tools"
@@ -131,12 +133,32 @@ func main() {
 
 	body.Wire(cfg, svc, head)
 
+	bus := events.New()
+	cfg.Subscribe(func(ch config.Change) {
+		keys := make([]string, 0, len(ch.Values))
+		for k := range ch.Values {
+			keys = append(keys, k)
+		}
+		bus.Publish("config", map[string]any{"rev": ch.Rev, "source": ch.Source, "keys": keys})
+	})
+	folks, err := people.Open(home(*dataDir))
+	if err != nil {
+		slog.Error("people.json", "err", err)
+		os.Exit(1)
+	}
+	folks.Subscribe(func(p people.Person, what string) {
+		bus.Publish("person", map[string]any{"name": p.Name, "role": p.Role, "what": what})
+	})
+	go body.Watch(ctx, bus, svc, head)
+
 	reg := tools.NewRegistry()
 	conns := connectors.NewManager(cfg, reg, weather.New(), calendar.New(), websearch.New(), mcpclient.New())
 	reg.Set("robot", body.RobotTools(svc, head))
 	reg.Set("settings", body.SettingTools(cfg))
+	reg.Set("people", folks.Tools())
 	conns.Start()
 	brain := agent.New(cfg, reg, persona.Instructions)
+	brain.People, brain.Publish = folks, bus.Publish
 
 	token := func() string {
 		b, _ := os.ReadFile(home(*tokenFile))
@@ -154,6 +176,8 @@ func main() {
 	go feed.RunLevels(ctx, head.Audio)
 	web.HandleFunc("GET /api/voice/events", feed.SSEHandler)
 	brain.Routes(web, "/api/agent")
+	folks.Routes(web)
+	web.HandleFunc("GET /api/events", bus.Handler)
 	calendar.AuthHandlers(cfg, web)
 	web.HandleFunc("GET /api/connectors", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

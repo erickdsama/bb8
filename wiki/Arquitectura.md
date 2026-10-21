@@ -88,7 +88,9 @@ The Python stack used before took ~100 MB on the body (`bb8.motion_api` 40 MB + 
 | `link` | Mutual TLS, framing, `pair` |
 | `head` | Head side: Real and Sim backends, beeps, VL53L0X, mic (VAD + GCC-PHAT direction + audio stream) |
 | `config` | Store, schema, SSE web UI |
-| `agent` | OpenRouter tool loop |
+| `agent` | OpenRouter tool loop; speaker profiles; publishes heard/tool/reply |
+| `people` | Profiles (role, notes), agent tools, `/people` page |
+| `events` | Robot → page bus, SSE at `/api/events` |
 | `connectors` | Connector interface + `weather` (Open-Meteo), `calendar` (Google provider), `websearch` (OpenRouter web plugin), `mcpclient` (remote MCP servers) |
 | `gamepad` | evdev |
 | `persona` | Emotions, colors, system prompt |
@@ -110,6 +112,7 @@ The Python stack used before took ~100 MB on the body (`bb8.motion_api` 40 MB + 
 | `listen(wait_s)` | Last thing the head's ReSpeaker heard and from where: the angle relative to the head, converted to two body-frame candidates (in front of / behind the head) |
 | `get_setting()` / `set_setting()` | Settings the agent may change (volume, city…) |
 | `weather`, `web_search`, `calendar_*` | Connector tools, while the connector is enabled |
+| `people`, `remember_about`, `forget_about` | Who BB-8 knows; notes are for known voices only |
 | `<name>_<tool>` | Tools of a remote MCP server (`connectors.mcp.N.*`); known voices only by default |
 
 ## Hearing

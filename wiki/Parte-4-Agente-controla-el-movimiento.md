@@ -8,7 +8,7 @@ micrófono: wake word, transcripción e identificación de voz.
 
 | Código | Hace |
 | --- | --- |
-| [`go/internal/tools`](https://github.com/erickdsama/bb8/tree/main/go/internal/tools), [`body/robot_tools.go`](https://github.com/erickdsama/bb8/blob/main/go/internal/body/robot_tools.go) | Un solo registro de herramientas: `move`, `turn`, `stop`, `look_at`, `take_photo`, `set_eye_color`, `say`, `express`, `listen`, `get_map`, `set_position`, `update_map`, `get_pose`, `get_setting`, `set_setting` y las de los conectores (`weather`, `web_search`, `calendar_*` y las de servidores MCP externos, `<nombre>_<herramienta>`) |
+| [`go/internal/tools`](https://github.com/erickdsama/bb8/tree/main/go/internal/tools), [`body/robot_tools.go`](https://github.com/erickdsama/bb8/blob/main/go/internal/body/robot_tools.go) | Un solo registro de herramientas: `move`, `turn`, `stop`, `look_at`, `take_photo`, `set_eye_color`, `say`, `express`, `listen`, `get_map`, `set_position`, `update_map`, `get_pose`, `get_setting`, `set_setting`, `people`, `remember_about`, `forget_about` y las de los conectores (`weather`, `web_search`, `calendar_*` y las de servidores MCP externos, `<nombre>_<herramienta>`) |
 | [`go/internal/mcpserver`](https://github.com/erickdsama/bb8/tree/main/go/internal/mcpserver) | Servidor MCP en `:8765/mcp` (token desde la red) |
 | [`go/internal/agent`](https://github.com/erickdsama/bb8/tree/main/go/internal/agent) | Agente propio: cualquier modelo de OpenRouter con herramientas; `POST /agent/ask` |
 | [`go/internal/persona`](https://github.com/erickdsama/bb8/blob/main/go/internal/persona/persona.go) | Personalidad y reglas: el system prompt para Claude y para el agente |
@@ -44,6 +44,12 @@ viene encendido y solo necesita `home.city`.
 Para Gmail, listas, Google, IFTTT o la casa, conecta un servidor MCP externo (Zapier,
 Composio, Home Assistant…) en `connectors.mcp.1.name`, `.url` y `.token`. Sus herramientas
 aparecen como `<nombre>_<herramienta>`, y por defecto una voz desconocida no las puede usar.
+
+**Personas.** En `/people` asignas el rol de cada quien: `owner`, `family` (lo puede mover)
+o `guest` (solo platica). Una voz registrada entra como `family` la primera vez que se oye.
+Si le cuentas de alguien ("Ana es alérgica a las nueces"), BB-8 la guarda como invitada con
+esa nota y la recuerda cuando habla con ella. La pestaña **Activity** de `/control` muestra
+en vivo lo que oye, lo que contesta, las herramientas que usa y las alertas del robot.
 
 ## Paso 3: micrófono y altavoz
 

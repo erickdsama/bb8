@@ -45,6 +45,7 @@ button { background:var(--accent); color:#fff; border:0; cursor:pointer; width:a
   <span><span id="link-dot" class="dot"></span> <span class="pill" id="link-txt">offline</span></span>
   <span class="pill" id="head-txt"></span>
   <a id="control-link" href="/control" style="margin-left:auto;font-size:13px">Control</a>
+  <a id="people-link" href="/people" style="font-size:13px">People</a>
   <span class="pill" id="rev-txt"></span>
 </header>
 <main>
@@ -66,7 +67,10 @@ button { background:var(--accent); color:#fff; border:0; cursor:pointer; width:a
 const q = new URLSearchParams(location.search);
 let token = q.get("token") || "";
 try { if (token) localStorage.setItem("bb8-token", token); else token = localStorage.getItem("bb8-token") || ""; } catch (e) {}
-if (token) document.getElementById("control-link").href = "/control?token=" + encodeURIComponent(token);
+if (token) {
+  document.getElementById("control-link").href = "/control?token=" + encodeURIComponent(token);
+  document.getElementById("people-link").href = "/people?token=" + encodeURIComponent(token);
+}
 const auth = token ? { Authorization: "Bearer " + token } : {};
 let schema = [], rev = 0;
 const el = (t, a = {}, ...kids) => { const e = document.createElement(t); Object.assign(e, a); e.append(...kids); return e; };

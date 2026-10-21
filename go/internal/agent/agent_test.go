@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/erickdsama/bb8/go/internal/config"
+	"github.com/erickdsama/bb8/go/internal/people"
 	"github.com/erickdsama/bb8/go/internal/tools"
 )
 
@@ -86,5 +87,41 @@ func TestNeedsKey(t *testing.T) {
 	c.Register(Fields()...)
 	if _, err := New(c, tools.NewRegistry(), func() string { return "" }).Ask(context.Background(), "hola", true); err == nil {
 		t.Fatal("ask without key must fail")
+	}
+}
+
+func TestGuestCannotMove(t *testing.T) {
+	var seen []chatReq
+	srv := fakeRouter(t, "move", `{"meters":1}`, &seen)
+	defer srv.Close()
+	a, moved := setup(t, srv.URL)
+	a.People, _ = people.Open("")
+	a.People.Upsert("Juan", people.Guest)
+	a.People.Remember("Erick", "le gusta el café")
+	a.People.Upsert("Erick", people.Owner)
+	var evs []string
+	a.Publish = func(typ string, _ any) { evs = append(evs, typ) }
+
+	if _, err := a.AskAs(context.Background(), Turn{Text: "avanza", Speaker: "juan", Known: true}); err != nil {
+		t.Fatal(err)
+	}
+	if *moved != 0 {
+		t.Fatal("a guest moved the robot")
+	}
+	if _, err := a.AskAs(context.Background(), Turn{Text: "avanza", Speaker: "Erick", Known: true}); err != nil {
+		t.Fatal(err)
+	}
+	if *moved != 1 {
+		t.Fatal("the owner could not move it")
+	}
+	u := seen[len(seen)-2].Messages
+	if c, _ := u[len(u)-1].Content.(string); !strings.Contains(c, "Erick is owner") || !strings.Contains(c, "café") {
+		t.Fatal("profile missing from the turn:", c)
+	}
+	if sys := seen[0].Messages[0].Content.([]any)[1].(map[string]any)["text"].(string); !strings.Contains(sys, "Juan (guest)") {
+		t.Fatal("people line:", sys)
+	}
+	if strings.Join(evs, ",") != "heard,tool,reply,heard,tool,reply" {
+		t.Fatal(evs)
 	}
 }

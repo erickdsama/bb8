@@ -108,6 +108,10 @@ input[type=color] { width:46px; height:36px; border:0; background:none; cursor:p
 .term { background:rgba(0,0,0,.65); border:1px solid var(--line); border-radius:10px; padding:10px; height:260px; overflow-y:auto;
   font:.72rem/1.5 var(--mono); color:#d6c6bc; }
 .term .tx { color:var(--orange-hi); } .term .rx { color:var(--cyan); } .term .err { color:var(--bad); }
+.term .ev-heard { color:#f3f0ea; } .term .ev-reply { color:var(--cyan); } .term .ev-alert { color:var(--bad); } .term .t { color:var(--mute); }
+#banner { position:fixed; top:14px; left:50%; transform:translate(-50%, -140%); z-index:9; background:rgba(8,5,5,.92); border:1px solid var(--bad);
+  color:#fff; padding:9px 16px; border-radius:10px; font-size:.85rem; transition:transform .25s; max-width:90vw; }
+#banner.show { transform:translate(-50%, 0); } #banner.info { border-color:var(--orange); }
 
 .visor { position:relative; overflow:hidden; display:flex; flex-direction:column; justify-content:space-between; }
 #visor-canvas { position:absolute; inset:0; width:100%; height:100%; cursor:grab; z-index:1; }
@@ -135,6 +139,7 @@ input[type=color] { width:46px; height:36px; border:0; background:none; cursor:p
   <a id="cfg" href="/">Config →</a>
 </header>
 
+<div id="banner"></div>
 <main>
   <aside>
     <div class="battery">
@@ -147,6 +152,7 @@ input[type=color] { width:46px; height:36px; border:0; background:none; cursor:p
       <button class="tab active" data-tab="p-drive">Drive</button>
       <button class="tab" data-tab="p-head">Head</button>
       <button class="tab" data-tab="p-eye">Eye</button>
+      <button class="tab" data-tab="p-act">Activity</button>
       <button class="tab" data-tab="p-log">Log</button>
     </nav>
 
@@ -195,6 +201,14 @@ input[type=color] { width:46px; height:36px; border:0; background:none; cursor:p
         <h3><span>Emotions</span></h3>
         <div class="emotions" id="emotions"></div>
         <p class="hint">Each one plays its beep and sets the eye (tool <code>express</code>). Needs the head.</p>
+      </div>
+    </section>
+
+    <section id="p-act" class="pane">
+      <div class="card">
+        <h3><span>What BB-8 hears, says and feels</span><span class="hint" id="ev-state">…</span></h3>
+        <div class="term" id="activity"></div>
+        <p class="hint">Live from the robot (<code>/api/events</code>): voice, replies, tools, alerts, head link, people. <a id="people-link" href="/people" style="color:var(--orange-hi)">People →</a></p>
       </div>
     </section>
 
@@ -566,10 +580,49 @@ function startVisor() {
   })();
 }
 
+/* ---------------- robot → page: live events (SSE) ----------------
+   A pose event refreshes at once; the 3 s poll is only a fallback. */
+let bannerT;
+function banner(text, info) {
+  const b = $("banner"); b.textContent = text; b.className = "show" + (info ? " info" : "");
+  clearTimeout(bannerT); bannerT = setTimeout(() => (b.className = ""), 4000);
+}
+const ALERTS = { obstacle: "Obstacle ahead", tilt: "Tilted: motors stopped", watchdog: "Watchdog: no orders, braked",
+  battery_low: "Battery low", imu: "IMU not answering" };
+function activity(cls, text, at) {
+  const d = document.createElement("div"); d.className = cls;
+  const t = document.createElement("span"); t.className = "t"; t.textContent = new Date(at).toLocaleTimeString() + " ";
+  d.append(t, text); $("activity").prepend(d);
+  while ($("activity").children.length > 120) $("activity").lastChild.remove();
+}
+let lastPoseRefresh = 0;
+function events() {
+  const es = new EventSource("/api/events" + (token ? "?token=" + encodeURIComponent(token) : ""));
+  es.onopen = () => ($("ev-state").textContent = "live");
+  es.onerror = () => { $("ev-state").textContent = "reconnecting…"; };
+  const on = (type, f) => es.addEventListener(type, (e) => { const ev = JSON.parse(e.data); f(ev.data || {}, ev.at); });
+  on("pose", () => { const n = Date.now(); if (n - lastPoseRefresh > 250) { lastPoseRefresh = n; refresh(); } });
+  on("heard", (d, at) => activity("ev-heard", "🎙 " + (d.speaker ? d.speaker + ": " : "") + d.text, at));
+  on("reply", (d, at) => activity(d.error ? "err" : "ev-reply", "BB-8: " + (d.error || d.text) + (d.tools && d.tools.length ? "  [" + d.tools.join(", ") + "]" : ""), at));
+  on("tool", (d, at) => activity(d.error ? "err" : "rx", "→ " + d.name + (d.result ? " · " + d.result : "") + (d.error ? " · " + d.error : ""), at));
+  on("alert", (d, at) => {
+    const name = ALERTS[d.kind] || d.kind;
+    activity("ev-alert", (d.on ? "⚠ " : "✓ cleared: ") + name + (d.distance_m ? ` (${Math.round(d.distance_m * 100)} cm)` : ""), at);
+    if (d.on) banner("⚠ " + name + (d.distance_m ? ` · ${Math.round(d.distance_m * 100)} cm` : ""));
+    refresh();
+  });
+  on("control", (d, at) => { activity("tx", "control: " + d.who, at); if (d.who === "manual") banner("The gamepad has control", true); });
+  on("head", (d, at) => { activity(d.connected ? "rx" : "err", d.connected ? "head connected" : "head link dropped", at); if (!d.connected) banner("Head link dropped"); });
+  on("person", (d, at) => activity("tx", "person: " + d.name + " · " + d.what + " (" + d.role + ")", at));
+  on("config", (d, at) => activity("t", "config rev " + d.rev + " by " + d.source + ": " + (d.keys || []).join(", "), at));
+}
+if (token) $("people-link").href = "/people?token=" + encodeURIComponent(token);
+
 startVisor();
 setEye("#ff3b1a", "idle");
 refresh();
-setInterval(() => { if (!document.hidden) refresh(); }, 1000);
+events();
+setInterval(() => { if (!document.hidden) refresh(); }, 3000);
 </script>
 </body>
 </html>

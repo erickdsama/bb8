@@ -52,7 +52,8 @@ async def main() -> None:
         tools = [t.name for t in (await s.list_tools()).tools]
         check("herramientas", set(tools) >= {"move", "turn", "stop", "look_at", "take_photo",
                                              "set_eye_color", "say", "express", "get_pose", "listen",
-                                             "get_map", "set_position", "update_map", "weather", "web_search"}, tools)
+                                             "get_map", "set_position", "update_map", "weather", "web_search",
+                                             "people", "remember_about", "forget_about"}, tools)
 
         foto = await call("take_photo")
         img = next((c for c in foto if c.type == "image"), None) if isinstance(foto, list) else None
@@ -206,6 +207,30 @@ async def main() -> None:
         check("web: rev viejo → 409, rev actual → aplicado", viejo == 409 and nuevo == 200
               and cfg2["values"]["motion.pwm_cruise"] == 120, f"{viejo} {nuevo}")
         patch({"values": {"motion.pwm_cruise": 140}})
+
+        # Personas y eventos robot → página (/api/events).
+        robot: list[str] = []
+
+        def escuchar_robot() -> None:
+            with urllib.request.urlopen(web + "api/events?types=person,pose", timeout=10) as r:
+                for linea in r:
+                    if linea.startswith(b"event:"):
+                        robot.append(linea.decode().split(":", 1)[1].strip())
+                    if "person" in robot and "pose" in robot:
+                        return
+
+        hilo = threading.Thread(target=escuchar_robot, daemon=True)
+        hilo.start()
+        await asyncio.sleep(0.3)
+        res = await call("remember_about", name="Ana", note="le gustan los gatos")
+        await call("look_at", degrees=20)
+        await call("look_at", degrees=0)
+        hilo.join(4)
+        gente = await call("people")
+        ana = next((p for p in gente.get("people", []) if p["name"] == "Ana"), {})
+        check("remember_about → people (invitada)", res.get("result") == "done" and ana.get("role") == "guest"
+              and "le gustan los gatos" in ana.get("notes", []), ana)
+        check("eventos robot → página: person y pose", "person" in robot and "pose" in robot, robot)
 
         # El mando manda: una orden manual bloquea al LLM durante 1 s.
         post("http://127.0.0.1:8770/manual", {"left": 0, "right": 0})

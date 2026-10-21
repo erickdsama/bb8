@@ -482,6 +482,22 @@ func (m *Map) route(from, to string) []string {
 }
 
 // Describe is what get_map returns.
+// Where is the pose on the plan (meters, degrees clockwise from east) and the room
+// or door there. ok is false without a plan.
+func (m *Map) Where(o Odo) (x, y, heading float64, place string, ok bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if !m.load() || m.anchor == nil {
+		return 0, 0, 0, "", false
+	}
+	x, y, heading = m.toPlan(o)
+	room, door := m.room(x, y)
+	if room == "" {
+		room = door
+	}
+	return round(x, 2), round(y, 2), round(heading, 1), room, true
+}
+
 func (m *Map) Describe(o Odo, traveled float64) (map[string]any, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
