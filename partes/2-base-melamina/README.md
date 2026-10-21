@@ -10,7 +10,7 @@ Sin código nuevo: es el montaje mecánico de la base.
 6. Repite `p2_motores_encoders` y `p4_mpu6050` de la [Parte 1](../1-protoboard): un cable flojo aparece ahí.
 
 Piezas impresas en PETG (soportes de motor, charola con lastre, soportes de las RL4, panel
-de carga) y el DXF para cortar la plataforma de MDF de 6 mm en láser: [`cad/`](../../cad).
+de carga) y el DXF para cortar la plataforma de MDF de 12 mm: [`cad/`](../../cad).
 
 **Lista cuando** se levanta con una mano y nada se mueve.
 

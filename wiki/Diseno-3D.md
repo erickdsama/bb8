@@ -195,7 +195,7 @@ Luego imprime primero **dos gajos vecinos de mitades distintas** (por ejemplo `A
 
 ## Armado
 
-1. Plataforma: MDF de 6 mm cortado en láser con `plataforma.dxf`. Monta motores, ruedas, charola y soportes de las RL4; nivela con arandelas sobre una mesa (Parte 2).
+1. Plataforma: MDF de 12 mm cortado con `plataforma.dxf` o la plantilla carta. Monta motores, ruedas, charola y soportes de las RL4; nivela con arandelas sobre una mesa (Parte 2).
 2. Electrónica sobre la plataforma y prueba la base andando sin esfera (Partes 3 y 4).
 3. Pega los 7 gajos de cada mitad con las espigas, refuerza por dentro y lija a ras.
 4. Mete la base en la mitad B, cierra con la A y gira 7°. Prueba que rueda **antes** de poner lastre e imanes.
