@@ -3,8 +3,9 @@
 // Marco de la cabeza: origen en el polo de arriba de la esfera (z_robot = Re), +y adelante.
 // La cabeza no toca el casco más que con 3 bolas de acero de 1/2″ en copas; los 4 imanes
 // quedan a `hueco_iman_ext` (2 mm) de la pintura. Todo cuelga de un plato interior:
-//   arriba  Pi Zero 2 W, PAM8403, soporte del ojo (anillo WS2812 + OV5647) y de la bocina;
-//   abajo   power bank (baja el centro de gravedad), copas, imanes y el VL53L0X del ojo chico.
+//   arriba  Pi Zero W, PAM8403, soporte del ojo (domo de acrílico + anillo WS2812) y de la bocina;
+//   abajo   power bank (baja el centro de gravedad), copas, imanes, la OV5647 del ojo chico y
+//           el VL53L0X del círculo bajo el ojo.
 // El casco baja sobre el plato y se fija con 3 tornillos M3 radiales.
 //
 // Uso: openscad -D 'parte="casco"' -o cabeza_casco.stl cabeza.scad
@@ -40,12 +41,19 @@ module perfil(p) {
 // direcciones (desde el centro del domo) del ojo y de la bocina
 n_ojo = [0, cos(ojo_elev), sin(ojo_elev)];
 n_boc = [0, -cos(bocina_elev), sin(bocina_elev)];
-// El ojo chico está a 28° a la derecha, pero el ToF mira al frente (y 10° abajo): el
-// software toma su distancia como "adelante" con la cabeza centrada.
-n_tof = [0, cos(ojo2_inclin), -sin(ojo2_inclin)];
+// La cámara (ojo chico, 28° a la derecha) y el ToF miran al frente, un poco hacia abajo: el
+// software toma la distancia como "adelante" con la cabeza centrada.
+n_cam = [0, cos(ojo2_inclin), -sin(ojo2_inclin)];
+n_tof = [0, cos(tof_inclin), -sin(tof_inclin)];
 // radio exterior de la banda a la altura z
 function r_banda(z) = cab_r_borde + (Rc - cab_r_borde) * (z - z_borde) / (cab_z_ancho - z_borde);
 p_ojo2 = [sin(ojo2_azim) * r_banda(ojo2_z), cos(ojo2_azim) * r_banda(ojo2_z), ojo2_z];
+p_tof = [sin(tof_azim) * r_banda(tof_z), cos(tof_azim) * r_banda(tof_z), tof_z];
+// Cara de la tarjeta de la cámara: tan adentro como pida la orilla de la tarjeta (la pared va
+// girada 28°) o la punta del lente, lo que sea más hondo.
+q_cam = p_ojo2 - max(cab_pared + 0.6 + camara_lente / 2 * tan(ojo2_azim) + camara_lente_alto,
+                     cab_pared + 0.6 + (camara[0] / 2 + 3) * tan(ojo2_azim)) * n_cam;
+q_tof = p_tof - (cab_pared + 2.2 + (tof[0] / 2 + 3) * tan(tof_azim)) * n_tof;
 
 module casco() {
     difference() {
@@ -54,8 +62,12 @@ module casco() {
         translate([0, 0, -Re]) sphere(r_hueco, $fn = 360);
         // ojo principal
         translate([0, 0, zc]) apuntar(n_ojo) cylinder(d = ojo_hueco_d, h = Rd + 5, $fn = 96);
-        // ojo chico (VL53L0X): perforado hacia el frente, por fuera se ve un poco ovalado
-        translate(p_ojo2) apuntar(n_tof) cylinder(d = ojo2_d, h = 20, center = true, $fn = 48);
+        // ojo chico: aro de 0.8 mm y un cono desde la punta del lente (FOV + 4°)
+        translate(p_ojo2) apuntar([p_ojo2[0], p_ojo2[1], 0]) translate([0, 0, -0.8]) cylinder(d = ojo2_d, h = 10, $fn = 48);
+        translate(q_cam + camara_lente_alto * n_cam) apuntar(n_cam)
+            cylinder(d1 = 3, d2 = 3 + 2 * 25 * tan(camara_fov / 2 + 2), h = 25, $fn = 48);
+        // ToF: agujero recto hacia el frente
+        translate(p_tof) apuntar(n_tof) cylinder(d = tof_hueco, h = 20, center = true, $fn = 32);
         // rejilla de la bocina: hexágono de agujeros de 3 mm
         translate([0, 0, zc]) apuntar(n_boc) for (i = [-3 : 3], j = [-3 : 3])
             let(x = 6 * (i + j / 2), y = 6 * j * sqrt(3) / 2)
@@ -109,7 +121,8 @@ module plato() {
                 rotate([0, 90, 0]) cylinder(d = powerbank[0] + 0.6, h = 14, center = true);
                 translate([-7, -powerbank[0] * 0.35, -30]) cube([14, powerbank[0] * 0.7, 30]);
             }
-            // soporte del VL53L0X detrás del ojo chico
+            // soportes de la OV5647 (ojo chico) y del VL53L0X
+            soporte_camara();
             soporte_tof();
         }
         // imanes (cara S avellanada hacia el casco) con M4 y tuerca arriba del plato
@@ -149,19 +162,37 @@ function agujeros_pizero() = [for (p = [[3.5, 3.5], [61.5, 3.5], [3.5, 26.5], [6
 
 module soporte_tof() {
     // placa vertical que cuelga del plato con un bolsillo para el módulo. El módulo queda
-    // de frente y la pared va girada 28°: se mete más para que su orilla no toque el casco.
-    q = p_ojo2 - (cab_pared + 2.2 + (tof[0] / 2 + 3) * tan(ojo2_azim)) * n_tof;
-    h = unitario([q[0], q[1]]) * (plato_r - 22);
+    // de frente y la pared va girada: se mete más para que su orilla no toque el casco.
+    h = unitario([q_tof[0], q_tof[1]]) * (plato_r - 22);
     intersection() {
     hueco_interior();
     difference() {
         hull() {
-            translate(q) apuntar(n_tof) translate([0, 0, -1.5 - tof[2]]) cube([tof[1] + 6, tof[0] + 6, 3], center = true);
+            translate(q_tof) apuntar(n_tof) translate([0, 0, -1.5 - tof[2]]) cube([tof[1] + 6, tof[0] + 6, 3], center = true);
             translate([h[0] - 10, h[1] - 10, plato_z]) cube([20, 20, 1]);
         }
-        translate(q) apuntar(n_tof) {
+        translate(q_tof) apuntar(n_tof) {
             translate([-tof[1] / 2 - 0.3, -tof[0] / 2 - 0.3, -tof[2] - 0.2]) cube([tof[1] + 0.6, tof[0] + 0.6, 10]);
             translate([-6, -6, -20]) cube([12, 12, 21]);            // conector y cables por detrás
+        }
+    }
+    }
+}
+
+// La OV5647 de frente detrás del ojo chico; la tarjeta entra por delante y el cable plano
+// sale por abajo. En el marco apuntar(n_cam), +x es hacia abajo.
+module soporte_camara() {
+    h = unitario([q_cam[0], q_cam[1]]) * (plato_r - 22);
+    intersection() {
+    hueco_interior();
+    difference() {
+        hull() {
+            translate(q_cam) apuntar(n_cam) translate([2.5, 0, -1.5 - camara[2]]) cube([camara[1] + 6, camara[0] + 6, 3], center = true);
+            translate([h[0] - 10, h[1] - 10, plato_z]) cube([20, 20, 1]);
+        }
+        translate(q_cam) apuntar(n_cam) {
+            translate([2.5 - camara[1] / 2 - 0.3, -camara[0] / 2 - 0.3, -camara[2] - 0.2]) cube([camara[1] + 0.6, camara[0] + 0.6, 20]);
+            translate([2.5, -7, -20]) cube([camara[1] / 2 + 1, 14, 21]);   // conector del cable plano
         }
     }
     }
@@ -170,12 +201,13 @@ module soporte_tof() {
 // Volumen libre dentro del casco (con 0.6 mm de holgura): ningún soporte se sale de aquí.
 module hueco_interior() rotate_extrude($fn = 180) perfil(cab_pared + 0.6);
 
-// ───────────── Soporte del ojo: mica Ø50 + anillo WS2812 + OV5647 ─────────────
-// Todo en el marco del ojo: z sobre n_ojo, origen en la cara interior del casco.
-mica_sag = pow(ojo_mica_d / 2, 2) / (2 * (Rd - cab_pared));
-z_mica = -mica_sag - 3;                 // espalda de la mica de 3 mm
-z_anillo = z_mica - 0.4 - 1.6 - anillo[2];   // espalda del PCB del anillo
-z_disco = z_anillo - 2.5;
+// ───────────── Soporte del ojo: domo de acrílico + anillo WS2812 ─────────────
+// Todo en el marco del ojo: z sobre n_ojo, origen en la cara interior del casco. El domo
+// pasa por el hueco del casco y se pega dentro de una ceja del disco; el anillo va dentro
+// del domo, sobre el disco.
+z_domo = cab_pared + ojo_sobresale - ojo_domo_d / 2;    // base del domo
+z_anillo = z_domo;                                       // espalda del PCB del anillo
+z_disco = z_domo - 3;
 O_OJO = [0, 0, zc] + (Rd - cab_pared) * n_ojo;
 function agujeros_soporte_ojo() = [[-14, O_OJO[1] - 40], [14, O_OJO[1] - 40]];
 
@@ -185,22 +217,17 @@ module soporte_ojo() intersection() {
     hueco_interior();
     difference() {
         union() {
-            en_ojo() translate([0, 0, z_disco]) cylinder(d = ojo_mica_d + 2, h = z_anillo - z_disco, $fn = 96);
-            // pestañas que aprietan la mica contra el casco
-            en_ojo() for (k = [0 : 3]) rotate([0, 0, 45 + 90 * k]) translate([anillo[0] / 2 + 0.6, -4, z_anillo]) cube([2.4, 8, z_mica - z_anillo]);
+            en_ojo() translate([0, 0, z_disco]) cylinder(d = ojo_domo_d + 6, h = 3 + 2, $fn = 96);
             // columna al plato
             hull() {
-                en_ojo() translate([0, -ojo_mica_d / 2 + 4, z_disco]) rotate([0, 0, 0]) cylinder(d = 24, h = 2.5);
+                en_ojo() translate([0, -ojo_domo_d / 2 + 4, z_disco]) cylinder(d = 24, h = 2.5);
                 translate([-20, O_OJO[1] - 48, plato_sup]) cube([40, 16, 4]);
             }
         }
-        // la lente pasa por el disco; la cámara va por detrás en su bolsillo
-        en_ojo() {
-            translate([-camara_lente / 2 - 0.4, -camara_lente / 2 - 0.4, z_disco - 1]) cube([camara_lente + 0.8, camara_lente + 0.8, 10]);
-            translate([-camara[0] / 2 - 0.3, -camara[1] / 2 + 2.5 - 0.3, z_disco - 8]) cube([camara[0] + 0.6, camara[1] + 0.6, 8 + 0.01]);
-            // cables del anillo
-            translate([0, anillo[1] / 2 - 1, z_disco - 1]) cylinder(d = 6, h = 10, $fn = 16);
-        }
+        // ceja donde se pega el domo
+        en_ojo() translate([0, 0, z_domo]) cylinder(d = ojo_domo_d + 0.4, h = 10, $fn = 96);
+        // cables del anillo
+        en_ojo() translate([0, anillo[1] / 2 - 1, z_disco - 1]) cylinder(d = 6, h = 10, $fn = 16);
         for (p = agujeros_soporte_ojo()) translate([p[0], p[1], plato_sup - 1]) cylinder(d = 3.4, h = 20, $fn = 16);
         translate([0, 0, plato_sup - 50]) cylinder(r = 200, h = 50);   // nada debajo del plato
     }
@@ -271,8 +298,12 @@ module antena_larga() difference() {
 module antenas() for (a = [[antena_corta_pos, 0], [antena_larga_pos, 1]]) let(q = a[0])
     translate([q[0], q[1] * cab_tapa_r, cab_z_tope - espiga_ant]) if (a[1] == 0) antena_corta(); else antena_larga();
 
-// Mica y anillo del ojo en su lugar (para Blender).
-module ojo_mica() en_ojo() translate([0, 0, z_mica]) cylinder(d = ojo_mica_d, h = 3);
+// Domo y anillo del ojo en su lugar (para Blender).
+module ojo_domo() en_ojo() translate([0, 0, z_domo]) difference() {
+    sphere(d = ojo_domo_d, $fn = 96);
+    sphere(d = ojo_domo_d - 3, $fn = 96);
+    translate([0, 0, -ojo_domo_d]) cube(2 * ojo_domo_d, center = true);
+}
 module ojo_anillo() en_ojo() translate([0, 0, z_anillo]) difference() {
     cylinder(d = anillo[0], h = anillo[2], $fn = 96);
     translate([0, 0, -1]) cylinder(d = anillo[1], h = anillo[2] + 2, $fn = 96);
@@ -289,12 +320,10 @@ module cabeza_completa(con_casco = true) {
     translate([0, -66, plato_z - 14]) power_bank();
     translate([POS_PIZERO[0], POS_PIZERO[1], plato_sup + 5]) pi_zero();
     translate([28, -52, plato_sup + 1]) pam8403();
-    en_ojo() {
-        translate([0, 0, z_anillo]) anillo_ws2812();
-        translate([0, 0, z_disco]) camara_ov5647();
-        color("#334", 0.6) translate([0, 0, z_mica]) cylinder(d = ojo_mica_d, h = 3);
-    }
-    translate(p_ojo2 - (cab_pared + 2.2 + (tof[0] / 2 + 3) * tan(ojo2_azim)) * n_tof) apuntar(n_tof) rotate([0, 0, 90]) vl53l0x();
+    en_ojo() translate([0, 0, z_anillo]) anillo_ws2812();
+    color("#334", 0.6) ojo_domo();
+    translate(q_cam) apuntar(n_cam) rotate([0, 0, -90]) camara_ov5647();
+    translate(q_tof) apuntar(n_tof) rotate([0, 0, 90]) vl53l0x();
     en_bocina() bocina();
     color("silver") antenas();
 }

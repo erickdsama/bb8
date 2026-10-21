@@ -58,8 +58,9 @@ esfera, como pide la Parte 6.
 - Se apoya en **3 bolas de acero de 1/2″** en copas a 60 mm del eje. Las ruedecitas del documento técnico solo ruedan en una dirección, y la esfera pasa debajo de la cabeza en todas. Las bolas entran por arriba y las retiene un tapón a presión (con grasa de litio o PTFE).
 - 4 imanes en postes del plato, a 2 mm de la pintura: entre las caras de los imanes del poste y de la cabeza hay 8.5 mm (2.5 + 4 de pared + 2).
 - Todo cuelga de un plato interior: el **power bank va debajo del plato**, atrás, para bajar el centro de gravedad; arriba van la Pi Zero 2 W (separadores M2.5), el PAM8403, el soporte del ojo y el de la bocina.
-- **Ojo principal** a 38° de elevación: mica ahumada de 50 × 3 mm, el anillo WS2812 de 16 LED detrás y la OV5647 en un bolsillo del mismo soporte, con la lente en el centro del anillo.
-- **Ojo chico** a 28° a la derecha, sin tapa: el VL53L0X detrás, mirando **al frente** (no hacia afuera de la ventana, para que el software tome su distancia como "adelante") y 10° hacia abajo. Al montarlo, centra el chip del sensor en la ventana. Con su campo de 25°, el piso aparece hasta ~0.8 m, lejos de los 25 cm del freno.
+- **Ojo principal** a 38° de elevación: media esfera de acrílico transparente de 5 cm, pintada **por dentro** con Tamiya TS-71 (humo). Apagado se ve negro y brillante; el anillo WS2812 de 16 LED va dentro de su base y la ilumina. El domo pasa por el hueco del casco, sobresale 8 mm y se pega en la ceja del soporte del ojo.
+- **Ojo chico** a 28° a la derecha: la **cámara OV5647** (módulo para Pi Zero, 72°). Por fuera solo se ve el lente, dentro de un aro de 16 mm (píntalo negro); el agujero se abre en cono desde la punta del lente para no recortar la imagen. La cámara mira al frente y 5° hacia abajo, con el cable plano hacia abajo.
+- **Sensor de distancia:** el VL53L0X va detrás del círculo chico bajo el ojo principal (6° a la derecha), con un agujero de 8 mm sin tapa, mirando **al frente** y 10° hacia abajo para que el software tome su distancia como "adelante". Con su campo de 25°, el piso aparece hasta ~0.8 m, lejos de los 25 cm del freno.
 - Bocina atrás y hacia arriba (45°) con rejilla hexagonal; dos antenas impresas en la tapa (corta Ø9 × 28 mm, larga Ø5 × 90 mm, con alambre de acero adentro); ranura del USB del power bank atrás, abajo.
 - El casco baja sobre el plato y se fija con 3 tornillos M3 avellanados radiales a tuercas atrapadas en el plato.
 
@@ -167,7 +168,7 @@ Además del [pedido UNIT](Materiales.md):
 | Tornillo M3 × 10 + tuerca | 4 | Soportes del ojo y de la bocina |
 | Separadores M2.5 de latón | 8 | Pi 4 (8 mm) y Pi Zero (5 mm) |
 | Bola de acero 1/2″ (12.7 mm) | 3 | Cabeza |
-| Mica acrílica ahumada clara Ø 50 × 3 mm (corte láser, FabLab) | 1 | Ojo principal; ahumado oscuro deja las fotos negras |
+| Esfera de acrílico transparente de 5 cm (se usa una mitad) + Tamiya TS-71 Smoke | 1 | Ojo principal |
 | Correa de velcro 20 mm | 2 | LiPo |
 | Lastre (acero, plomo, perdigones con resina) | 1–1.5 kg | Charola |
 | Tubo PVC conduit 25 mm | 20 cm | Poste |

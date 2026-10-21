@@ -135,18 +135,28 @@ plato_z     = 16;             // cara de abajo del plato interior (el power bank
 plato_e     = 4;
 bolita_d    = 12.7;           // 3 bolas de acero 1/2″ en copas (o mini ball transfers)
 bolita_r    = 60;             // radio del círculo de las 3 copas
-// Ojo principal: anillo WS2812 16 LED + cámara OV5647 detrás de su centro
+// Ojo principal: media esfera de acrílico transparente pintada por dentro con Tamiya TS-71
+// (humo); apagado se ve negro, el anillo WS2812 de 16 LED la ilumina desde su base.
 ojo_elev    = 38;             // elevación del ojo vista desde el centro del domo
-ojo_hueco_d = 40;
-ojo_mica_d  = 50;             // mica de acrílico ahumado 3 mm
+ojo_domo_d  = 50;             // MEDIR: esfera de acrílico de 5 cm, una mitad
+ojo_sobresale = 8;            // cuánto sale el domo de la cara del casco
+ojo_hueco_d = ojo_domo_d + 0.6;
 anillo      = [44.5, 31.8, 1.6];  // diámetro ext., int., grosor del PCB (MEDIR: UNIT dice 45)
-camara      = [25, 24, 1];        // OV5647 tipo cámara v1; agujeros M2 21 × 12.5
-camara_lente = 8.5;
-// Ojo chico (holoproyector): VL53L0X
+// Ojo chico: la cámara OV5647 (módulo para Pi Zero, 72.4°) ve por un agujero en cono;
+// desde fuera solo se ve el lente dentro de un aro de 16 mm.
 ojo2_azim   = 28;             // a la derecha del ojo principal
-ojo2_z      = 4;              // altura del ojo chico (debajo del plato)
-ojo2_inclin = 10;             // el ToF mira 10° hacia abajo
-ojo2_d      = 16;
+ojo2_z      = 4;              // altura del lente (debajo del plato)
+ojo2_inclin = 5;              // la cámara mira 5° hacia abajo
+ojo2_d      = 16;             // aro decorativo, 0.8 mm de hondo (se pinta negro)
+camara      = [25, 24, 1];    // tarjeta; el lente queda 2.5 mm arriba de su centro
+camara_lente = 8.5;           // bloque cuadrado del lente
+camara_lente_alto = 6;        // MEDIR: de la cara de la tarjeta a la punta del lente
+camara_fov  = 72.4;
+// Sensor de distancia VL53L0X detrás del círculo chico bajo el ojo principal
+tof_azim    = 6;
+tof_z       = 4;
+tof_inclin  = 10;             // mira 10° hacia abajo
+tof_hueco   = 8;
 tof         = [25, 13, 1.6];  // MEDIR: GY-530 / CJMCU-530
 // Antenas impresas en la tapa, hacia atrás: [x, y, Ø del agujero]
 antena_corta_pos = [0, -0.45, 6];   // y en fracciones de cab_tapa_r
