@@ -59,7 +59,7 @@ esfera, como pide la Parte 6.
 - 4 imanes en postes del plato, a 2 mm de la pintura: entre las caras de los imanes del poste y de la cabeza hay 8.5 mm (2.5 + 4 de pared + 2).
 - Todo cuelga de un plato interior: el **power bank va debajo del plato**, atrás, para bajar el centro de gravedad; arriba van la Pi Zero 2 W (separadores M2.5), el PAM8403, el soporte del ojo y el de la bocina.
 - **Ojo principal** a 38° de elevación: mica ahumada de 50 × 3 mm, el anillo WS2812 de 16 LED detrás y la OV5647 en un bolsillo del mismo soporte, con la lente en el centro del anillo.
-- **Ojo chico** a 28° a la derecha: el VL53L0X, mirando 10° hacia abajo. Con su campo de 25°, el piso aparece hasta ~0.8 m, lejos de los 25 cm del freno.
+- **Ojo chico** a 28° a la derecha, sin tapa: el VL53L0X detrás, mirando **al frente** (no hacia afuera de la ventana, para que el software tome su distancia como "adelante") y 10° hacia abajo. Al montarlo, centra el chip del sensor en la ventana. Con su campo de 25°, el piso aparece hasta ~0.8 m, lejos de los 25 cm del freno.
 - Bocina atrás y hacia arriba (45°) con rejilla hexagonal; dos agujeros de antena en la tapa; ranura del USB del power bank atrás, abajo.
 - El casco baja sobre el plato y se fija con 3 tornillos M3 avellanados radiales a tuercas atrapadas en el plato.
 
@@ -166,7 +166,7 @@ Además del [pedido UNIT](Materiales.md):
 | Tornillo M3 × 10 + tuerca | 4 | Soportes del ojo y de la bocina |
 | Separadores M2.5 de latón | 8 | Pi 4 (8 mm) y Pi Zero (5 mm) |
 | Bola de acero 1/2″ (12.7 mm) | 3 | Cabeza |
-| Mica acrílica ahumada Ø 50 × 3 mm | 1 | Ojo |
+| Mica acrílica ahumada clara Ø 50 × 3 mm (corte láser, FabLab) | 1 | Ojo principal; ahumado oscuro deja las fotos negras |
 | Correa de velcro 20 mm | 2 | LiPo |
 | Lastre (acero, plomo, perdigones con resina) | 1–1.5 kg | Charola |
 | Tubo PVC conduit 25 mm | 20 cm | Poste |
