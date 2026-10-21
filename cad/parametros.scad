@@ -26,9 +26,9 @@ ceja_tapa  = 8;                // ceja que sostiene la tapa de carga (mm de arco
 
 // ───────────────────────── Motores JGB37-520B (encoder, 319 RPM) ─────────────────────────
 caja_d     = 37;     // diámetro de la caja de engranes
-caja_L     = 22;     // MEDIR: largo de la caja; 19–29 según la reducción
+caja_L     = 22;     // medido (20 oct 2026)
 motor_d    = 35;     // motor 520 + disco del encoder
-motor_L    = 50;     // MEDIR: motor + encoder, sin la caja
+motor_L    = 30;     // medido (20 oct 2026): 52 mm en total sin el eje, menos la caja
 excentrico = 7;      // el eje de salida va 7 mm fuera del centro de la caja
 eje_d      = 6;      // eje D de 6 mm (5.5 entre planos)
 eje_L      = 15.5;
@@ -40,7 +40,8 @@ caja_pcd   = 31;     // 6 × M3 en un círculo de 31 mm (centrado en la caja)
 rueda_d       = 65;
 rueda_ancho   = 26;
 rueda_offset  = 20;    // cara de la caja → plano medio de la rueda: soporte 4 mm + buje + cople hex
-hueco_motores = 4;     // separación entre los dos motores, al centro
+hueco_motores = 44;    // separación entre los dos motores, al centro. Con motores de 30 mm las
+                       // ruedas se quedan a 94 mm: más adentro el eje baja y la LiPo choca con el casco
 chaflan_llanta = 2;    // el borde exterior de la llanta (forrada) es redondeado
 
 // Plano medio de cada rueda (distancia al centro en x): los dos motores coaxiales

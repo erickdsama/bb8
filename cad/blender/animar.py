@@ -24,9 +24,9 @@ FPS, FIN = 24, 288
 # ── Medidas (cad/parametros.scad) ──
 RE, PARED = 165.0, 4.0
 RI = RE - PARED
-CAJA_D, CAJA_L, MOTOR_D, MOTOR_L, EXC = 37.0, 22.0, 35.0, 50.0, 7.0
+CAJA_D, CAJA_L, MOTOR_D, MOTOR_L, EXC = 37.0, 22.0, 35.0, 30.0, 7.0   # caja y motor medidos
 RUEDA_D, RUEDA_A = 65.0, 26.0
-A_RUEDA = 20 + CAJA_L + MOTOR_L + 2                       # 94
+A_RUEDA = 20 + CAJA_L + MOTOR_L + 44 / 2                  # 94: los motores no se tocan al centro
 X_CONTACTO = A_RUEDA + RUEDA_A / 2 - 2
 Z_EJE = -(math.sqrt(RI**2 - X_CONTACTO**2) - RUEDA_D / 2)  # −89.6
 X_CARA = A_RUEDA - 20
