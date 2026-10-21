@@ -14,7 +14,7 @@ solo tiene esta lista.
 | Plataforma de MDF 6 mm, cortada en láser en FabLab con [`plataforma.dxf`](https://github.com/erickdsama/bb8/blob/main/cad/plantillas/plataforma.dxf) | Agujeros y muescas exactos, sin plantilla ni taladro, y pesa menos arriba del eje. 3 mm se pandea; la melamina de 12–15 mm con la plantilla de papel sigue sirviendo |
 | 2 ruedas de goma 65 mm con **cople hexagonal para eje D de 6 mm** | La "Llanta de Goma 65 mm" de UNIT **con accesorios** sí entra (buje hex 12 mm); la de motor TT es otra. Forrarlas con cinta de silicona. Ver [Materiales](Materiales.md) |
 | 2 soportes de motor JGB37 | |
-| 2 ball transfers de 1″, bola metálica | Resbalan mejor sobre el casco que una rueda loca |
+| 2 ruedas locas RL4 (bola de acero de 1″, brida de 2 agujeros 50 × 22) | Van en soportes impresos inclinados hacia el centro de la esfera |
 | Tubo PVC 25 mm × 30 cm o varilla roscada 1/4″ + 4 tuercas | Poste central |
 | Separadores M3 de latón, tornillos M3, cinta doble cara, velcro, bridas | Los separadores y tornillos vienen en el pedido UNIT |
 
@@ -24,7 +24,8 @@ Ninguno, salvo la tornillería, está todavía en el [pedido](Materiales.md).
 
 El [Diseño 3D](Diseno-3D.md#base) tiene la plantilla 1:1 del disco con todos los
 agujeros (`cad/plantillas/plataforma.svg`), los soportes de motor colgantes, la charola
-de la LiPo con compartimentos de lastre y los soportes inclinados de los ball transfers.
+de la LiPo con compartimentos de lastre y los soportes inclinados de las ruedas locas RL4,
+todo en PETG.
 Con ellos la plataforma queda arriba y lo pesado cuelga debajo; los pasos de abajo
 siguen valiendo si prefieres armarla a mano.
 
@@ -32,7 +33,7 @@ siguen valiendo si prefieres armarla a mano.
 
 1. Corta el disco de Ø 20–22 cm; marca el centro y los ejes en + y ×.
 2. Haz dos muescas opuestas para las ruedas y atornilla los soportes de motor de modo que las ruedas asomen por ellas.
-3. Monta los 2 ball transfers a 90° de las ruedas, **a la misma altura de contacto** que las ruedas. Si tocan antes, la esfera no rodará.
+3. Monta las 2 ruedas locas RL4 en sus soportes, a 90° de las ruedas, **a la misma altura de contacto** que las ruedas. Si tocan antes, la esfera no rodará.
 4. Deja el hueco de la LiPo (139 × 47 × 25 mm) centrado **abajo**: hace de lastre. Arduino, L298N y buck van arriba, sobre separadores M3.
 5. Fija el poste central (PVC o varilla roscada) con el portaimanes arriba. Se recorta en la Parte 6.
 6. Recablea lo de la [Parte 1](Parte-1-Protoboard.md) con cables cortos y termorretráctil; mantén un solo riel de GND.
@@ -51,6 +52,6 @@ todo dentro de la esfera.
 ## Lista cuando
 
 - [ ] La base se levanta con una mano y nada se mueve ni cuelga
-- [ ] Las ruedas y los ball transfers tocan una superficie plana al mismo tiempo
+- [ ] Las ruedas y las ruedas locas tocan una superficie plana al mismo tiempo
 - [ ] `p2` y `p4` pasan otra vez
 - [ ] Peso y centro de gravedad anotados

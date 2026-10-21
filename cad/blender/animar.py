@@ -82,11 +82,61 @@ def mat(nombre, color, rug=0.4, metal=0.0, emision=None, fuerza=0.0):
     return m
 
 
+def mdf():
+    """MDF: fibra café clara, mate, con grano fino de ruido."""
+    m = mat("MDF", (0.62, 0.47, 0.32), 0.85)
+    n = m.node_tree.nodes
+    bsdf = n["Principled BSDF"]
+    ruido = n.new("ShaderNodeTexNoise")
+    ruido.inputs["Scale"].default_value = 900.0
+    ruido.inputs["Detail"].default_value = 8.0
+    rampa = n.new("ShaderNodeValToRGB")
+    rampa.color_ramp.elements[0].color = (0.50, 0.36, 0.23, 1)
+    rampa.color_ramp.elements[1].color = (0.70, 0.55, 0.38, 1)
+    m.node_tree.links.new(ruido.outputs["Fac"], rampa.inputs["Fac"])
+    m.node_tree.links.new(rampa.outputs["Color"], bsdf.inputs["Base Color"])
+    return m
+
+
+def plataforma_mdf(padre):
+    """La plataforma tal cual se corta: contorno y agujeros de cad/plantillas/plataforma.svg."""
+    import re
+    import bmesh
+    svg = open(os.path.join(CAD, "plantillas", "plataforma.svg")).read()
+    d = re.search(r'd="([^"]+)"', svg).group(1)
+    bm = bmesh.new()
+    aristas = []
+    for sub in re.findall(r"M([^Mz]+)z", d):
+        pts = [tuple(map(float, p.split(","))) for p in re.findall(r"-?[\d.e-]+,-?[\d.e-]+", sub)]
+        vs = [bm.verts.new((x * MM, -y * MM, 0)) for x, y in pts]     # el SVG trae y invertida
+        aristas += [bm.edges.new((vs[i], vs[(i + 1) % len(vs)])) for i in range(len(vs))]
+    bmesh.ops.triangle_fill(bm, use_beauty=True, use_dissolve=True, edges=aristas)
+    caras = [f for f in bm.faces]
+    ext = bmesh.ops.extrude_face_region(bm, geom=caras)
+    bmesh.ops.translate(bm, vec=(0, 0, PLAT_E * MM), verts=[v for v in ext["geom"] if isinstance(v, bmesh.types.BMVert)])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    me = bpy.data.meshes.new("Plataforma")
+    bm.to_mesh(me)
+    bm.free()
+    o = bpy.data.objects.new("Plataforma", me)
+    bpy.context.collection.objects.link(o)
+    o.location = (0, 0, PLAT_INF * MM)
+    me.materials.append(MATS["MDF"])
+    me.materials.append(MATS["Canto MDF"])
+    for f in me.polygons:
+        f.material_index = 0 if abs(f.normal.z) > 0.5 else 1
+    o.parent = padre
+    return o
+
+
 def materiales():
     mat("Blanco", (0.85, 0.84, 0.80), 0.35)
     mat("Naranja", (0.85, 0.32, 0.04), 0.4)
     mat("Impreso", (0.95, 0.45, 0.10), 0.55)
-    mat("Melamina", (0.55, 0.40, 0.26), 0.7)   # MDF
+    mat("Melamina", (0.55, 0.40, 0.26), 0.7)   # madera
+    mdf()
+    mat("Canto MDF", (0.10, 0.055, 0.03), 0.8)   # orilla quemada del corte láser
+    mat("Lastre", (0.35, 0.35, 0.37), 0.5, metal=0.7)
     mat("Metal", (0.75, 0.75, 0.78), 0.25, metal=1.0)
     mat("Motor", (0.25, 0.25, 0.27), 0.35, metal=0.8)
     mat("Hule", (0.03, 0.03, 0.03), 0.8)
@@ -159,6 +209,20 @@ def prim(tipo, nombre, material, padre, loc=(0, 0, 0), rot=(0, 0, 0), dim=None, 
     return o
 
 
+def corte(o, punto, normal):
+    """Deja solo la mitad de o que queda del lado de normal (para el domo de la RL4)."""
+    bpy.ops.mesh.primitive_cube_add()
+    h = bpy.context.object
+    h.dimensions = (0.2, 0.2, 0.2)
+    h.location = (punto - normal * 100) * MM
+    h.rotation_euler = apuntar(normal).to_euler()
+    b = o.modifiers.new("Corte", "BOOLEAN")
+    b.object = h
+    bpy.context.view_layer.objects.active = o
+    bpy.ops.object.modifier_apply(modifier=b.name)
+    bpy.data.objects.remove(h, do_unlink=True)
+
+
 def cil_x(nombre, material, padre, x0, x1, y, z, d, **kw):
     """Cilindro a lo largo de x, de x0 a x1."""
     return prim("cil", nombre, material, padre, ((x0 + x1) / 2, y, z), (0, math.pi / 2, 0),
@@ -203,21 +267,11 @@ def tarjeta(nombre, material, padre, x, y, z, dx, dy, piezas=()):
 
 
 def base(padre):
-    p = prim("cil", "Plataforma", "Melamina", padre, (0, 0, PLAT_INF + PLAT_E / 2), dim=(PLAT_D, PLAT_D, PLAT_E), vertices=128)
-    for lado in (-1, 1):      # muescas de las ruedas
-        bpy.ops.mesh.primitive_cube_add()
-        h = bpy.context.object
-        h.dimensions = (PLAT_D * MM, 62 * MM, 40 * MM)
-        h.location = (lado * (A_RUEDA - RUEDA_A / 2 - 4 + PLAT_D / 2) * MM, 0, (PLAT_INF + PLAT_E / 2) * MM)
-        b = p.modifiers.new("Muesca", "BOOLEAN")
-        b.object = h
-        bpy.context.view_layer.objects.active = p
-        bpy.ops.object.modifier_apply(modifier=b.name)
-        bpy.data.objects.remove(h, do_unlink=True)
+    plataforma_mdf(padre)
 
-    # La base real (Parte 2): los motores cuelgan de la plataforma de MDF en sus soportes impresos,
-    # la LiPo va abajo con velcro y adelante y atrás hay una rueda loca RL4 sobre una cuña
-    # de madera.
+    # La base (Parte 2), todo impreso en PETG: los motores cuelgan de la plataforma de MDF en
+    # sus soportes, la LiPo va en la charola con lastre a los lados y adelante y atrás hay una
+    # rueda loca RL4 en su soporte inclinado.
 
     for lado in (-1, 1):
         s = "der" if lado > 0 else "izq"
@@ -231,25 +285,39 @@ def base(padre):
         # soporte impreso en ABS (cad/stl/parte2-base), atornillado a la plataforma
         stl(f"parte2-base/base_soporte_motor{'' if lado > 0 else '_izq'}.stl", f"Soporte motor {s}", "Impreso", padre, RX180)
 
+    stl("parte2-base/base_charola.stl", "Charola", "Impreso", padre)
     caja("LiPo", "LiPo", padre, -LIPO[0] / 2, -LIPO[1] / 2, LIPO_INF, *LIPO)
-    for k, yv in enumerate((-40, 40)):          # 2 tiras de velcro que la cuelgan de la plataforma
-        caja(f"Velcro {k + 1}", "Negro", padre, -LIPO[0] / 2 - 1.5, yv - 10, LIPO_INF - 1.5, 1.5, 20, PLAT_INF - LIPO_INF + 1.5)
-        caja(f"Velcro {k + 1}b", "Negro", padre, LIPO[0] / 2, yv - 10, LIPO_INF - 1.5, 1.5, 20, PLAT_INF - LIPO_INF + 1.5)
-        caja(f"Velcro {k + 1}c", "Negro", padre, -LIPO[0] / 2 - 1.5, yv - 10, LIPO_INF - 1.5, LIPO[0] + 3, 20, 1.5)
+    for s in (-1, 1):       # lastre en los compartimentos a los lados de la LiPo
+        x0 = LIPO[0] / 2 + 0.5 + 4 if s > 0 else -(LIPO[0] / 2 + 0.5 + 4 + 34)
+        caja(f"Lastre {'der' if s > 0 else 'izq'}", "Lastre", padre, x0 + 1, -41, LIPO_INF + 1, 32, 82, 18)
+    for k, yv in enumerate((-35, 35)):          # 2 correas de velcro por las ranuras de la charola
+        piso = LIPO_INF - 3
+        caja(f"Velcro {k + 1}", "Negro", padre, -LIPO[0] / 2 - 2.7, yv - 10, piso - 1.2, LIPO[0] + 5.4, 20, 1.2)
+        caja(f"Velcro {k + 1}b", "Negro", padre, -LIPO[0] / 2 - 2.7, yv - 10, LIPO_INF + LIPO[2], LIPO[0] + 5.4, 20, 1.2)
+        for x in (-LIPO[0] / 2 - 2.7, LIPO[0] / 2 + 1.5):
+            caja(f"Velcro {k + 1}{'c' if x < 0 else 'd'}", "Negro", padre, x, yv - 10, piso - 1.2, 1.2, 20, LIPO[2] + 4.4)
     for s in (-1, 1):
         nombre = "adelante" if s > 0 else "atras"
+        m = RX180 if s > 0 else Matrix.Scale(-1, 4, (0, 1, 0)) @ RX180
+        stl("parte2-base/base_soporte_bt.stl", f"Soporte RL4 {nombre}", "Impreso", padre, m)
         c = Vector((0, s * BT_Y, BT_Z))
-        prim("esf", f"Rueda loca {nombre}", "Metal", padre, c, dim=(BOLA_D,) * 3, segments=32, ring_count=16)
         u = c.normalized()
-        cara = c - u * (RL4_ALTO - BOLA_D / 2)          # cara de la brida, contra la cuña
-        prim("esf", f"RL4 {nombre} domo", "Metal", padre, cara, apuntar(u).to_euler(),
-             dim=(RL4_DOMO, RL4_DOMO, 2 * (RL4_ALTO - 3)), segments=32, ring_count=16)
-        prim("cubo", f"RL4 {nombre} brida", "Metal", padre, cara - u * 0.75, apuntar(u).to_euler(),
-             dim=(RL4_BRIDA[1], RL4_BRIDA[0], 1.5))
-        # cuña de madera entre la rueda loca y la plataforma
-        arriba = cara - u * 1.5
-        caja(f"Cuna {nombre}", "Melamina", padre, -20, min(arriba.y, s * 80) if s > 0 else arriba.y - 0,
-             arriba.z, 40, abs(arriba.y - s * 80) + 0.01, PLAT_INF - arriba.z)
+        rot = apuntar(u).to_euler()
+        cara = c - u * (RL4_ALTO - BOLA_D / 2)          # cara de la brida
+        prim("esf", f"RL4 {nombre} bola", "Metal", padre, c, dim=(BOLA_D,) * 3, segments=32, ring_count=16)
+        # domo: falda cilíndrica + media esfera de Ø32; su punta queda 3 mm abajo de la de la bola
+        falda = RL4_ALTO - 3 - RL4_DOMO / 2
+        prim("cil", f"RL4 {nombre} falda", "Metal", padre, cara + u * falda / 2, rot, dim=(RL4_DOMO, RL4_DOMO, falda), vertices=48)
+        d = prim("esf", f"RL4 {nombre} domo", "Metal", padre, cara + u * falda, rot, dim=(RL4_DOMO,) * 3, segments=48, ring_count=24)
+        corte(d, cara + u * falda, u)
+        # brida de 2 agujeros: 50 × 22 con las puntas redondas (en el marco de apuntar, el largo va en y)
+        prim("cubo", f"RL4 {nombre} brida", "Metal", padre, cara - u * 0.75, rot, dim=(RL4_BRIDA[1], RL4_BRIDA[0] - RL4_BRIDA[1], 1.5))
+        for k in (-1, 1):
+            q = apuntar(u) @ Vector((0, k * (RL4_BRIDA[0] - RL4_BRIDA[1]) / 2, 0))
+            prim("cil", f"RL4 {nombre} brida {k}", "Metal", padre, cara - u * 0.75 + q, rot, dim=(RL4_BRIDA[1], RL4_BRIDA[1], 1.5), vertices=32)
+            q2 = apuntar(u) @ Vector((0, k * 17.5, 0))
+            prim("cil", f"RL4 {nombre} tornillo {k}", "Negro", padre, cara + q2 + u * 1.0, rot, dim=(7, 7, 2.5), vertices=6)
+    stl("parte2-base/base_panel_carga.stl", "Panel de carga", "Impreso", padre)
 
     z = PLAT_SUP + SEPARADOR
     tarjeta("Raspberry Pi 3", "PCB", padre, -42.5, 34, z, 85, 56,

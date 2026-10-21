@@ -34,8 +34,8 @@ rueda derecha. Esfera de 330 mm con pared de 4 mm (radio interior 161).
 - **Las ruedas salen de las piezas, no se eligen.** Los dos JGB37 van coaxiales y llenan el ancho: cople + caja de 22 mm + motor con encoder de 50 mm + 2 mm al centro ponen cada rueda a 94 mm del centro. Ahí la pared interior está inclinada 41°, así que la rueda (vertical) toca con el **borde exterior de la llanta**: fórrala con cinta de silicona y redondéale el canto. Inclinar los motores para que la llanta pise plana no cabe: el extremo del motor chocaría con el casco.
 - **La plataforma va arriba y lo pesado cuelga.** El eje de las ruedas queda a z = −89.5 y la plataforma de melamina de 15 mm entre −68 y −53; a esa altura el casco deja 146 mm de radio libre, así que el disco de 210 mm entra holgado. Los motores cuelgan en soportes impresos con la placa frontal atornillada a la cara de la caja (M3 avellanados: la rueda pasa a 3 mm).
 - **La LiPo va justo debajo de los motores** (z −134 a −109), en una charola colgada de la plataforma con dos paredes en los extremos. A cada lado de la LiPo, bajo los motores, hay un compartimento de lastre de 34 × 84 mm: caben ~0.5 kg de acero o ~0.75 kg de plomo por lado (la esfera recorta las esquinas), que es el lastre de 1–1.5 kg que pide la Parte 6, en el punto más bajo posible.
-- **Ball transfers a ±110 mm en y**, fuera de la charola, inclinados 48° para que apunten al centro de la esfera. Sus soportes se nivelan con arandelas entre la brida y el soporte: las 4 patas (2 ruedas y 2 bolas) deben tocar el casco a la vez; si las bolas tocan primero, la esfera no rueda.
-- **Plataforma:** `cad/plantillas/plataforma.svg` y `.dxf` a escala 1:1 con las muescas de las ruedas, todos los agujeros (soportes, charola, ball transfers, pie del poste, Pi 4, Uno, L298N, panel de carga) y dos pasacables de 22 mm. Imprímela en papel a 100 %, pégala en la melamina y taladra.
+- **Ruedas locas RL4 a ±110 mm en y**, fuera de la charola, inclinados 48° para que apunten al centro de la esfera. Sus soportes se nivelan con arandelas entre la brida y el soporte: las 4 patas (2 ruedas y 2 bolas) deben tocar el casco a la vez; si las bolas tocan primero, la esfera no rueda.
+- **Plataforma:** `cad/plantillas/plataforma.svg` y `.dxf` a escala 1:1 con las muescas de las ruedas, todos los agujeros (soportes, charola, ruedas locas, pie del poste, Pi 4, Uno, L298N, panel de carga) y dos pasacables de 22 mm. Imprímela en papel a 100 %, pégala en la melamina y taladra.
 - Acomodo sobre la plataforma: Pi 4 adelante, Uno atrás, L298N a la izquierda, los dos LM2596 a la derecha, MPU6050 adelante a la izquierda con cinta doble cara (chip arriba) y el panel de carga atrás a la izquierda.
 
 ### Poste e imanes
@@ -70,7 +70,7 @@ esfera, como pide la Parte 6.
 
 - El patrón es el del BB-8: **6 círculos naranjas en las caras de un cubo** (30° de radio angular) y **8 gajos blancos**, uno por octante, como dice el documento técnico.
 - **La junta de las dos mitades** es el gran círculo perpendicular a la diagonal (1,1,1) del cubo. Pasa entre los círculos a 5° de cada uno, así que ningún círculo queda partido; corta 6 gajos en dos, por eso son 14 piezas blancas.
-- **Por dentro no sobresale nada**, porque ruedas y ball transfers pasan por todo el casco:
+- **Por dentro no sobresale nada**, porque ruedas y ruedas locas pasan por todo el casco:
   - los círculos son tapas de 2 mm pegadas en un asiento de 2 mm (debajo queda un piso de 2 mm);
   - la junta es un traslape a media pared (10 mm) con **bayoneta de 6 lengüetas** de 0.6 mm que viven dentro de la pared: se encajan las mitades y se giran 7° para cerrar;
   - los gajos de una misma mitad se pegan a tope con espigas de filamento de 1.75 mm (18 agujeros), y luego se refuerzan por dentro con fibra de vidrio fina, lijada a ras.
@@ -84,7 +84,7 @@ esfera, como pide la Parte 6.
 | Cabeza con 3 ruedecitas | 3 bolas de acero de 1/2″ en copas | Una rueda solo rueda en un sentido; la esfera pasa en todos |
 | Cúpula de 12–14 cm | Cabeza de 198 mm (paramétrica) | El power bank mide 97 mm de largo y la proporción del BB-8 es ~0.6 del cuerpo. Cambia `cabeza_d` si prefieres otra |
 | VL53L0X por I2C del Arduino | VL53L0X en la cabeza (ojo chico) | Dentro de la esfera solo vería el casco; en la cabeza lo lee la Zero (`/tof`) y el firmware va con `USAR_TOF_LOCAL 0` |
-| Ball transfers "a la misma altura que las ruedas" | A ±110 mm, inclinados 48°, nivelados con arandelas | Es lo que hace que las 4 patas toquen la esfera a la vez |
+| Ruedas locas "a la misma altura que las ruedas" | A ±110 mm, inclinados 48°, nivelados con arandelas | Es lo que hace que las 4 patas toquen la esfera a la vez |
 | Base con LiPo "centrada abajo" | LiPo bajo los motores y lastre a sus lados en la charola | Es el punto más bajo que deja la geometría |
 
 ## Piezas a imprimir
@@ -156,10 +156,10 @@ Además del [pedido UNIT](Materiales.md):
 
 | Pieza | Cant. | Para |
 | --- | --- | --- |
-| Tornillo M3 × 30 + tuerca | 18 | Soportes de motor (8), charola (4), ball transfers (6), a través de la melamina |
+| Tornillo M3 × 30 + tuerca | 18 | Soportes de motor (8), charola (4), soportes de RL4 (6), a través de la plataforma |
 | Tornillo M3 × 6–8 avellanado | 6–12 | Cara de la caja de cada motor (los que coincidan de los 6) |
 | Tornillo M3 × 25 + tuerca | 6 | Pie del poste (4), panel de carga (2) |
-| Tornillo M4 × 16 + tuerca | 6 | Ball transfers |
+| Tornillo M4 × 16 + tuerca | 4 | Ruedas locas RL4 a sus soportes |
 | Tornillo M4 × 10 avellanado + tuerca de nylon | 8 | Imanes (ya en la lista de materiales) |
 | Autorroscante M3 × 12 | 4 | Orejas del MG996R |
 | Autorroscante M2 × 6 | 4 | Cuerno del servo al portaimanes |
@@ -184,7 +184,7 @@ Mide y corrige en `parametros.scad`:
 
 - `caja_L` y `motor_L` del JGB37: la caja mide 19–29 mm según la reducción; el motor con encoder, ~50. Cambian la posición de las ruedas y todo lo de abajo.
 - `rueda_offset`: distancia real de la cara de la caja al centro de la rueda con tu cople.
-- Ball transfer: `bt_brida_d`, `bt_pcd`, `bt_cuerpo_d`, `bt_cuerpo_L`, `bt_bola_fuera`.
+- Rueda loca RL4: `bola_d`, `bt_brida`, `bt_agujero_sep`, `bt_domo_d`, `bt_bola_fuera`.
 - MG996R: orejas (`servo_oreja_z`, `servo_agujeros`) y el cuerno (`cuerno_d`, y el radio de sus agujeros en `portaimanes`).
 - `tubo_d`: el conduit de 25 mm mide 25; el hidráulico de 1/2″, 21.3.
 - Cabeza: `anillo`, `tof`, `bocina_d` (la de UNIT puede ser de 40 o 50 mm), `powerbank`.
@@ -195,7 +195,7 @@ Luego imprime primero **dos gajos vecinos de mitades distintas** (por ejemplo `A
 
 ## Armado
 
-1. Plataforma: corta y taladra con la plantilla. Monta motores, ruedas, charola y soportes de ball transfer; nivela con arandelas sobre una mesa (Parte 2).
+1. Plataforma: MDF de 6 mm cortado en láser con `plataforma.dxf`. Monta motores, ruedas, charola y soportes de las RL4; nivela con arandelas sobre una mesa (Parte 2).
 2. Electrónica sobre la plataforma y prueba la base andando sin esfera (Partes 3 y 4).
 3. Pega los 7 gajos de cada mitad con las espigas, refuerza por dentro y lija a ras.
 4. Mete la base en la mitad B, cierra con la A y gira 7°. Prueba que rueda **antes** de poner lastre e imanes.

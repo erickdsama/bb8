@@ -79,11 +79,6 @@ bt_agujero_d = 5;
 bt_agujero_sep = 35;   // entre centros (5 mm de orilla + 2.5 de radio, en cada lado)
 bt_domo_d    = 32;     // domo (del escaneo)
 bt_bola_fuera = 25.4;  // cara de la brida → punta de la bola (la bola sale ~3 mm del domo)
-// heredados del ball transfer redondo; base.scad todavía los usa para su soporte impreso (no se usa)
-bt_brida_d   = 55;
-bt_pcd       = 44;
-bt_cuerpo_d  = 36;
-bt_cuerpo_L  = 16;
 // centro de la bola: toca el casco por dentro
 bt_c_r = Ri - bola_d / 2;
 bt_c_z = -sqrt(bt_c_r * bt_c_r - bt_y * bt_y);

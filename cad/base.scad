@@ -1,9 +1,9 @@
 // BB-8 · base motriz (Partes 2 y 6).
 //
-// La plataforma de melamina va arriba y todo lo pesado cuelga debajo: motores en soportes
-// impresos, la LiPo en una charola justo bajo los motores y, a los lados de la LiPo, dos
-// compartimentos para 1–1.5 kg de lastre. Los ball transfers van adelante y atrás en
-// soportes inclinados que apuntan al centro de la esfera.
+// La plataforma (MDF de 6 mm en láser) va arriba y todo lo pesado cuelga debajo: motores
+// en soportes impresos, la LiPo en una charola justo bajo los motores y, a los lados de la
+// LiPo, dos compartimentos para 1–1.5 kg de lastre. Las ruedas locas RL4 van adelante y
+// atrás en soportes inclinados que apuntan al centro de la esfera. Todo impreso en PETG.
 //
 // Las medidas que salen de la geometría (altura del eje, de la plataforma, inclinación de
 // los ball transfers) se calculan en parametros.scad; corre `reportar()` para verlas.
@@ -133,7 +133,9 @@ module charola() {
     }
 }
 
-// ───────────── Soporte de ball transfer (s = 1 adelante, −1 atrás) ─────────────
+// ───────────── Soporte de rueda loca RL4 (s = 1 adelante, −1 atrás) ─────────────
+// Bloque bajo la plataforma con la cara inclinada hacia el centro de la esfera. La brida
+// de la RL4 se atornilla a esa cara con 2 M4 y tuerca por detrás.
 bt_c = [0, bt_y, bt_c_z];
 bt_u = unitario(bt_c);
 bt_cara = bt_c - (bt_bola_fuera - bola_d / 2) * bt_u;   // cara de la brida
@@ -143,16 +145,14 @@ module soporte_bt(s = 1) {
     mirror([0, s > 0 ? 0 : 1, 0]) difference() {
         hull() {
             translate([-24, 80, plat_z_inf - 6]) cube([48, 24, 6]);
-            translate(bt_atras) apuntar(bt_u) translate([0, 0, -8]) cylinder(d = bt_brida_d + 2, h = 8);
+            translate(bt_atras) apuntar(bt_u) translate([-(bt_brida[1] + 4) / 2, -(bt_brida[0] + 4) / 2, -8]) cube([bt_brida[1] + 4, bt_brida[0] + 4, 8]);
         }
-        // todo lo que va delante de la espalda de la brida (brida, bola) y el cuerpo
         translate(bt_atras) apuntar(bt_u) {
-            cylinder(d = bt_brida_d + 30, h = 60);
-            translate([0, 0, -bt_cuerpo_L - 1]) cylinder(d = bt_cuerpo_d + 1, h = bt_cuerpo_L + 1.01);
-            // tornillos M4 con tuerca por detrás (cavidad para llave de vaso)
-            for (k = [0 : 2]) rotate([0, 0, 90 + 120 * k]) translate([bt_pcd / 2, 0, 0]) {
+            cylinder(d = 2 * bt_brida[0], h = 60);              // todo lo que va delante de la brida
+            for (y = [-1, 1]) translate([0, y * bt_agujero_sep / 2, 0]) {
                 translate([0, 0, -12]) cylinder(d = 4.5, h = 13, $fn = 16);
-                translate([0, 0, -60 - 8]) cylinder(d = 10, h = 60, $fn = 24);
+                translate([0, 0, -6.5]) rotate([0, 0, 30]) cylinder(d = 8.1, h = 3.4, $fn = 6);   // tuerca M4
+                translate([0, 0, -60 - 6.5]) cylinder(d = 10, h = 60, $fn = 24);                  // llave por detrás
             }
         }
         for (p = agujeros_bt(1)) translate([p[0], p[1], plat_z_inf - 20]) {
