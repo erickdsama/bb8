@@ -4,8 +4,8 @@ package connections
 type Kind struct {
 	Label  string `json:"label"`
 	What   string `json:"what"`
-	URL    string `json:"url,omitempty"` // MCP endpoint; empty: the user gives it
-	SignIn string `json:"sign_in"`       // oauth, homeassistant, auto (probe the link)
+	URL    string `json:"url,omitempty"` // MCP endpoint; empty: the user gives it (or not MCP: google)
+	SignIn string `json:"sign_in"`       // oauth, homeassistant, google, auto (probe the link)
 	Shared bool   `json:"shared"`        // default owner: the house, not a person
 	// Confirm: ask before tools that send, create or delete. Off for the house
 	// (lights, plugs): asking "are you sure?" to turn on a lamp gets old fast.
@@ -13,7 +13,7 @@ type Kind struct {
 	Order   int  `json:"order"`
 }
 
-// Catalog: the services with a sign-in button. Their servers support the MCP
+// Catalog: the services with a sign-in button. The MCP ones support the MCP
 // authorization flow (OAuth with automatic client registration), checked against
 // their published metadata.
 var Catalog = map[string]Kind{
@@ -25,6 +25,9 @@ var Catalog = map[string]Kind{
 		URL: "https://mcp.notion.com/mcp", SignIn: "oauth", Confirm: true, Order: 3},
 	"linear": {Label: "Linear", What: "Issues and projects.",
 		URL: "https://mcp.linear.app/mcp", SignIn: "oauth", Confirm: true, Order: 4},
+	// Not an MCP server: the calendar connector uses these accounts (google.go).
+	KindGoogle: {Label: "Google Calendar", What: "What's on today, and adding appointments.",
+		SignIn: "google", Confirm: true, Order: 5},
 	"custom": {Label: "Other", What: "Any service that gives you a link for AI assistants.",
 		SignIn: "auto", Confirm: true, Order: 9},
 }

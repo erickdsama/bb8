@@ -64,15 +64,20 @@ viene encendido y solo necesita `home.city`.
   agrega allí la integración *Model Context Protocol Server* y expón lo que BB-8 puede controlar.
 - **Alexa**: a través de Home Assistant, con su integración *Alexa Devices*.
 - **Other**: cualquier servicio que dé un link para asistentes de IA (con token si lo pide).
+- **Google Calendar** (en la tarjeta *Calendar*): Google no deja que las apps se registren
+  solas, así que la primera vez *Set up Google* te guía para crear un proyecto gratis en Google
+  Cloud (API de Calendar, *Publish app* para que no caduque a los 7 días, cliente *Web
+  application* con la página puente como dirección de regreso) y pegar su Client ID y secret.
+  Después cada persona entra con *+ Add a Google account*.
 
 Cada cuenta tiene dueño: cuando Ana habla, BB-8 usa la cuenta de Ana; cuando hablas tú, la
 tuya; las compartidas (la casa) las usa cualquiera conocido. Antes de mandar, crear o borrar
 algo, BB-8 pregunta "¿lo hago?" y solo lo hace si dices que sí en tu siguiente frase. Una voz
 desconocida no usa cuentas personales.
 
-Para el login, Zapier, Notion y Linear regresan por una página puente pública
+Para el login, Zapier, Notion, Linear y Google regresan por una página puente pública
 ([`docs/oauth`](https://github.com/erickdsama/bb8/blob/main/docs/oauth/index.html)) que te
-devuelve a `bb8.local`. Se publica una vez con GitHub Pages: *Settings → Pages → Deploy from
+devuelve a la página de BB-8 (`debian.local`). Se publica una vez con GitHub Pages: *Settings → Pages → Deploy from
 a branch → main, /docs*.
 
 **Personas.** En `/people` asignas el rol de cada quien: `owner`, `family` (lo puede mover)

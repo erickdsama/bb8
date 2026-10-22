@@ -257,10 +257,9 @@ The robot serves no pages (they are in `bb8-web`, § 2.9): this API is what they
 | `GET /api/config/events` | — | SSE. `hello` with the current rev, then one `change` event per applied write from **any** source (`web`, `agent`, `system`): `{"rev": 8, "source": "agent", "at": "…", "values": {"head.volume": 0.35}}` |
 | `GET /api/config/audit` | — | the last 50 changes |
 | `GET /api/connectors` | — | `[{"id": "weather", "state": "ok"}, {"id": "calendar", "state": "needs_auth", "detail": "…"}]` |
-| `GET /api/connectors/calendar/auth` | — | Starts Google OAuth. The callback stores the refresh token as a secret |
 | `GET /api/connections` | — | `{"connections":[{"connection":{"id","kind","label","name","url","owner","account","strangers","confirm","sign_in"},"live":{"state","error","tools"}}],"catalog":{…},"people":[…],"owner":"Erick"}`. No tokens |
 | `GET /api/connections/discover` | — | `{"home_assistant":[{"url","name"}]}` from mDNS |
-| `POST /api/connections/start` | `{"kind","owner","url","token","origin","id"}` | `{"auth_url"}` (open it) or `{"connected": view}`. `origin` is the page's own address; `id` signs an account in again |
+| `POST /api/connections/start` | `{"kind","owner","url","token","origin","id"}` | `{"auth_url"}` (open it) or `{"connected": view}`. `origin` is the page's own address; `id` signs an account in again. `kind: "google"` is a Google account for the calendar (not MCP): it signs in with the OAuth client in `connectors.calendar.google_client_id`/`_secret` (400 until set), offline access, through the bridge |
 | `PATCH /api/connections/{id}` | `{"owner","confirm","strangers"}` | the view. Giving it an owner turns `strangers` off |
 | `DELETE /api/connections/{id}` | — | 204 |
 | `GET /api/connections/callback` | `?code&state` | Where sign-ins come back. **No page token**: the single-use state proves it. Answers a page that returns to `/#services` |
@@ -348,7 +347,7 @@ The pages (`go/internal/webui`: `/`, `/control`, `/voice`, `/people`) are served
 `bb8-web`:
 - `GET /login`, `POST /login` (password in `~/.bb8-web/password`, made on the first run), `GET /logout`. A session is an HMAC-signed cookie, 30 days, `HttpOnly`, `SameSite=Lax`.
 - Pages without a session → `/login`; `/api/*` and `/mcp` without one → 401 `{"error":"sign in"}`.
-- With a session, `/api/*` and `/mcp` go down the link. `GET /api/connections/callback` and `GET /api/connectors/calendar/callback` go down without a session (the robot checks their single-use state).
+- With a session, `/api/*` and `/mcp` go down the link. `GET /api/connections/callback` goes down without a session (the robot checks their single-use state).
 - Robot not linked → 503 `{"error":"BB-8 is not connected","offline":true}`. `GET /api/web` → `{"robot": true, "since": …}`.
 - `--no-login` only on a loopback address (the simulator: `127.0.0.1:8780`).
 

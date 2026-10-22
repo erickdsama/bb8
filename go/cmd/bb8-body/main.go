@@ -166,9 +166,10 @@ func main() {
 	apps := mcpclient.New(accounts)
 	apps.Owner = func() string { return cfg.String("home.owner") }
 	reg := tools.NewRegistry()
-	conns := connectors.NewManager(cfg, reg, weather.New(), calendar.New(), websearch.New(), apps)
+	conns := connectors.NewManager(cfg, reg, weather.New(), calendar.New(accounts, apps.Owner), websearch.New(), apps)
 	accounts.Subscribe(func() {
 		conns.Refresh("mcp")
+		conns.Refresh("calendar") // Google accounts live in the same store
 		bus.Publish("connections", map[string]any{"count": len(accounts.List())})
 	})
 	reg.Set("robot", body.RobotTools(svc, head))
@@ -201,9 +202,14 @@ func main() {
 	brain.Routes(web, "/api/agent")
 	folks.Routes(web)
 	web.HandleFunc("GET /api/events", bus.Handler)
-	calendar.AuthHandlers(cfg, web)
 	signin := connections.NewFlows(accounts, apps.HTTP)
 	signin.Bridge = func() string { return mcpclient.Bridge(cfg) }
+	signin.Client = func(kind string) (string, string) {
+		if kind == connections.KindGoogle {
+			return calendar.GoogleClient(cfg)
+		}
+		return "", ""
+	}
 	signin.Owner = apps.Owner
 	signin.People = func() []string {
 		var names []string
@@ -212,7 +218,12 @@ func main() {
 		}
 		return names
 	}
-	signin.Status = apps.Live
+	signin.Status = func(id string) connections.LiveInfo {
+		if c, ok := accounts.Get(id); ok && c.Kind == connections.KindGoogle { // not an MCP server: signed in is ready
+			return connections.LiveInfo{State: "ok", Tools: 3}
+		}
+		return apps.Live(id)
+	}
 	signin.Routes(web)
 	web.HandleFunc("GET /api/connectors", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

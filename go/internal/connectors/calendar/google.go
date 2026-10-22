@@ -3,124 +3,115 @@ package calendar
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"sort"
-	"sync"
+	"strings"
 	"time"
 
 	"github.com/erickdsama/bb8/go/internal/config"
+	"github.com/erickdsama/bb8/go/internal/connections"
 	"github.com/erickdsama/bb8/go/internal/connectors"
+	"github.com/erickdsama/bb8/go/internal/tools"
 )
 
-// Google Calendar over REST with an OAuth refresh token (no SDK: keeps the binary small).
+// Google Calendar over REST (no SDK: keeps the binary small). Each person signs
+// in with their own Google account on the Services page (a "google" account in
+// the connections store); a call uses the account of whoever is speaking, else
+// a shared one. All accounts sign in with one OAuth client that the owner
+// registers in Google Cloud: its ID and secret are the settings below.
 const (
 	keyClientID     = "connectors.calendar.google_client_id"
 	keyClientSecret = "connectors.calendar.google_client_secret"
-	keyRefresh      = "connectors.calendar.google_refresh_token"
 	keyCalendarID   = "connectors.calendar.google_calendar_id"
-	keyRedirect     = "connectors.calendar.google_redirect_url"
-	scope           = "https://www.googleapis.com/auth/calendar.events"
 )
 
-// Endpoints; tests point them at a fake server.
-var (
-	GoogleAPI   = "https://www.googleapis.com/calendar/v3"
-	GoogleToken = "https://oauth2.googleapis.com/token"
-	GoogleAuth  = "https://accounts.google.com/o/oauth2/v2/auth"
-)
+// GoogleAPI is the Calendar endpoint; tests point it at a fake server.
+var GoogleAPI = "https://www.googleapis.com/calendar/v3"
 
 func GoogleFields() []config.Field {
 	return []config.Field{
 		{Key: keyClientID, Label: "Client ID", Type: config.String,
-			Help: "From the Google Cloud page in step 1."},
+			Help: "From Google Cloud: see \"Set up Google\" on the Services page."},
 		{Key: keyClientSecret, Label: "Client secret", Type: config.Secret},
-		{Key: keyRedirect, Label: "OAuth redirect URL", Type: config.String,
-			Default: "http://localhost:8765/api/connectors/calendar/callback",
-			Help:    "Register it in the OAuth client. Open the config page through an SSH tunnel to use localhost.", Advanced: true},
-		{Key: keyRefresh, Label: "Google refresh token", Type: config.Secret, Help: "Filled by \"Connect Google\".", Advanced: true},
 		{Key: keyCalendarID, Label: "Calendar ID", Type: config.String, Default: "primary", Advanced: true},
 	}
 }
 
-var tokens = struct {
-	sync.Mutex
-	m map[string]cachedToken
-}{m: map[string]cachedToken{}}
-
-type cachedToken struct {
-	access string
-	exp    time.Time
+// GoogleClient is the OAuth client the sign-in uses (connections.Flows.Client).
+func GoogleClient(c *config.Store) (id, secret string) {
+	return strings.TrimSpace(c.String(keyClientID)), strings.TrimSpace(c.Secret(keyClientSecret))
 }
 
 type Google struct {
-	c    *config.Store
-	HTTP *http.Client
+	c     *config.Store
+	accts *connections.Store
+	owner func() string // home.owner: who the page, MCP clients and no voice ID act as
+	HTTP  *http.Client
 }
 
-func NewGoogle(c *config.Store) *Google {
-	return &Google{c: c, HTTP: &http.Client{Timeout: 10 * time.Second}}
+func NewGoogle(c *config.Store, accts *connections.Store, owner func() string) *Google {
+	if owner == nil {
+		owner = func() string { return "" }
+	}
+	return &Google{c: c, accts: accts, owner: owner, HTTP: &http.Client{Timeout: 10 * time.Second}}
+}
+
+func (g *Google) accounts() []connections.Connection {
+	if g.accts == nil {
+		return nil
+	}
+	return g.accts.OfKind(connections.KindGoogle)
+}
+
+func (g *Google) pick(o tools.CallOpts, write bool) (connections.Connection, bool) {
+	person := o.Speaker
+	if o.SpeakerKnown && person == "" {
+		person = g.owner()
+	}
+	return connections.Pick(g.accounts(), o.SpeakerKnown, person, o.Admin, write)
+}
+
+func (g *Google) Serves(o tools.CallOpts, write bool) bool {
+	_, ok := g.pick(o, write)
+	return ok
+}
+
+// Confirm: ask before adding events if any account says so.
+func (g *Google) Confirm() bool {
+	for _, a := range g.accounts() {
+		if a.Confirm {
+			return true
+		}
+	}
+	return false
 }
 
 func (g *Google) Ready() (connectors.State, string) {
-	if g.c.String(keyClientID) == "" || g.c.Secret(keyClientSecret) == "" {
-		return connectors.NeedsConf, "set the Google OAuth client ID and secret"
+	if id, secret := GoogleClient(g.c); id == "" || secret == "" {
+		return connectors.NeedsConf, "set up the Google client (ID and secret)"
 	}
-	if g.c.Secret(keyRefresh) == "" {
-		return connectors.NeedsAuth, "open /api/connectors/calendar/auth to connect Google"
+	list := g.accounts()
+	if len(list) == 0 {
+		return connectors.NeedsAuth, "sign in with Google on the Services page"
 	}
-	return connectors.OK, ""
-}
-
-func (g *Google) token(ctx context.Context) (string, error) {
-	refresh := g.c.Secret(keyRefresh)
-	if refresh == "" {
-		return "", errors.New("Google calendar not connected yet")
+	var who []string
+	for _, a := range list {
+		o := a.Owner
+		if o == "" {
+			o = "shared"
+		}
+		who = append(who, strings.TrimSpace(a.Account+" ("+o+")"))
 	}
-	tokens.Lock()
-	t := tokens.m[refresh]
-	tokens.Unlock()
-	if t.access != "" && time.Until(t.exp) > time.Minute {
-		return t.access, nil
-	}
-	var out struct {
-		Access    string `json:"access_token"`
-		ExpiresIn int    `json:"expires_in"`
-		Error     string `json:"error"`
-	}
-	if err := postForm(ctx, g.HTTP, GoogleToken, url.Values{"grant_type": {"refresh_token"}, "refresh_token": {refresh},
-		"client_id": {g.c.String(keyClientID)}, "client_secret": {g.c.Secret(keyClientSecret)}}, &out); err != nil {
-		return "", err
-	}
-	if out.Access == "" {
-		return "", fmt.Errorf("Google token refresh failed: %s", out.Error)
-	}
-	tokens.Lock()
-	tokens.m[refresh] = cachedToken{out.Access, time.Now().Add(time.Duration(out.ExpiresIn) * time.Second)}
-	tokens.Unlock()
-	return out.Access, nil
-}
-
-func postForm(ctx context.Context, h *http.Client, u string, form url.Values, v any) error {
-	req, _ := http.NewRequestWithContext(ctx, "POST", u, bytes.NewBufferString(form.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	r, err := h.Do(req)
-	if err != nil {
-		return err
-	}
-	defer r.Body.Close()
-	return json.NewDecoder(r.Body).Decode(v)
+	return connectors.OK, strings.Join(who, ", ")
 }
 
 func (g *Google) do(ctx context.Context, method, path string, q url.Values, body any, out any) error {
-	tok, err := g.token(ctx)
-	if err != nil {
-		return err
+	acct, ok := g.pick(tools.CallerFrom(ctx), method != "GET")
+	if !ok {
+		return tools.ErrNotYours
 	}
 	var buf bytes.Buffer
 	if body != nil {
@@ -130,10 +121,9 @@ func (g *Google) do(ctx context.Context, method, path string, q url.Values, body
 	if len(q) > 0 {
 		u += "?" + q.Encode()
 	}
-	req, _ := http.NewRequestWithContext(ctx, method, u, &buf)
-	req.Header.Set("Authorization", "Bearer "+tok)
+	req, _ := http.NewRequestWithContext(ctx, method, u, bytes.NewReader(buf.Bytes()))
 	req.Header.Set("Content-Type", "application/json")
-	r, err := g.HTTP.Do(req)
+	r, err := g.accts.Client(acct.ID, g.HTTP).Do(req) // signs and refreshes the token
 	if err != nil {
 		return err
 	}
@@ -206,57 +196,4 @@ func (g *Google) Add(ctx context.Context, e Event) (Event, error) {
 	s, _ := out.Start.parse(location(g.c))
 	en, _ := out.End.parse(location(g.c))
 	return Event{Title: out.Summary, Start: s, End: en}, nil
-}
-
-// --- OAuth (web) -------------------------------------------------------------
-
-var oauthState = struct {
-	sync.Mutex
-	v string
-}{}
-
-// AuthHandlers serve /api/connectors/calendar/auth and /callback. The callback
-// stores the refresh token as a secret through the config store.
-func AuthHandlers(c *config.Store, mux *http.ServeMux) {
-	mux.HandleFunc("GET /api/connectors/calendar/auth", func(w http.ResponseWriter, r *http.Request) {
-		if c.String(keyClientID) == "" {
-			http.Error(w, "set the Google OAuth client ID and secret first", 400)
-			return
-		}
-		b := make([]byte, 16)
-		_, _ = rand.Read(b)
-		oauthState.Lock()
-		oauthState.v = hex.EncodeToString(b)
-		st := oauthState.v
-		oauthState.Unlock()
-		q := url.Values{"client_id": {c.String(keyClientID)}, "redirect_uri": {c.String(keyRedirect)},
-			"response_type": {"code"}, "scope": {scope}, "access_type": {"offline"}, "prompt": {"consent"}, "state": {st}}
-		http.Redirect(w, r, GoogleAuth+"?"+q.Encode(), http.StatusFound)
-	})
-	mux.HandleFunc("GET /api/connectors/calendar/callback", func(w http.ResponseWriter, r *http.Request) {
-		oauthState.Lock()
-		want := oauthState.v
-		oauthState.v = ""
-		oauthState.Unlock()
-		if want == "" || r.URL.Query().Get("state") != want {
-			http.Error(w, "bad state; start again", 400)
-			return
-		}
-		var out struct {
-			Refresh string `json:"refresh_token"`
-			Error   string `json:"error"`
-		}
-		err := postForm(r.Context(), http.DefaultClient, GoogleToken, url.Values{"grant_type": {"authorization_code"},
-			"code": {r.URL.Query().Get("code")}, "redirect_uri": {c.String(keyRedirect)},
-			"client_id": {c.String(keyClientID)}, "client_secret": {c.Secret(keyClientSecret)}}, &out)
-		if err != nil || out.Refresh == "" {
-			http.Error(w, fmt.Sprintf("Google did not return a refresh token: %v %s", err, out.Error), 502)
-			return
-		}
-		if _, err := c.Set(map[string]any{keyRefresh: out.Refresh}, config.SourceWeb, nil); err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		http.Redirect(w, r, "/", http.StatusFound)
-	})
 }

@@ -197,3 +197,67 @@ func TestHABase(t *testing.T) {
 }
 
 func sha256Sum(s string) []byte { h := sha256.Sum256([]byte(s)); return h[:] }
+
+func TestGoogleSignIn(t *testing.T) {
+	var form url.Values
+	g := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/token":
+			r.ParseForm()
+			form = r.PostForm
+			w.Write([]byte(`{"access_token":"g-at","refresh_token":"g-rt","expires_in":3599}`))
+		case "/userinfo":
+			if r.Header.Get("Authorization") != "Bearer g-at" {
+				w.WriteHeader(401)
+				return
+			}
+			w.Write([]byte(`{"email":"ana@gmail.com"}`))
+		}
+	}))
+	defer g.Close()
+	old := GoogleMeta
+	GoogleMeta = ASMeta{AuthorizationEndpoint: g.URL + "/auth", TokenEndpoint: g.URL + "/token", UserinfoEndpoint: g.URL + "/userinfo"}
+	defer func() { GoogleMeta = old }()
+
+	st, _ := Open("")
+	fl := NewFlows(st, http.DefaultClient)
+	fl.Bridge = func() string { return "https://bridge.example/oauth/" }
+	mux := http.NewServeMux()
+	fl.Routes(mux)
+	mux.HandleFunc("GET "+CallbackPath, fl.Callback)
+	api := httptest.NewServer(mux)
+	defer api.Close()
+	start := func() (int, map[string]any) {
+		body, _ := json.Marshal(map[string]any{"kind": KindGoogle, "owner": "Ana", "origin": "http://debian.local:8780"})
+		r, _ := http.Post(api.URL+"/api/connections/start", "application/json", bytes.NewReader(body))
+		var out map[string]any
+		json.NewDecoder(r.Body).Decode(&out)
+		return r.StatusCode, out
+	}
+
+	// No Google client yet: a clear message, no redirect.
+	if code, out := start(); code != 400 || !strings.Contains(out["error"].(string), "Google client") {
+		t.Fatal(code, out)
+	}
+	fl.Client = func(kind string) (string, string) { return "gid.apps.googleusercontent.com", "gsecret" }
+	_, out := start()
+	au, _ := url.Parse(out["auth_url"].(string))
+	q := au.Query()
+	if !strings.HasPrefix(au.String(), g.URL+"/auth?") || q.Get("client_id") != "gid.apps.googleusercontent.com" ||
+		q.Get("redirect_uri") != "https://bridge.example/oauth/" || q.Get("access_type") != "offline" || q.Get("prompt") != "consent" ||
+		!strings.Contains(q.Get("scope"), "calendar.events") || q.Get("code_challenge") == "" {
+		t.Fatal(au)
+	}
+	res, _ := http.Get(api.URL + CallbackPath + "?code=g-code&state=" + url.QueryEscape(q.Get("state")))
+	page, _ := io.ReadAll(res.Body)
+	if strings.Contains(string(page), "Could not") {
+		t.Fatalf("%s", page)
+	}
+	if form.Get("client_secret") != "gsecret" || form.Get("code_verifier") == "" || form.Get("redirect_uri") != "https://bridge.example/oauth/" {
+		t.Fatal(form)
+	}
+	list := st.OfKind(KindGoogle)
+	if len(list) != 1 || list[0].Owner != "Ana" || list[0].Account != "ana@gmail.com" || list[0].Auth.Refresh != "g-rt" || list[0].Auth.TokenURL != g.URL+"/token" {
+		t.Fatalf("%+v", list)
+	}
+}

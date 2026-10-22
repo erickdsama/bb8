@@ -34,6 +34,9 @@ type Flows struct {
 	Store  *Store
 	HTTP   *http.Client
 	Bridge func() string            // public bridge URL
+	// Client is the OAuth client the owner registered for a service that has no
+	// automatic registration (Google); empty id: not set up yet.
+	Client func(kind string) (id, secret string)
 	Owner  func() string            // home.owner: the default owner
 	People func() []string          // names for the owner picker
 	Status func(id string) LiveInfo // from mcpclient
@@ -60,7 +63,7 @@ type flow struct {
 
 func NewFlows(s *Store, hc *http.Client) *Flows {
 	return &Flows{Store: s, HTTP: hc, pending: map[string]*flow{},
-		Bridge: func() string { return "" }, Owner: func() string { return "" }, People: func() []string { return nil },
+		Bridge: func() string { return "" }, Client: func(string) (string, string) { return "", "" }, Owner: func() string { return "" }, People: func() []string { return nil },
 		Status: func(string) LiveInfo { return LiveInfo{State: "connecting"} }}
 }
 
@@ -196,6 +199,26 @@ func (f *Flows) start(w http.ResponseWriter, r *http.Request) {
 		state := newState(callback)
 		f.park(state, &flow{draft: draft, base: base, redirect: callback})
 		writeJSON(w, 200, map[string]any{"auth_url": HAAuthURL(base, origin+"/", callback, state)})
+		return
+	}
+
+	if kind.SignIn == "google" {
+		id, secret := f.Client(in.Kind)
+		if id == "" || secret == "" {
+			writeJSON(w, 400, map[string]any{"error": "set up the Google client first (its ID and secret)"})
+			return
+		}
+		bridge := f.Bridge()
+		if bridge == "" {
+			writeJSON(w, 500, map[string]any{"error": "no sign-in bridge page is set (connectors.mcp.oauth_bridge)"})
+			return
+		}
+		draft.Name = "google"
+		draft.Auth = Auth{Type: "oauth", ClientID: id, ClientSecret: secret, AuthMethod: "client_secret_post", TokenURL: GoogleMeta.TokenEndpoint}
+		verifier, challenge := PKCE()
+		state := newState(callback)
+		f.park(state, &flow{draft: draft, verifier: verifier, redirect: bridge, userinfo: GoogleMeta.UserinfoEndpoint})
+		writeJSON(w, 200, map[string]any{"auth_url": googleAuthURL(draft.Auth, bridge, state, challenge)})
 		return
 	}
 

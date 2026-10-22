@@ -92,8 +92,19 @@ func (c *Client) Live(id string) connections.LiveInfo {
 	return connections.LiveInfo{State: "ok", Tools: l.tools}
 }
 
+// mcpAccounts are the accounts that are MCP servers (Google ones belong to the calendar).
+func (c *Client) mcpAccounts() []connections.Connection {
+	var out []connections.Connection
+	for _, conn := range c.Store.List() {
+		if conn.Kind != connections.KindGoogle {
+			out = append(out, conn)
+		}
+	}
+	return out
+}
+
 func (c *Client) Status(s *config.Store) connectors.Status {
-	list := c.Store.List()
+	list := c.mcpAccounts()
 	if len(list) == 0 {
 		return connectors.Status{ID: c.ID(), State: connectors.NeedsConf, Detail: "nothing connected yet"}
 	}
@@ -170,7 +181,7 @@ type entry struct {
 // registers the union of their tools.
 func (c *Client) Tools(s *config.Store) []tools.Tool {
 	c.Close()
-	conns := c.Store.List()
+	conns := c.mcpAccounts()
 	c.mu.Lock()
 	c.busy = true
 	c.mu.Unlock()

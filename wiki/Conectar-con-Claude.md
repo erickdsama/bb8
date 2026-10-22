@@ -57,14 +57,14 @@ herramientas de `bb8` aparecen en el menú.
 BB-8 también tiene su propio agente dentro de `bb8-body`: usa cualquier modelo de
 [OpenRouter](https://openrouter.ai) con herramientas (por defecto
 `anthropic/claude-sonnet-5.5`). Se configura en la página de configuración
-(`http://bb8.local:8765/`, o <http://127.0.0.1:8765/> en el dummy):
+(`bb8-web`: <http://debian.local:8780/>, o <http://127.0.0.1:8780/> en el dummy):
 
 1. `agent.api_key`: tu clave de OpenRouter (se guarda en `secrets.json`, 0600, y la página solo muestra "set").
 2. `agent.model`: el modelo; `agent.vision` apagado si el modelo no ve imágenes.
 3. Conectores: `connectors.weather.enabled` + `home.city` para el clima;
-   `connectors.calendar.*` para Google Calendar. Para conectar Google, abre la página
-   por un túnel (`ssh -L 8765:localhost:8765 bb8.local`) y entra a
-   <http://localhost:8765/api/connectors/calendar/auth>.
+   Google Calendar en Servicios → Calendar: "Set up Google" la primera vez (un
+   proyecto gratis en Google Cloud con su Client ID y secret) y luego cada persona
+   entra con "+ Add a Google account". BB-8 usa el calendario de quien le habla.
 
 La página tiene un chat para probarlo. El agente de voz de la
 [Parte 4](Parte-4-Agente-controla-el-movimiento.md) le manda lo que oye a

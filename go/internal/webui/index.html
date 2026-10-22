@@ -349,6 +349,17 @@ function settingRow(f) {
     if (f.type === "secret") i.value = "";
     saved.classList.add("show"); setTimeout(() => saved.classList.remove("show"), 1600);
   });
+  // Sliders apply while dragging (the eye dims as you move it): one request in
+  // flight, then the latest value; "change" above still saves the final one.
+  if (i.type === "range") {
+    let busy = false, next = null;
+    const send = async () => {
+      busy = true;
+      while (next !== null) { const v = next; next = null; await patch({ [f.key]: v }); }
+      busy = false;
+    };
+    i.addEventListener("input", (e) => { if (!e.isTrusted) return; next = Number(i.value); if (!busy) send(); });
+  }
   return row;
 }
 
@@ -496,9 +507,8 @@ function serviceCards() {
     const body = el("div", { class: "body" });
     if (id === "weather") body.append(el("details", { class: "more" }, el("summary", { textContent: "Settings" }), settingRow(schema.find(f => f.key === "connectors.weather.units"))));
     if (id === "web") { const more = schema.filter(f => f.key.startsWith("connectors.web.") && !f.key.endsWith(".enabled")); body.append(el("details", { class: "more" }, el("summary", { textContent: "Settings" }), ...more.map(settingRow))); }
-    if (id === "calendar") body.append(
-      el("p", { class: "sub", style: "color:var(--mute);font-size:14px;margin:0 0 10px" }, "Tip: the easiest way to Google Calendar is Zapier, under ", el("b", { textContent: "Apps and smart home" }), "."),
-      el("button", { class: "btn ghost small", type: "button", id: "cal-btn", textContent: "Set up Google", onclick: calendarDialog }));
+    if (id === "calendar") body.append(el("div", { class: "apps", id: "gaccts" }),
+      el("div", { class: "add" }, el("button", { class: "btn small", type: "button", id: "cal-btn", textContent: "Set up Google", onclick: () => googleReady() ? connectDialog("google") : calendarDialog() })));
     if (id === "mcp") body.append(el("div", { class: "apps", id: "apps" }),
       el("div", { class: "add" }, el("button", { class: "btn small", type: "button", textContent: "+ Connect a service", onclick: () => pickDialog() })));
     return el("div", { class: "card svc", id: "svc-" + id },
@@ -533,7 +543,7 @@ function svcMessage(c) {
     return ["ok", "Connected to Google"];
   }
   if (c.id === "mcp") {
-    const list = accts.connections || [];
+    const list = (accts.connections || []).filter(x => x.connection.kind !== "google");
     if (!list.length) return ["warn", "Nothing connected yet."];
     const bad = list.filter(x => x.live.state === "error").length, n = list.reduce((a, x) => a + (x.live.tools || 0), 0);
     if (bad) return ["bad", bad === 1 ? "One account has a problem." : bad + " accounts have a problem."];
@@ -553,19 +563,23 @@ function refreshServices() {
     card.querySelector(".status .msg").textContent = msg;
     card.querySelector(".status .fix").replaceChildren(key ? el("button", { class: "linkbtn", type: "button", textContent: label + " →", onclick: () => goTo(key) }) : "");
     card.querySelector(".tech").replaceChildren(el("div", { textContent: c.detail || "No details." }), ...(c.tools || []).map(t => el("code", { textContent: t })));
-    if (c.id === "calendar") $("#cal-btn").textContent = c.state === "ok" ? "Change Google account" : "Set up Google";
+    if (c.id === "calendar") $("#cal-btn").textContent = googleReady() ? "+ Add a Google account" : "Set up Google";
   }
 }
 
+// Google accounts are listed under Calendar; the rest under Apps and smart home.
 function renderAccounts() {
+  const all = accts.connections || [], g = all.filter(x => x.connection.kind === "google");
+  if ($("#gaccts")) $("#gaccts").replaceChildren(...g.map(accountRow));
   const box = $("#apps"); if (!box) return;
-  box.replaceChildren(...(accts.connections || []).map(({ connection: c, live: l }) => {
-    const [lc, lm] = l.state === "ok" ? ["ok", l.tools + " actions"] : l.state === "error" ? ["bad", friendly(l.error || "")] : l.state === "off" ? ["", "Off"] : ["warn", "Connecting…"];
-    return el("div", { class: "app" }, el("span", { class: "badge", textContent: c.label[0] }),
-      el("div", { class: "who" }, el("b", {}, c.label, el("span", { class: "owner", textContent: ownerName(c.owner) })),
-        el("span", {}, el("span", { class: "led " + lc, style: "display:inline-block;margin-right:6px" }), lm, c.account ? " · " + c.account : "")),
-      el("button", { class: "btn ghost small", type: "button", textContent: "Edit", onclick: () => editDialog(c.id) }));
-  }));
+  box.replaceChildren(...all.filter(x => x.connection.kind !== "google").map(accountRow));
+}
+function accountRow({ connection: c, live: l }) {
+  const [lc, lm] = l.state === "ok" ? ["ok", l.tools + " actions"] : l.state === "error" ? ["bad", friendly(l.error || "")] : l.state === "off" ? ["", "Off"] : ["warn", "Connecting…"];
+  return el("div", { class: "app" }, el("span", { class: "badge", textContent: c.label[0] }),
+    el("div", { class: "who" }, el("b", {}, c.label, el("span", { class: "owner", textContent: ownerName(c.owner) })),
+      el("span", {}, el("span", { class: "led " + lc, style: "display:inline-block;margin-right:6px" }), lm, c.account ? " · " + c.account : "")),
+    el("button", { class: "btn ghost small", type: "button", textContent: "Edit", onclick: () => editDialog(c.id) }));
 }
 
 // ---------- dialogs ----------
@@ -628,7 +642,7 @@ function connectDialog(kind, existing) {
       el("details", { class: "more" }, el("summary", { textContent: "I have a token" }), el("div", { class: "field" }, inputs.token)));
   }
   const result = resultBox();
-  const verb = k.sign_in === "oauth" ? "Sign in with " + k.label : k.sign_in === "homeassistant" ? "Sign in to Home Assistant" : "Connect";
+  const verb = k.sign_in === "oauth" ? "Sign in with " + k.label : k.sign_in === "google" ? "Sign in with Google" : k.sign_in === "homeassistant" ? "Sign in to Home Assistant" : "Connect";
   const go = el("button", { class: "btn", type: "button", textContent: verb });
   go.onclick = async () => {
     go.disabled = true; say(result, "busy", "Opening " + k.label + "…");
@@ -649,7 +663,7 @@ function connectDialog(kind, existing) {
     el("div", { class: "field" }, el("label", { textContent: "Whose account is this?" }), owner,
       el("small", { textContent: "BB-8 uses it when this person talks. Shared: anyone in the house." })),
     ...fields, result,
-    el("div", { class: "actions" }, el("button", { class: "btn ghost", type: "button", textContent: "Back", onclick: existing ? () => editDialog(existing.id) : pickDialog }), go));
+    el("div", { class: "actions" }, el("button", { class: "btn ghost", type: "button", textContent: "Back", onclick: existing ? () => editDialog(existing.id) : kind === "google" ? () => $("#dlg").close() : pickDialog }), go));
   $("#dlg-body").onsubmit = (e) => { e.preventDefault(); go.click(); };
 }
 
@@ -724,33 +738,38 @@ async function resultDialog(res) {
   say(result, "bad", "Still connecting. Check back in a moment.");
 }
 
+// Google has no automatic sign-up for apps: the owner creates one OAuth client
+// in Google Cloud, once; then everyone signs in with "+ Add a Google account".
+const googleReady = () => !!(values["connectors.calendar.google_client_id"] && values["connectors.calendar.google_client_secret"]);
 function calendarDialog() {
-  const dlg = $("#dlg");
   const id = el("input", { class: "txt", placeholder: "…apps.googleusercontent.com", value: values["connectors.calendar.google_client_id"] || "" });
   const secret = el("input", { class: "txt", type: "password", placeholder: values["connectors.calendar.google_client_secret"] ? "Saved · leave empty to keep" : "Client secret" });
-  const redirect = values["connectors.calendar.google_redirect_url"] || "";
-  const result = el("div", { class: "result" });
-  const go = el("button", { class: "btn", type: "button", textContent: "Sign in with Google" });
-  $("#dlg-body").replaceChildren(
-    el("h3", { textContent: "Google Calendar" }),
-    el("p", { style: "margin:-8px 0 0;color:var(--mute);font-size:14px", textContent: "BB-8 talks to Google directly. This needs a free Google Cloud project; with Zapier it's easier." }),
-    stepsList([["In ", ["Google Cloud", "https://console.cloud.google.com/apis/library/calendar-json.googleapis.com"], ", turn on the ", "Google Calendar API", "."],
-      ["In ", ["Credentials", "https://console.cloud.google.com/apis/credentials"], " create an ", "OAuth client", " of type Web application, with this redirect address:"]]),
+  const redirect = values["connectors.mcp.oauth_bridge"] || "";
+  const result = resultBox();
+  const go = el("button", { class: "btn", type: "button", textContent: "Save and sign in" });
+  openDialog(
+    el("h3", { textContent: "Set up Google" }),
+    el("p", { class: "lead", textContent: "Google asks for a free project of your own, once. About 5 minutes; after that each person just signs in." }),
+    stepsList([["In ", ["Google Cloud", "https://console.cloud.google.com/apis/library/calendar-json.googleapis.com"], " create a project and turn on the ", "Google Calendar API", "."],
+      ["In ", ["Branding", "https://console.cloud.google.com/auth/branding"], " give it a name, like ", "BB-8", ", and your e-mail."],
+      ["In ", ["Audience", "https://console.cloud.google.com/auth/audience"], " choose External and press ", "Publish app", " (otherwise Google signs everyone out every 7 days)."],
+      ["In ", ["Clients", "https://console.cloud.google.com/auth/clients"], " create one of type ", "Web application", " with this redirect address:"]]),
     el("div", { class: "copy" }, el("code", { textContent: redirect }), el("button", { class: "btn ghost small", type: "button", textContent: "Copy", onclick: () => { navigator.clipboard?.writeText(redirect); toast("Copied"); } })),
     el("div", { class: "field" }, el("label", { textContent: "Client ID" }), id),
     el("div", { class: "field" }, el("label", { textContent: "Client secret" }), secret),
-    result, el("div", { class: "actions" }, el("button", { class: "btn ghost", type: "button", textContent: "Cancel", onclick: () => dlg.close() }), go));
+    el("p", { class: "lead", textContent: "When you sign in, Google warns that it hasn't verified the app: it is your own, so choose Advanced → Go to BB-8." }),
+    result, el("div", { class: "actions" }, el("button", { class: "btn ghost", type: "button", textContent: "Cancel", onclick: () => $("#dlg").close() }), go));
   go.onclick = async () => {
-    if (!id.value.trim() || (!secret.value.trim() && !values["connectors.calendar.google_client_secret"])) { result.className = "result show bad"; result.textContent = "Paste the client ID and secret."; return; }
+    if (!id.value.trim() || (!secret.value.trim() && !values["connectors.calendar.google_client_secret"])) { say(result, "bad", "Paste the client ID and secret."); return; }
     const vals = { "connectors.calendar.enabled": true, "connectors.calendar.google_client_id": id.value.trim() };
     if (secret.value.trim()) vals["connectors.calendar.google_client_secret"] = secret.value.trim();
     const r = await patch(vals);
-    if (!r.ok) { result.className = "result show bad"; result.textContent = r.body.error || "Could not save."; return; }
-    location.href = "/api/connectors/calendar/auth" + tq;
+    if (!r.ok) { say(result, "bad", r.body.error || "Could not save."); return; }
+    values["connectors.calendar.google_client_id"] = vals["connectors.calendar.google_client_id"];
+    if (vals["connectors.calendar.google_client_secret"]) values["connectors.calendar.google_client_secret"] = "set"; // the page never keeps secrets
+    connectDialog("google");
   };
   $("#dlg-body").onsubmit = (e) => { e.preventDefault(); go.click(); };
-  dlg.oncancel = null;
-  dlg.showModal();
 }
 
 // ---------- live data ----------
