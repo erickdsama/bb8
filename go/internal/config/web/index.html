@@ -28,6 +28,7 @@ button, input, select { font:inherit; color:inherit; }
 .logo { width:22px; height:22px; border-radius:50%; background:radial-gradient(circle at 32% 32%, var(--orange-hi), var(--orange)); box-shadow:0 0 16px rgba(255,90,0,.5); flex:none; }
 .top h1 { font-size:17px; margin:0; letter-spacing:.02em; white-space:nowrap; }
 .chip { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--mute); border:1px solid var(--line); border-radius:99px; padding:3px 10px; white-space:nowrap; }
+.chip.sim { background:var(--warn); color:#1a0d00; border-color:var(--warn); font-weight:700; letter-spacing:.08em; }
 .top .links { margin-left:auto; display:flex; gap:8px; }
 .top .links a { font-size:13px; color:var(--ink); text-decoration:none; border:1px solid var(--line); border-radius:99px; padding:5px 12px; }
 .top .links a:hover { border-color:var(--line-hi); }
@@ -199,6 +200,7 @@ ul.plain li b { color:var(--ink); font-weight:550; }
   <span class="logo"></span><h1>BB-8</h1>
   <span class="chip"><span class="led" id="live-led"></span><span id="live-txt">connecting…</span></span>
   <span class="chip" id="head-chip">head offline</span>
+  <span class="chip sim" id="sim-chip" hidden title="This page belongs to the simulator on this computer, not the real robot">SIMULATOR</span>
   <div class="links"><a id="control-link" href="/control">Drive</a><a id="people-link" href="/people">People</a></div>
 </header>
 
@@ -763,6 +765,8 @@ function applyLive(l) {
   liveInfo = l;
   const h = l.head || {};
   $("#head-chip").textContent = h.connected ? "head connected" : "head offline";
+  $("#sim-chip").hidden = !l.simulated;
+  document.title = l.simulated ? "BB-8 Settings · SIMULATOR" : "BB-8 Settings";
   if (l.connectors) { conns = l.connectors; refreshServices(); }
   refreshOverview();
 }

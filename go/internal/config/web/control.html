@@ -134,7 +134,7 @@ input[type=color] { width:46px; height:36px; border:0; background:none; cursor:p
 <body>
 <header>
   <div class="emblem"></div>
-  <div><h1>BB-8 Control</h1><p>Every button is an MCP tool call · same tools and limits as Claude</p></div>
+  <div><h1>BB-8 Control <span id="sim-badge" hidden style="font-size:12px;letter-spacing:.08em;background:#f59e0b;color:#1a0d00;border-radius:6px;padding:2px 8px;vertical-align:middle">SIMULATOR</span></h1><p>Every button is an MCP tool call · same tools and limits as Claude</p></div>
   <div class="pill"><span class="dot" id="dot"></span><span id="conn">connecting…</span></div>
   <a id="cfg" href="/">Config →</a>
 </header>
@@ -428,6 +428,8 @@ async function refresh() {
     const p = await callTool("get_pose");
     $("dot").classList.add("on"); $("conn").textContent = "connected over MCP";
     $("h-ard").textContent = p.arduino_connected ? (p.arduino || "connected") : "not connected";
+    const sim = /fw=sim/.test(p.arduino || "");   // the dummy's Arduino: nothing here moves the real robot
+    $("sim-badge").hidden = !sim; document.title = sim ? "BB-8 Control · SIMULATOR" : "BB-8 Control";
     $("h-pos").textContent = `${p.control}${p.asleep ? " · asleep" : ""} · x ${fmt(p.x_m, 2, "")} y ${fmt(p.y_m, 2, "")} m`;
     $("h-hdg").textContent = fmt(p.heading_deg, 1, "°");
     $("h-tilt").textContent = fmt(p.tilt_deg, 1, "°");

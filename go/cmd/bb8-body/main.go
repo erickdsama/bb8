@@ -183,7 +183,8 @@ func main() {
 	}
 	mcpSrv := mcpserver.New(reg, persona.Instructions())
 	live := func() map[string]any {
-		return map[string]any{"head": head.State(), "connectors": conns.Status(), "agent_ready": brain.Ready() == nil}
+		return map[string]any{"head": head.State(), "connectors": conns.Status(), "agent_ready": brain.Ready() == nil,
+			"simulated": strings.HasPrefix(*serialURL, "socket://")} // the dummy Arduino: the pages say so
 	}
 	web := http.NewServeMux()
 	web.Handle("/", config.Web(cfg, live))
