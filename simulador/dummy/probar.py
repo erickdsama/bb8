@@ -232,6 +232,24 @@ async def main() -> None:
               and "le gustan los gatos" in ana.get("notes", []), ana)
         check("eventos robot → página: person y pose", "person" in robot and "pose" in robot, robot)
 
+        # Las páginas viven en bb8-web (fuera del robot) y llegan al robot por su enlace.
+        web_ext = f"http://127.0.0.1:{os.environ.get('BB8_WEB_PORT', '8780')}/"
+        try:
+            with urllib.request.urlopen(web_ext + "api/config", timeout=5) as r:
+                via = json.load(r)
+            with urllib.request.urlopen(web_ext, timeout=5) as r:
+                pagina = r.read().decode()
+            ok_web = via.get("rev", 0) > 0
+        except Exception as e:  # noqa: BLE001
+            via, pagina, ok_web = {"error": str(e)}, "", False
+        try:
+            urllib.request.urlopen(web, timeout=5)
+            sin_pagina = False
+        except urllib.error.HTTPError as e:
+            sin_pagina = e.code == 404
+        check("bb8-web: páginas fuera del robot, API por el enlace; el robot no sirve páginas",
+              ok_web and "BB-8 Settings" in pagina and sin_pagina, via.get("rev", via))
+
         # Cuentas: catálogo con login, y la página nunca ve tokens.
         with urllib.request.urlopen(web + "api/connections") as r:
             cuentas = json.load(r)

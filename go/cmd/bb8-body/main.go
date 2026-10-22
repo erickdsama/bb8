@@ -20,6 +20,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -41,6 +42,7 @@ import (
 	"github.com/erickdsama/bb8/go/internal/navigate"
 	"github.com/erickdsama/bb8/go/internal/people"
 	"github.com/erickdsama/bb8/go/internal/persona"
+	"github.com/erickdsama/bb8/go/internal/relay"
 	"github.com/erickdsama/bb8/go/internal/serial"
 	"github.com/erickdsama/bb8/go/internal/tools"
 )
@@ -82,6 +84,8 @@ func main() {
 	linkAddr := flag.String("link", env([]string{"BB8_LINK_ADDR"}, ":8772"), "secure head link listen address")
 	pki := flag.String("pki", env([]string{"BB8_PKI"}, "~/.bb8/pki"), "certs from 'bb8-body pair'")
 	tokenFile := flag.String("token-file", env([]string{"BB8_TOKEN_FILE"}, "~/.bb8/token"), "bearer token for LAN clients")
+	webURL := flag.String("web", env([]string{"BB8_WEB"}, ""), "bb8-web to dial out to, e.g. ws://debian:8780/robot (empty: none)")
+	webTokenFile := flag.String("web-token-file", env([]string{"BB8_WEB_TOKEN_FILE"}, "~/.bb8/web-token"), "device token for bb8-web")
 	pad := flag.Bool("gamepad", os.Getenv("BB8_GAMEPAD") == "1", "read a Bluetooth gamepad (evdev); it wins over the agent")
 	verbose := flag.Bool("v", false, "debug logs")
 	flag.Parse()
@@ -182,9 +186,10 @@ func main() {
 		return strings.TrimSpace(string(b))
 	}
 	mcpSrv := mcpserver.New(reg, persona.Instructions())
+	var webUp atomic.Bool // the link to bb8-web
 	live := func() map[string]any {
 		return map[string]any{"head": head.State(), "connectors": conns.Status(), "agent_ready": brain.Ready() == nil,
-			"simulated": strings.HasPrefix(*serialURL, "socket://")} // the dummy Arduino: the pages say so
+			"simulated": strings.HasPrefix(*serialURL, "socket://"), "web_relay": webUp.Load()} // the dummy Arduino: the pages say so
 	}
 	web := http.NewServeMux()
 	web.Handle("/", config.Web(cfg, live))
@@ -218,6 +223,15 @@ func main() {
 	// Sign-ins come back here from the person's browser without the page token;
 	// the single-use state ties them to a start the page made.
 	mux.HandleFunc("GET "+connections.CallbackPath, signin.Callback)
+	// The pages live off the robot (bb8-web): the robot dials out to it and
+	// answers their requests through that link. It opens no port for them.
+	if *webURL != "" {
+		rc := &relay.Client{URL: *webURL, Handler: mux, OnState: webUp.Store, Token: func() string {
+			b, _ := os.ReadFile(home(*webTokenFile))
+			return strings.TrimSpace(string(b))
+		}}
+		go rc.Run(ctx)
+	}
 	mux.Handle("/", mcpserver.RequireToken(web, token))
 	serve(ctx, *mcpAddr, mux)
 
@@ -235,7 +249,7 @@ func main() {
 	})
 	serve(ctx, *apiAddr, body.Logged(local))
 
-	slog.Info("bb8-body ready", "mcp", "http://"+*mcpAddr+"/mcp", "web", "http://"+*mcpAddr+"/", "api", *apiAddr, "link", *linkAddr)
+	slog.Info("bb8-body ready", "mcp", "http://"+*mcpAddr+"/mcp", "web_relay", *webURL, "api", *apiAddr, "link", *linkAddr)
 	if *pad {
 		go gamepad.Run(ctx, svc, func() float64 { return svc.Params().PWMManualMax })
 	}

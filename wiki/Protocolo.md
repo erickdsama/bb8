@@ -247,9 +247,10 @@ Both are normalized to −180…180, with the turn since the sound (`turned_sinc
 
 ### 2.3 Config and agent API (`:8765`, token from the LAN)
 
+The robot serves no pages (they are in `bb8-web`, § 2.9): this API is what they call, through the relay.
+
 | Method and path | Body | Reply |
 | --- | --- | --- |
-| `GET /` | — | config page (HTML) |
 | `GET /api/config` | — | `{"rev": 7, "values": {"motion.pwm_cruise": 140, "agent.api_key": "set", …}, "live": {…}}`. Secrets show as `"set"` or `""` |
 | `GET /api/config/schema` | — | fields: `key`, `label`, `type` (`number`, `string`, `bool`, `enum`, `secret`), `default`, `min`, `max`, `options`, `agent`, `restart` |
 | `PATCH /api/config` | `{"baseRev": 7, "values": {"head.volume": 0.5}}` | 200 with the new config. **409** with the latest config if `baseRev` is stale. 400 on validation errors (the whole patch is rejected) |
@@ -265,7 +266,6 @@ Both are normalized to −180…180, with the turn since the sound (`turned_sinc
 | `GET /api/connections/callback` | `?code&state` | Where sign-ins come back. **No page token**: the single-use state proves it. Answers a page that returns to `/#services` |
 | `GET /api/agent`, `POST /api/agent/ask` | as in § 2.2 | the web chat box |
 | `GET /api/events` | `?types=pose,alert` (optional), `Last-Event-ID` or `?since=` to replay | SSE robot → page feed (§ 2.4) |
-| `GET /people` | — | people page (HTML) |
 | `GET /api/people` | — | `[{"name","role","notes":[{"text","at"}],"voice","created","last_seen"}]` |
 | `PUT /api/people/{name}` | `{"role": "family"}` | creates or changes the role (`owner`, `family`, `guest`) |
 | `POST /api/people/{name}/notes` | `{"text": "…"}` | adds a note (≤ 200 chars, 20 per person) |
@@ -340,6 +340,30 @@ Sign-in:
 - **Home Assistant**: found over mDNS (`_home-assistant._tcp`, `internal_url` in TXT). Its IndieAuth flow takes `client_id` = the page's origin + `/` and a redirect on the same host, so it comes back directly, with no bridge. The access token lasts 30 min and is refreshed. Endpoint `<base>/api/mcp`. It needs the *Model Context Protocol Server* integration; Alexa comes through its *Alexa Devices* integration.
 - **Token**: `custom` with a pasted token is sent as `Authorization: Bearer`.
 - `.local` names resolve over mDNS in code (`go/internal/mdns`), because the static build cannot.
+
+### 2.9 Pages and the web relay
+
+The pages (`go/internal/webui`: `/`, `/control`, `/voice`, `/people`) are served by **`bb8-web`**, off the robot (for now the home PC, a user service: `sistema/bb8-web.service`; later a public host). The robot never accepts their connections: **`bb8-body --web ws://host:8780/robot` dials out** with `Authorization: Bearer <device token>` (`~/.bb8-web/device-token` on the web host, `/etc/bb8/web-token` on the Pi) and keeps one WebSocket (reconnects 1 s … 30 s; `.local` names via mDNS).
+
+`bb8-web`:
+- `GET /login`, `POST /login` (password in `~/.bb8-web/password`, made on the first run), `GET /logout`. A session is an HMAC-signed cookie, 30 days, `HttpOnly`, `SameSite=Lax`.
+- Pages without a session → `/login`; `/api/*` and `/mcp` without one → 401 `{"error":"sign in"}`.
+- With a session, `/api/*` and `/mcp` go down the link. `GET /api/connections/callback` and `GET /api/connectors/calendar/callback` go down without a session (the robot checks their single-use state).
+- Robot not linked → 503 `{"error":"BB-8 is not connected","offline":true}`. `GET /api/web` → `{"robot": true, "since": …}`.
+- `--no-login` only on a loopback address (the simulator: `127.0.0.1:8780`).
+
+The link (`go/internal/relay`), JSON frames over one WebSocket:
+
+| Frame | Direction | Meaning |
+| --- | --- | --- |
+| `{"id","method","path","header","body"}` | web → robot | a request (body ≤ 1 MB, base64) |
+| `{"id","status","header"}` | robot → web | reply head |
+| `{"id","body"}` | robot → web | a chunk, as the handler writes it: SSE flows live |
+| `{"id","end":true}` | robot → web | reply finished |
+| `{"id","cancel":true}` | web → robot | the page went away; the robot cancels that handler |
+| `{"ping":true}` | both | every 20 s; 60 s of silence drops the link |
+
+The robot runs each request through its own HTTP handler as a loopback request, so `/mcp` and the API need no token on that path; `Authorization`, `Cookie` and hop-by-hop headers never cross the link.
 
 Config storage:
 - `--data` (`/var/lib/bb8` on the Pi) holds `config.json` (`{"rev", "values"}`) and `secrets.json` (mode 0600). Writes are atomic.

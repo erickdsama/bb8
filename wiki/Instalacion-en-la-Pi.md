@@ -181,6 +181,8 @@ configuración.
 | `BB8_SERIAL` | `/dev/ttyACM0` | Puerto del Arduino; `socket://127.0.0.1:5555` en el dummy |
 | `BB8_MAP` | — | Plano de la casa para `get_map` |
 | `BB8_GAMEPAD` | `0` | `1` para leer el mando Bluetooth en `bb8-body` |
+| `BB8_WEB` | — | Dónde viven las páginas: `ws://debian.local:8780/robot`. El robot se conecta hacia allá; no sirve páginas |
+| `BB8_WEB_TOKEN_FILE` | `~/.bb8/web-token` | Token del dispositivo: copia de `~/.bb8-web/device-token` de la computadora con `bb8-web` (en la Pi, `/etc/bb8/web-token`, `root:bb8 0640`) |
 | `BB8_BODY_ADDR` | `bb8.local:8772` | En la Zero: a dónde se conecta la cabeza |
 | `BB8_MOTION_URL` | `http://127.0.0.1:8770` | API local de `bb8-body` (la usan `voz` y `energia`) |
 | `BB8_ENERGIA_URL` | `http://127.0.0.1:8771` | Gestor de energía |

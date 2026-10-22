@@ -9,6 +9,8 @@ A 30–35 cm BB-8 (Sphero style) driven by an LLM through MCP and its own OpenRo
 
 ## Architecture in one line
 
+The web pages (settings, control, people, voice) are **not on the robot**: `bb8-web` serves them from another computer (for now the home PC `debian`, later a public host) and `bb8-body` dials out to it (`--web ws://debian.local:8780/robot`, device token); page requests reach the robot through that link (`go/internal/relay`).
+
 At run time the brain is the OpenRouter agent inside `bb8-body`: voice (ReSpeaker on the head) → body → `voz` (wake word, STT) → `/agent/ask` → agent → tools → Arduino. The same tools are exposed over MCP (`:8765/mcp`) for external clients such as Claude Code, for development. `bb8-body` is a Go binary on the Pi 3 B+ and the only owner of the serial port; it drives the Arduino (10 ms reflexes). `bb8-head` (Go, Pi Zero W) dials the body over mutual TLS (:8772) and opens no ports.
 
 Details: `wiki/Arquitectura.md`. Wire formats: `wiki/Protocolo.md` (the source of truth).
@@ -17,8 +19,8 @@ Details: `wiki/Arquitectura.md`. Wire formats: `wiki/Protocolo.md` (the source o
 
 | Folder | Content |
 | --- | --- |
-| `go/cmd/bb8-body`, `go/cmd/bb8-head` | The two binaries (`bb8-body pair` creates the link certs) |
-| `go/internal/` | `protocol`, `serial`, `motion`, `floorplan`, `tools`, `mcpserver`, `body`, `link`, `head`, `config` (+ `web/index.html`), `agent`, `connectors/{weather,calendar,websearch,mcpclient}`, `connections` (accounts, sign-in), `mdns`, `people`, `events`, `navigate`, `gamepad`, `persona` |
+| `go/cmd/bb8-body`, `go/cmd/bb8-head`, `go/cmd/bb8-web` | Robot binaries (`bb8-body pair` creates the link certs) and the web pages server, off the robot |
+| `go/internal/` | `protocol`, `serial`, `motion`, `floorplan`, `tools`, `mcpserver`, `body`, `link`, `head`, `config` (API only), `webui` (the pages, served by bb8-web), `relay` (robot ↔ bb8-web link), `agent`, `connectors/{weather,calendar,websearch,mcpclient}`, `connections` (accounts, sign-in), `mdns`, `people`, `events`, `navigate`, `gamepad`, `persona` |
 | `partes/1-protoboard/arduino/` | `pruebas/p1…p5`, `bb8_firmware/bb8_firmware.ino` |
 | `partes/1-protoboard/wokwi/` | Firmware in the Wokwi simulator |
 | `partes/3-base-andando/` | Legacy Python `bb8` (used by `calibrar` and `--python`); `mapas/` (floor plans, English keys) |
@@ -45,7 +47,7 @@ PYTHONPATH=simulador python -m dummy.probar                        # end-to-end 
 make probar      # both of the above
 ```
 
-- Config page on the dummy: http://127.0.0.1:8765/. Loopback needs no token.
+- Pages on the dummy: http://127.0.0.1:8780/ (`bb8-web --no-login`, started by `lanzar_dummy.py`; `BB8_WEB_PORT` to move it). The robot API stays on 8765; loopback needs no token.
 - If 8765 is taken, start the dummy and run probar with `BB8_MCP_PORT=8775`.
 - **probar needs a fresh dummy.** It assumes the start pose; a second run in a row fails the move checks.
 - CI (`.github/workflows/ci.yml`) runs:

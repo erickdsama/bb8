@@ -87,7 +87,9 @@ The Python stack used before took ~100 MB on the body (`bb8.motion_api` 40 MB + 
 | `body` | Robot tools, head client, local API, config fields and wiring |
 | `link` | Mutual TLS, framing, `pair` |
 | `head` | Head side: Real and Sim backends, beeps, VL53L0X, mic (VAD + GCC-PHAT direction + audio stream) |
-| `config` | Store, schema, SSE web UI |
+| `config` | Store, schema, SSE API (no pages) |
+| `webui` | The pages (settings, control, voice, people), served by `bb8-web` |
+| `relay` | The robot's outbound link to `bb8-web`: requests and SSE streams through one WebSocket |
 | `agent` | OpenRouter tool loop; speaker profiles; publishes heard/tool/reply |
 | `people` | Profiles (role, notes), agent tools, `/people` page |
 | `events` | Robot → page bus, SSE at `/api/events` |

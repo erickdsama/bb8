@@ -201,7 +201,7 @@ ul.plain li b { color:var(--ink); font-weight:550; }
   <span class="chip"><span class="led" id="live-led"></span><span id="live-txt">connecting…</span></span>
   <span class="chip" id="head-chip">head offline</span>
   <span class="chip sim" id="sim-chip" hidden title="This page belongs to the simulator on this computer, not the real robot">SIMULATOR</span>
-  <div class="links"><a id="control-link" href="/control">Drive</a><a id="people-link" href="/people">People</a></div>
+  <div class="links"><a id="control-link" href="/control">Drive</a><a id="people-link" href="/people">People</a><a href="/logout" title="Sign out">⎋</a></div>
 </header>
 
 <div class="wrap">
@@ -812,7 +812,13 @@ async function clipsRefresh() {
 
 (async () => {
   const s = await api("/api/config/schema");
-  if (!s.ok) { $("#pages").replaceChildren(el("div", { class: "card" }, el("h3", { textContent: s.status === 401 ? "Open this page with its link (…?token=…)" : "Can't reach BB-8" }))); return; }
+  if (s.status === 401) { location.href = "/login?next=/"; return; }
+  if (!s.ok) {
+    $("#pages").replaceChildren(el("div", { class: "card" }, el("h3", { textContent: s.body.offline ? "BB-8 is offline" : "Can't reach BB-8" }),
+      el("p", { class: "sub", textContent: s.body.offline ? "It connects to this page by itself when it's on. This page retries in a few seconds." : "Try again in a moment." })));
+    setTimeout(() => location.reload(), 5000);
+    return;
+  }
   schema = s.body;
   buildPages(); route();
   applyConfig((await api("/api/config")).body);

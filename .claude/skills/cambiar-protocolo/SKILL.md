@@ -39,7 +39,7 @@ Protocol rules that stay:
 | API | Places |
 | --- | --- |
 | Local API 127.0.0.1:8770 | `wiki/Protocolo.md` § 2.2, `go/internal/body/api.go`; clients `voz/*.py`, `energia/__main__.py` |
-| Config / agent :8765 | § 2.3, `go/internal/config/web.go` (+ `web/index.html`), `go/internal/agent/agent.go` (`Routes`) |
+| Config / agent :8765 | § 2.3, `go/internal/config/web.go` (pages in `go/internal/webui`), `go/internal/agent/agent.go` (`Routes`) |
 | Power manager :8771 | `energia/__main__.py` and `wiki/Parte-6-Esfera-y-baterias.md` |
 
 If the model uses a new route, continue with skill `agregar-herramienta-mcp`.

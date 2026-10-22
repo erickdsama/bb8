@@ -32,7 +32,21 @@ igual con el [simulador](Simulador.md).
 
 ## Paso 2: el agente propio
 
-En la página de configuración (`http://bb8.local:8765/?token=…`) pon `agent.api_key` (tu
+Las páginas no viven en el robot: las sirve `bb8-web` desde tu PC y el robot se conecta
+hacia ella. Instálalo una vez en la PC:
+
+```bash
+make && cp bin/bb8-web ~/.local/bin/
+cp sistema/bb8-web.service ~/.config/systemd/user/ && systemctl --user enable --now bb8-web
+sudo loginctl enable-linger $USER          # que siga corriendo sin sesión abierta
+cat ~/.bb8-web/password                    # tu contraseña de la página
+scp ~/.bb8-web/device-token bb8.local:/tmp/ # luego en la Pi: /etc/bb8/web-token y BB8_WEB en /etc/bb8.env
+```
+
+En la Pi, `/etc/bb8.env` lleva `BB8_WEB=ws://debian.local:8780/robot` y
+`BB8_WEB_TOKEN_FILE=/etc/bb8/web-token` (ver [Instalación en la Pi](Instalacion-en-la-Pi.md#variables-de-entorno)).
+
+En la página de configuración (`http://debian.local:8780/`, con tu contraseña) pon `agent.api_key` (tu
 clave de [OpenRouter](https://openrouter.ai)) y, si quieres, otro `agent.model`. Pruébalo
 con el chat de la misma página: *"da una vuelta y dime qué ves"*.
 

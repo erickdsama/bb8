@@ -2,7 +2,6 @@ package people
 
 import (
 	"context"
-	_ "embed"
 	"encoding/json"
 	"errors"
 	"io"
@@ -60,12 +59,8 @@ func (s *Store) Tools() []tools.Tool {
 	}
 }
 
-//go:embed people.html
-var page []byte
-
-// Routes for the web page (behind the token):
+// Routes for the people page (webui, served by bb8-web), behind the token:
 //
-//	GET    /people                 the page
 //	GET    /api/people             [person…]
 //	PUT    /api/people/{name}      {role} → creates or changes the role
 //	POST   /api/people/{name}/notes {text}
@@ -87,10 +82,6 @@ func (s *Store) Routes(mux *http.ServeMux) {
 	body := func(r *http.Request, v any) error {
 		return json.NewDecoder(io.LimitReader(r.Body, 1<<14)).Decode(v)
 	}
-	mux.HandleFunc("GET /people", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = w.Write(page)
-	})
 	mux.HandleFunc("GET /api/people", func(w http.ResponseWriter, r *http.Request) { j(w, 200, s.List()) })
 	mux.HandleFunc("PUT /api/people/{name}", func(w http.ResponseWriter, r *http.Request) {
 		var in struct {

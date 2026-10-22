@@ -1,5 +1,5 @@
 # Go binaries of the BB-8. Static (CGO off), stripped.
-#   make            # bin/ for this PC (bb8-body, bb8-head)
+#   make            # bin/ for this PC (bb8-body, bb8-head, bb8-web)
 #   make pi         # dist/linux-arm64/bb8-body + bb8-head  (Pi 3 B+, 64-bit OS)
 #   make zero       # dist/linux-armv6/bb8-head             (Pi Zero W, armv6)
 #   make release    # pi + zero
