@@ -349,16 +349,16 @@ function settingRow(f) {
     if (f.type === "secret") i.value = "";
     saved.classList.add("show"); setTimeout(() => saved.classList.remove("show"), 1600);
   });
-  // Sliders apply while dragging (the eye dims as you move it): one request in
-  // flight, then the latest value; "change" above still saves the final one.
+  // Sliders apply while dragging (the eye dims as you move it), debounced: the
+  // value goes once the hand pauses 250 ms; "change" above saves the final one.
   if (i.type === "range") {
-    let busy = false, next = null;
-    const send = async () => {
-      busy = true;
-      while (next !== null) { const v = next; next = null; await patch({ [f.key]: v }); }
-      busy = false;
-    };
-    i.addEventListener("input", (e) => { if (!e.isTrusted) return; next = Number(i.value); if (!busy) send(); });
+    let timer;
+    i.addEventListener("input", (e) => {
+      if (!e.isTrusted) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => patch({ [f.key]: Number(i.value) }), 250);
+    });
+    i.addEventListener("change", () => clearTimeout(timer));
   }
   return row;
 }
