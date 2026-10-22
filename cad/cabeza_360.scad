@@ -3,7 +3,8 @@
 // El MG996R pasa a rotación continua (sin potenciómetro) y un AS5600 (sensor
 // magnético de ángulo absoluto) ocupa su lugar: un imán diametral en la punta del
 // eje de salida y la placa fija debajo de la tapa del servo, centrada en el eje.
-// El Arduino lee el ángulo por I2C (A4/A5, el mismo bus del MPU6050 y el VL53L0X)
+// El Arduino lee el ángulo por I2C (A4/A5, el mismo bus del MPU6050 y el VL53L0X;
+// el módulo común es de 3.3 V: VCC al pin 3.3V del Uno, no a 5V)
 // y mueve el servo hasta llegar al ángulo pedido.
 //
 // Las piezas internas del servo son aproximadas: al abrirlo, MIDE dónde queda la
@@ -146,7 +147,7 @@ if (e > 0) {
     etiqueta("AS5600 (fijo, centrado)", [x, 0, z_placa - 1], [11.5, 0, z_placa - 1]);
     etiqueta("imán a 0.5–3 mm del chip", [x, 0, z_placa - 6], [x, 0, z_placa - 6], 3);
     etiqueta("Cables por el tubo", [-x, 0, z_tubo - 20], [-tubo_d / 2, 0, z_tubo - 20]);
-    for (i = [0 : 4]) let(l = ["VCC → 5V", "GND → GND", "DIR → GND", "SCL → A5", "SDA → A4"][i], c = ["red", "black", "#7b1fa2", "gold", "limegreen"][i])
+    for (i = [0 : 4]) let(l = ["VCC → 3.3V", "GND → GND", "DIR → GND", "SCL → A5", "SDA → A4"][i], c = ["red", "black", "#7b1fa2", "gold", "limegreen"][i])
         translate([-x, 0, z_ard + 34 - 6 * i]) { color(c) translate([-1, 0, 0]) rotate([90, 0, 0]) cylinder(d = 3, h = 0.6, $fn = 16);
             etiqueta(l, [-4, 0, 0], [-4, 0, 0], 3.4); }
     etiqueta("Arduino Uno (servo en D9)", [x, 0, z_ard], [34, 0, z_ard]);
