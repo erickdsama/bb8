@@ -116,6 +116,13 @@ func (m *Manager) apply(c Connector) {
 	slog.Info("connector on", "id", c.ID(), "tools", strings.Join(names, ","))
 }
 
+// Refresh re-applies one connector (its accounts changed outside the config).
+func (m *Manager) Refresh(id string) {
+	if c := m.Get(id); c != nil {
+		go m.apply(c)
+	}
+}
+
 func (m *Manager) setTools(id string, names []string) {
 	m.toolsMu.Lock()
 	m.tools[id] = names

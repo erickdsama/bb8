@@ -41,9 +41,25 @@ usa `web_search`, que busca con el plugin web de OpenRouter y la misma clave (~$
 búsqueda; `connectors.web.model` puede ser un modelo más barato). El clima (`weather`)
 viene encendido y solo necesita `home.city`.
 
-Para Gmail, listas, Google, IFTTT o la casa, conecta un servidor MCP externo (Zapier,
-Composio, Home Assistant…) en `connectors.mcp.1.name`, `.url` y `.token`. Sus herramientas
-aparecen como `<nombre>_<herramienta>`, y por defecto una voz desconocida no las puede usar.
+**Servicios y cuentas.** En la página, *Services → Connect a service*:
+
+- **Zapier** (Gmail, Google Calendar, Sheets…), **Notion**, **Linear**: eliges de quién es la
+  cuenta, presionas *Sign in with…*, entras y aceptas. En Zapier luego eliges qué puede hacer
+  BB-8 (p. ej. *Gmail: Send Email*).
+- **Home Assistant**: BB-8 lo busca en la red; entras con tu usuario de Home Assistant. Antes,
+  agrega allí la integración *Model Context Protocol Server* y expón lo que BB-8 puede controlar.
+- **Alexa**: a través de Home Assistant, con su integración *Alexa Devices*.
+- **Other**: cualquier servicio que dé un link para asistentes de IA (con token si lo pide).
+
+Cada cuenta tiene dueño: cuando Ana habla, BB-8 usa la cuenta de Ana; cuando hablas tú, la
+tuya; las compartidas (la casa) las usa cualquiera conocido. Antes de mandar, crear o borrar
+algo, BB-8 pregunta "¿lo hago?" y solo lo hace si dices que sí en tu siguiente frase. Una voz
+desconocida no usa cuentas personales.
+
+Para el login, Zapier, Notion y Linear regresan por una página puente pública
+([`docs/oauth`](https://github.com/erickdsama/bb8/blob/main/docs/oauth/index.html)) que te
+devuelve a `bb8.local`. Se publica una vez con GitHub Pages: *Settings → Pages → Deploy from
+a branch → main, /docs*.
 
 **Personas.** En `/people` asignas el rol de cada quien: `owner`, `family` (lo puede mover)
 o `guest` (solo platica). Una voz registrada entra como `family` la primera vez que se oye.

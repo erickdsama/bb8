@@ -18,7 +18,7 @@ Details: `wiki/Arquitectura.md`. Wire formats: `wiki/Protocolo.md` (the source o
 | Folder | Content |
 | --- | --- |
 | `go/cmd/bb8-body`, `go/cmd/bb8-head` | The two binaries (`bb8-body pair` creates the link certs) |
-| `go/internal/` | `protocol`, `serial`, `motion`, `floorplan`, `tools`, `mcpserver`, `body`, `link`, `head`, `config` (+ `web/index.html`), `agent`, `connectors/{weather,calendar}`, `gamepad`, `persona` |
+| `go/internal/` | `protocol`, `serial`, `motion`, `floorplan`, `tools`, `mcpserver`, `body`, `link`, `head`, `config` (+ `web/index.html`), `agent`, `connectors/{weather,calendar,websearch,mcpclient}`, `connections` (accounts, sign-in), `mdns`, `people`, `events`, `navigate`, `gamepad`, `persona` |
 | `partes/1-protoboard/arduino/` | `pruebas/p1…p5`, `bb8_firmware/bb8_firmware.ino` |
 | `partes/1-protoboard/wokwi/` | Firmware in the Wokwi simulator |
 | `partes/3-base-andando/` | Legacy Python `bb8` (used by `calibrar` and `--python`); `mapas/` (floor plans, English keys) |
@@ -28,6 +28,7 @@ Details: `wiki/Arquitectura.md`. Wire formats: `wiki/Protocolo.md` (the source o
 | `cad/` | Parametric OpenSCAD. `exportar.sh` writes `stl/`, `png/`, `plantillas/` |
 | `simulador/` | `dummy` (simulated Arduino + head, `probar.py`), `lanzar_dummy.py` |
 | `sistema/` | systemd units (`bb8-body`, `bb8-head`, `bb8-voz`, `bb8-energia`), `instalar_pi.sh`, `instalar_zero.sh` |
+| `docs/oauth/` | Sign-in bridge page (GitHub Pages): services return there and it forwards to the robot |
 | `wiki/` | Documentation |
 
 Python packages are mapped in `pyproject.toml`. **If you add a Python package, add it to `packages` and `package-dir`** or it will not import.

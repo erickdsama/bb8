@@ -92,7 +92,9 @@ The Python stack used before took ~100 MB on the body (`bb8.motion_api` 40 MB + 
 | `people` | Profiles (role, notes), agent tools, `/people` page |
 | `events` | Robot → page bus, SSE at `/api/events` |
 | `navigate` | System 1 loop for `navigate_to`: JEV planner with local rules as fallback |
-| `connectors` | Connector interface + `weather` (Open-Meteo), `calendar` (Google provider), `websearch` (OpenRouter web plugin), `mcpclient` (remote MCP servers) |
+| `connectors` | Connector interface + `weather` (Open-Meteo), `calendar` (Google provider), `websearch` (OpenRouter web plugin), `mcpclient` (tools of the connected accounts, routed per speaker) |
+| `connections` | Accounts with owners (`connections.json`), MCP OAuth (discovery, registration, PKCE, refresh), Home Assistant sign-in, `/api/connections` |
+| `mdns` | One-shot mDNS: find services, resolve `.local` in the static build |
 | `gamepad` | evdev |
 | `persona` | Emotions, colors, system prompt |
 
@@ -115,7 +117,7 @@ The Python stack used before took ~100 MB on the body (`bb8.motion_api` 40 MB + 
 | `weather`, `web_search`, `calendar_*` | Connector tools, while the connector is enabled |
 | `scan`, `navigate_to` | Head ToF sweep; drive to a room or furniture by itself (System 1) |
 | `people`, `remember_about`, `forget_about` | Who BB-8 knows; notes are for known voices only |
-| `<name>_<tool>` | Tools of a remote MCP server (`connectors.mcp.N.*`); known voices only by default |
+| `<name>_<tool>` | Tools of the connected accounts (Zapier, Home Assistant, Notion…). Each person uses their own account; sending, creating or deleting needs a yes in the next turn |
 
 ## Hearing
 

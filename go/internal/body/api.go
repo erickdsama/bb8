@@ -36,7 +36,7 @@ func LocalAPI(m *motion.Service, h *Head, reg *tools.Registry) *http.ServeMux {
 	mux.HandleFunc("POST /tools/{name}", func(w http.ResponseWriter, r *http.Request) {
 		args, _ := io.ReadAll(io.LimitReader(r.Body, 1<<20))
 		known := r.Header.Get("X-Speaker-Known") != "false"
-		out, err := reg.Call(r.Context(), r.PathValue("name"), args, tools.CallOpts{SpeakerKnown: known})
+		out, err := reg.Call(r.Context(), r.PathValue("name"), args, tools.CallOpts{SpeakerKnown: known, Admin: known})
 		if err != nil {
 			code := 400
 			if errors.Is(err, tools.ErrUnknownVoice) {

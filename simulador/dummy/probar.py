@@ -232,6 +232,14 @@ async def main() -> None:
               and "le gustan los gatos" in ana.get("notes", []), ana)
         check("eventos robot → página: person y pose", "person" in robot and "pose" in robot, robot)
 
+        # Cuentas: catálogo con login, y la página nunca ve tokens.
+        with urllib.request.urlopen(web + "api/connections") as r:
+            cuentas = json.load(r)
+        cat = cuentas.get("catalog", {})
+        check("cuentas: catálogo (Zapier OAuth, Home Assistant)", cat.get("zapier", {}).get("sign_in") == "oauth"
+              and cat.get("home", {}).get("sign_in") == "homeassistant" and "Ana" in cuentas.get("people", []),
+              list(cat))
+
         # El mando manda: una orden manual bloquea al LLM durante 1 s.
         post("http://127.0.0.1:8770/manual", {"left": 0, "right": 0})
         res = await call("move", meters=0.2)

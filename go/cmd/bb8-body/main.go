@@ -26,6 +26,7 @@ import (
 	"github.com/erickdsama/bb8/go/internal/agent"
 	"github.com/erickdsama/bb8/go/internal/body"
 	"github.com/erickdsama/bb8/go/internal/config"
+	"github.com/erickdsama/bb8/go/internal/connections"
 	"github.com/erickdsama/bb8/go/internal/connectors"
 	"github.com/erickdsama/bb8/go/internal/connectors/calendar"
 	"github.com/erickdsama/bb8/go/internal/connectors/mcpclient"
@@ -153,8 +154,19 @@ func main() {
 	})
 	go body.Watch(ctx, bus, svc, head)
 
+	accounts, err := connections.Open(home(*dataDir))
+	if err != nil {
+		slog.Error("connections.json", "err", err)
+		os.Exit(1)
+	}
+	apps := mcpclient.New(accounts)
+	apps.Owner = func() string { return cfg.String("home.owner") }
 	reg := tools.NewRegistry()
-	conns := connectors.NewManager(cfg, reg, weather.New(), calendar.New(), websearch.New(), mcpclient.New())
+	conns := connectors.NewManager(cfg, reg, weather.New(), calendar.New(), websearch.New(), apps)
+	accounts.Subscribe(func() {
+		conns.Refresh("mcp")
+		bus.Publish("connections", map[string]any{"count": len(accounts.List())})
+	})
 	reg.Set("robot", body.RobotTools(svc, head))
 	reg.Set("settings", body.SettingTools(cfg))
 	reg.Set("people", folks.Tools())
@@ -184,12 +196,27 @@ func main() {
 	folks.Routes(web)
 	web.HandleFunc("GET /api/events", bus.Handler)
 	calendar.AuthHandlers(cfg, web)
+	signin := connections.NewFlows(accounts, apps.HTTP)
+	signin.Bridge = func() string { return mcpclient.Bridge(cfg) }
+	signin.Owner = apps.Owner
+	signin.People = func() []string {
+		var names []string
+		for _, p := range folks.List() {
+			names = append(names, p.Name)
+		}
+		return names
+	}
+	signin.Status = apps.Live
+	signin.Routes(web)
 	web.HandleFunc("GET /api/connectors", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(conns.Status())
 	})
 	mux := http.NewServeMux()
 	mux.Handle("/mcp", mcpserver.Handler(mcpSrv, token))
+	// Sign-ins come back here from the person's browser without the page token;
+	// the single-use state ties them to a start the page made.
+	mux.HandleFunc("GET "+connections.CallbackPath, signin.Callback)
 	mux.Handle("/", mcpserver.RequireToken(web, token))
 	serve(ctx, *mcpAddr, mux)
 

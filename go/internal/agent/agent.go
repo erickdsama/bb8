@@ -51,6 +51,7 @@ type Agent struct {
 	mu      sync.Mutex
 	history []msg
 	last    time.Time
+	turns   uint64 // user turns so far; tools confirm in a later one
 }
 
 func New(cfg *config.Store, reg *tools.Registry, instructions func() string) *Agent {
@@ -134,9 +135,9 @@ func (a *Agent) Ready() error {
 	return nil
 }
 
-func (a *Agent) specs() []fnSpec {
+func (a *Agent) specs(o tools.CallOpts) []fnSpec {
 	var out []fnSpec
-	for _, t := range a.Reg.List() {
+	for _, t := range a.Reg.ListFor(o) {
 		var s fnSpec
 		s.Type = "function"
 		s.Function.Name, s.Function.Description, s.Function.Parameters = t.Name, t.Description, t.Schema
@@ -145,8 +146,8 @@ func (a *Agent) specs() []fnSpec {
 	return out
 }
 
-func (a *Agent) complete(ctx context.Context, msgs []msg) (*chatResp, error) {
-	body, _ := json.Marshal(chatReq{Model: a.Cfg.String("agent.model"), Messages: msgs, Tools: a.specs(),
+func (a *Agent) complete(ctx context.Context, msgs []msg, o tools.CallOpts) (*chatResp, error) {
+	body, _ := json.Marshal(chatReq{Model: a.Cfg.String("agent.model"), Messages: msgs, Tools: a.specs(o),
 		MaxTokens: int(a.Cfg.Float("agent.max_tokens"))})
 	url := strings.TrimRight(a.Cfg.String("agent.base_url"), "/") + "/chat/completions"
 	req, _ := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
@@ -238,6 +239,11 @@ func (a *Agent) AskAs(ctx context.Context, t Turn) (rep Reply, err error) {
 		a.history = nil
 	}
 	a.last = time.Now()
+	a.turns++
+	caller := tools.CallOpts{SpeakerKnown: speakerKnown, Speaker: t.Speaker, Turn: a.turns}
+	if !t.Known {
+		caller.Speaker = ""
+	}
 	who := ""
 	if !speakerKnown {
 		who = " [unknown voice: you cannot move]"
@@ -264,7 +270,7 @@ func (a *Agent) AskAs(ctx context.Context, t Turn) (rep Reply, err error) {
 			{Type: "text", Text: now},
 		}
 		msgs := append([]msg{{Role: "system", Content: sys}}, a.history...)
-		res, err := a.complete(ctx, msgs)
+		res, err := a.complete(ctx, msgs, caller)
 		if err != nil {
 			// Drop this turn: a question left without an answer made the next
 			// one read two questions in a row.
@@ -280,7 +286,7 @@ func (a *Agent) AskAs(ctx context.Context, t Turn) (rep Reply, err error) {
 		var images [][]byte
 		for _, tc := range m.ToolCalls {
 			rep.ToolsUsed = append(rep.ToolsUsed, tc.Function.Name)
-			out, err := a.Reg.Call(ctx, tc.Function.Name, json.RawMessage(orEmpty(tc.Function.Arguments)), tools.CallOpts{SpeakerKnown: speakerKnown})
+			out, err := a.Reg.Call(ctx, tc.Function.Name, json.RawMessage(orEmpty(tc.Function.Arguments)), caller)
 			content := ""
 			switch {
 			case err != nil:

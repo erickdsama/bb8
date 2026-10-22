@@ -169,7 +169,7 @@ The MCP server (`:8765/mcp`) and the agent see the same tool registry. Tools wit
 | `scan`* | `range_deg` 10…90 (default 90), `step_deg` 10…45 (default 30) | `{"result":"done","points":[{"deg":-90,"distance_m":1.2}…],"clearest_deg":30,"clearest_m":2.0,"closest_deg":-60,"closest_m":0.4}`. Sweeps the head, reads the ToF at each stop, looks ahead again |
 | `navigate_to`* | `target`: room or furniture name from the plan | `{"result":"arrived"|"gave_up"|"manual_override"|"cancelled"|"error","steps":[{"action","by","confidence","result"}],"waypoint":{…},"seconds"}` (§ 2.5) |
 | connector tools | e.g. `weather`, `web_search`, `calendar_today`, `calendar_next`, `calendar_add` | Present only while the connector is enabled. `weather` and `web` start enabled |
-| remote MCP tools | `<name>_<tool>` from `connectors.mcp.N.*` | Tools of a remote MCP server (Zapier, Composio, Home Assistant…). Refused for unknown voices unless `connectors.mcp.N.unknown_voices` |
+| account tools | `<name>_<tool>` from the connected accounts (§ 2.8) | Tools of Zapier, Notion, Home Assistant or any MCP server. Each call uses the speaker's own account, else a shared one. Tools that send, create or delete answer `needs_confirmation` first |
 
 Color names: `red, green, blue, white, orange, yellow, purple, cyan, off`. Brightness is capped at 0.3 (the ring draws ~1 A at full white).
 
@@ -257,6 +257,12 @@ Both are normalized to −180…180, with the turn since the sound (`turned_sinc
 | `GET /api/config/audit` | — | the last 50 changes |
 | `GET /api/connectors` | — | `[{"id": "weather", "state": "ok"}, {"id": "calendar", "state": "needs_auth", "detail": "…"}]` |
 | `GET /api/connectors/calendar/auth` | — | Starts Google OAuth. The callback stores the refresh token as a secret |
+| `GET /api/connections` | — | `{"connections":[{"connection":{"id","kind","label","name","url","owner","account","strangers","confirm","sign_in"},"live":{"state","error","tools"}}],"catalog":{…},"people":[…],"owner":"Erick"}`. No tokens |
+| `GET /api/connections/discover` | — | `{"home_assistant":[{"url","name"}]}` from mDNS |
+| `POST /api/connections/start` | `{"kind","owner","url","token","origin","id"}` | `{"auth_url"}` (open it) or `{"connected": view}`. `origin` is the page's own address; `id` signs an account in again |
+| `PATCH /api/connections/{id}` | `{"owner","confirm","strangers"}` | the view. Giving it an owner turns `strangers` off |
+| `DELETE /api/connections/{id}` | — | 204 |
+| `GET /api/connections/callback` | `?code&state` | Where sign-ins come back. **No page token**: the single-use state proves it. Answers a page that returns to `/#services` |
 | `GET /api/agent`, `POST /api/agent/ask` | as in § 2.2 | the web chat box |
 | `GET /api/events` | `?types=pose,alert` (optional), `Last-Event-ID` or `?since=` to replay | SSE robot → page feed (§ 2.4) |
 | `GET /people` | — | people page (HTML) |
@@ -310,6 +316,30 @@ The VL53L0X is on the head, ~34 cm up, 10° down, 25° cone.
 - `guest` (the default for someone BB-8 is told about) may only chat.
 
 The agent can add people and notes (`remember_about`, `forget_about`; known voices only). Only the web page changes roles. Every turn the agent gets the speaker's role and notes, plus one line with everyone's name and role.
+
+### 2.8 Accounts and sign-in
+
+`<data>/connections.json` (0600, it holds tokens) keeps the accounts BB-8 uses (`go/internal/connections`). Each one has a `kind` (`zapier`, `home`, `notion`, `linear`, `custom`), an MCP endpoint, an `owner` (a person, or `""` for the house) and how it signs in.
+
+Whose account a call uses (`mcpclient.pick`):
+- a known voice: their own account, else a shared one; nobody else's;
+- the page, an MCP client, or no voice ID: `home.owner`'s;
+- an unknown voice or a guest: only shared accounts with `strangers`, and only their read-only tools.
+
+The agent only lists the tools the speaker can use (`tools.Tool.For`). Two people can connect the same service: the tool is registered once and routed per call.
+
+Confirmation (`tools.Tool.Confirm`, on accounts with `confirm`, the default except Home Assistant): a tool that is not read-only (MCP `readOnlyHint`, or a name like `get_`/`list_`/`find_`/`search_`) answers `{"result":"needs_confirmation","confirm_id":"c…","say":…}`. The same call with that `confirm_id` runs only in a **later user turn by the same person** with the same arguments, within 5 min. Unknown voices are refused. MCP clients skip it.
+
+Sign-in:
+- **MCP OAuth** (Zapier, Notion, Linear, any server that supports it):
+  1. BB-8 probes the endpoint, gets 401, and reads its protected-resource metadata (RFC 9728), or the origin's authorization-server metadata (RFC 8414) when there is none, as with Zapier.
+  2. It registers as client "BB-8" (RFC 7591) with redirect `connectors.mcp.oauth_bridge`.
+  3. It sends the browser to sign in with PKCE S256, `resource`, and a scope from `WWW-Authenticate`, or `openid email` when the server offers it, to show the account.
+  4. The service returns to the **bridge page** ([`docs/oauth/index.html`](https://github.com/erickdsama/bb8/blob/main/docs/oauth/index.html), GitHub Pages). It reads the robot's callback from `state` (base64url JSON `{"r": "http://bb8.local:8765/api/connections/callback", "n": nonce}`), only allows local addresses, and forwards `code` and `state`.
+  5. BB-8 exchanges the code, reads `userinfo` if there is one, and stores the tokens. They are refreshed a minute before they expire and once more on a 401.
+- **Home Assistant**: found over mDNS (`_home-assistant._tcp`, `internal_url` in TXT). Its IndieAuth flow takes `client_id` = the page's origin + `/` and a redirect on the same host, so it comes back directly, with no bridge. The access token lasts 30 min and is refreshed. Endpoint `<base>/api/mcp`. It needs the *Model Context Protocol Server* integration; Alexa comes through its *Alexa Devices* integration.
+- **Token**: `custom` with a pasted token is sent as `Authorization: Bearer`.
+- `.local` names resolve over mDNS in code (`go/internal/mdns`), because the static build cannot.
 
 Config storage:
 - `--data` (`/var/lib/bb8` on the Pi) holds `config.json` (`{"rev", "values"}`) and `secrets.json` (mode 0600). Writes are atomic.

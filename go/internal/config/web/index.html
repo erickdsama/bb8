@@ -15,6 +15,7 @@
   --radius:14px;
 }
 * { box-sizing:border-box; }
+[hidden] { display:none !important; }
 html { color-scheme:dark; }
 body { margin:0; min-height:100vh; color:var(--ink); font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
   background:var(--void) fixed; background-image:linear-gradient(135deg, var(--void) 0%, var(--obsidian) 50%, var(--ember) 90%, var(--glow) 100%); }
@@ -156,6 +157,15 @@ dialog::backdrop { background:rgba(0,0,0,.6); backdrop-filter:blur(3px); }
 @keyframes spin { to { transform:rotate(360deg); } }
 .copy { display:flex; gap:6px; align-items:center; }
 .copy code { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; background:var(--field); border:1px solid var(--line); border-radius:8px; padding:7px 10px; }
+
+.tiles { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:10px; }
+.tile { display:grid; gap:4px; justify-items:start; text-align:left; padding:12px; border-radius:12px; border:1px solid var(--line); background:var(--field); color:var(--ink); cursor:pointer; }
+.tile:hover { border-color:var(--orange); }
+.tile .badge, .app .badge { width:32px; height:32px; border-radius:9px; display:grid; place-items:center; font-weight:700; background:var(--orange-soft); color:var(--orange-hi); }
+.tile small { color:var(--mute); font-size:12px; }
+.owner { font-weight:500; font-size:12px; color:var(--mute); border:1px solid var(--line); border-radius:99px; padding:1px 8px; margin-left:8px; }
+.opt { display:flex; gap:10px; align-items:center; font-size:14px; }
+.dlg .lead { margin:-8px 0 0; color:var(--mute); font-size:14px; }
 
 /* activity */
 ul.plain { list-style:none; margin:0; padding:0; }
@@ -459,27 +469,22 @@ const SVC = {
   mcp: { title: "Apps and smart home", icon: "apps", asks: ["Mándale un correo a Ana", "Apaga la luz de la sala"] },
 };
 
-// The services a user can connect through the apps card. ask lists the
-// inputs the dialog shows; url() builds the address from them.
-const APPS = {
-  zapier: { label: "Zapier", name: "zapier", what: "Gmail, Google Calendar, Sheets and thousands of apps.",
-    steps: [["Open ", ["Zapier", "https://mcp.zapier.com"], " and create a new server."], ["Add what BB-8 may do, e.g. ", "Gmail: Send Email", "."], ["Copy its ", "Server URL", " and paste it here."]],
-    ask: [{ id: "url", label: "Server URL", ph: "https://mcp.zapier.com/api/mcp/s/…" }] },
-  composio: { label: "Composio", name: "composio", what: "Gmail, Calendar, Drive, Slack, Notion…",
-    steps: [["Open ", ["Composio", "https://composio.dev"], " and pick the apps BB-8 may use."], ["Copy the ", "URL", " it gives you and paste it here."]],
-    ask: [{ id: "url", label: "URL", ph: "https://…" }] },
-  home: { label: "Home Assistant", name: "home", what: "Lights, plugs and everything in your Home Assistant.",
-    steps: [["In Home Assistant, add the integration ", ["Model Context Protocol Server", "https://my.home-assistant.io/redirect/config_flow_start/?domain=mcp_server"], "."],
-      ["Open your ", ["profile", "https://my.home-assistant.io/redirect/profile/"], " → Security → ", "Create token", " and copy it."]],
-    ask: [{ id: "addr", label: "Home Assistant address", ph: "homeassistant.local:8123", def: "homeassistant.local:8123" }, { id: "token", label: "Token", ph: "Paste the token", secret: true }],
-    url: (a) => (/^https?:\/\//.test(a.addr) ? a.addr : "http://" + a.addr).replace(/\/+$/, "") + "/api/mcp",
-    fromUrl: (u) => ({ addr: u.replace(/\/api\/mcp\/?$/, "").replace(/^http:\/\//, "") }) },
-  other: { label: "Other", name: "", what: "Any service that gives you a link for AI assistants.",
-    steps: [["Paste the link the service gives you, and its token if it has one."]],
-    ask: [{ id: "url", label: "Link", ph: "https://…" }, { id: "token", label: "Token (optional)", ph: "Only if it gave you one", secret: true, optional: true }] },
-};
-const appOf = (name, url) => Object.entries(APPS).find(([k, a]) => a.name && a.name === name.replace(/\d+$/, ""))?.[0] || (/\/api\/mcp\/?$/.test(url) ? "home" : "other");
+// ---------- accounts: apps and smart home ----------
+// The list, the catalog of services and the people come from /api/connections;
+// tokens never reach this page.
+let accts = { connections: [], catalog: {}, people: [], owner: "" };
+async function loadAccounts() { const r = await api("/api/connections"); if (r.ok) { accts = r.body; renderAccounts(); refreshServices(); refreshOverview(); } }
 
+// What to do in the service itself, shown in its dialog.
+const GUIDE = {
+  zapier: { after: [["After signing in, open ", ["Zapier", "https://mcp.zapier.com"], " and add what BB-8 may do, e.g. ", "Gmail: Send Email", " or ", "Google Calendar: Find Events", "."]] },
+  home: { before: [["In Home Assistant, add the integration ", ["Model Context Protocol Server", "https://my.home-assistant.io/redirect/config_flow_start/?domain=mcp_server"], "."],
+    ["In ", ["Settings → Voice assistants → Expose", "https://my.home-assistant.io/redirect/voice_assistants/"], ", pick the ", "lights and devices", " BB-8 may control."]] },
+  custom: { before: [["Paste the link the service gives you for AI assistants. If it has a sign-in, BB-8 opens it for you."]] },
+};
+// Tiles in "Connect a service", in this order; Alexa goes through Home Assistant.
+const TILES = ["zapier", "home", "alexa", "notion", "linear", "custom"];
+const ownerName = (o) => o ? o : "Everyone at home";
 function serviceCards() {
   return ["weather", "web", "calendar", "mcp"].map(id => {
     const s = SVC[id], on = schema.find(f => f.key === "connectors." + id + ".enabled");
@@ -493,7 +498,7 @@ function serviceCards() {
       el("p", { class: "sub", style: "color:var(--mute);font-size:14px;margin:0 0 10px" }, "Tip: the easiest way to Google Calendar is Zapier, under ", el("b", { textContent: "Apps and smart home" }), "."),
       el("button", { class: "btn ghost small", type: "button", id: "cal-btn", textContent: "Set up Google", onclick: calendarDialog }));
     if (id === "mcp") body.append(el("div", { class: "apps", id: "apps" }),
-      el("div", { class: "add" }, el("span", { textContent: "Connect:" }), ...Object.entries(APPS).map(([k, a]) => el("button", { class: "btn ghost small", type: "button", textContent: a.label, title: a.what, onclick: () => appDialog(k) }))));
+      el("div", { class: "add" }, el("button", { class: "btn small", type: "button", textContent: "+ Connect a service", onclick: () => pickDialog() })));
     return el("div", { class: "card svc", id: "svc-" + id },
       el("div", { class: "svc-head" }, el("span", { class: "svc-icon" }, icon(s.icon)),
         el("div", { class: "t" }, el("h3", { textContent: s.title }), el("p", { id: "svc-desc-" + id })), sw),
@@ -511,19 +516,6 @@ function friendly(err) {
   return "It didn't work (see Technical details).";
 }
 
-// mcpServers parses "name: 12 tools; other: error…" into {name: {ok, n, err}}.
-function mcpServers(c) {
-  const out = {};
-  for (const part of (c?.detail || "").split("; ")) {
-    const i = part.indexOf(": "); if (i <= 0) continue;
-    const name = part.slice(0, i), d = part.slice(i + 2), m = d.match(/^(\d+) tools$/);
-    out[name] = m ? { ok: true, n: Number(m[1]) } : { ok: false, err: d };
-  }
-  return out;
-}
-const slots = () => [1, 2, 3].filter(n => schema.some(f => f.key === "connectors.mcp." + n + ".name"));
-const usedSlots = () => slots().filter(n => values["connectors.mcp." + n + ".name"] || values["connectors.mcp." + n + ".url"]);
-
 function svcMessage(c) {
   if (c.state === "disabled") return ["", "Off"];
   if (c.id === "weather") {
@@ -539,12 +531,12 @@ function svcMessage(c) {
     return ["ok", "Connected to Google"];
   }
   if (c.id === "mcp") {
-    const used = usedSlots().length;
-    if (!used) return ["warn", "Nothing connected yet."];
-    const sv = Object.values(mcpServers(c)), bad = sv.filter(s => !s.ok).length, n = sv.reduce((a, s) => a + (s.n || 0), 0);
-    if (!sv.length) return ["warn", "Connecting…"];
-    if (bad) return ["bad", bad === 1 ? "One app has a problem." : bad + " apps have a problem."];
-    return ["ok", "Ready · " + n + " actions"];
+    const list = accts.connections || [];
+    if (!list.length) return ["warn", "Nothing connected yet."];
+    const bad = list.filter(x => x.live.state === "error").length, n = list.reduce((a, x) => a + (x.live.tools || 0), 0);
+    if (bad) return ["bad", bad === 1 ? "One account has a problem." : bad + " accounts have a problem."];
+    if (list.some(x => x.live.state === "connecting")) return ["warn", "Connecting…"];
+    return ["ok", "Ready · " + list.length + " account" + (list.length > 1 ? "s" : "") + " · " + n + " actions"];
   }
   return [c.state === "ok" ? "ok" : "warn", c.detail || c.state];
 }
@@ -560,17 +552,18 @@ function refreshServices() {
     card.querySelector(".status .fix").replaceChildren(key ? el("button", { class: "linkbtn", type: "button", textContent: label + " →", onclick: () => goTo(key) }) : "");
     card.querySelector(".tech").replaceChildren(el("div", { textContent: c.detail || "No details." }), ...(c.tools || []).map(t => el("code", { textContent: t })));
     if (c.id === "calendar") $("#cal-btn").textContent = c.state === "ok" ? "Change Google account" : "Set up Google";
-    if (c.id === "mcp") {
-      const per = mcpServers(c);
-      $("#apps").replaceChildren(...usedSlots().map(n => {
-        const name = values["connectors.mcp." + n + ".name"] || "app", url = values["connectors.mcp." + n + ".url"] || "", s = per[name], kind = appOf(name, url);
-        const [lc, lm] = c.state === "disabled" ? ["", "Off"] : !s ? ["warn", "Connecting…"] : s.ok ? ["ok", s.n + " actions"] : ["bad", friendly(s.err)];
-        return el("div", { class: "app" }, el("span", { class: "badge", textContent: (APPS[kind]?.label || name)[0].toUpperCase() }),
-          el("div", { class: "who" }, el("b", { textContent: APPS[kind]?.name ? APPS[kind].label : name }), el("span", {}, el("span", { class: "led " + lc, style: "display:inline-block;margin-right:6px" }), lm)),
-          el("button", { class: "btn ghost small", type: "button", textContent: "Edit", onclick: () => appDialog(kind, n) }));
-      }));
-    }
   }
+}
+
+function renderAccounts() {
+  const box = $("#apps"); if (!box) return;
+  box.replaceChildren(...(accts.connections || []).map(({ connection: c, live: l }) => {
+    const [lc, lm] = l.state === "ok" ? ["ok", l.tools + " actions"] : l.state === "error" ? ["bad", friendly(l.error || "")] : l.state === "off" ? ["", "Off"] : ["warn", "Connecting…"];
+    return el("div", { class: "app" }, el("span", { class: "badge", textContent: c.label[0] }),
+      el("div", { class: "who" }, el("b", {}, c.label, el("span", { class: "owner", textContent: ownerName(c.owner) })),
+        el("span", {}, el("span", { class: "led " + lc, style: "display:inline-block;margin-right:6px" }), lm, c.account ? " · " + c.account : "")),
+      el("button", { class: "btn ghost small", type: "button", textContent: "Edit", onclick: () => editDialog(c.id) }));
+  }));
 }
 
 // ---------- dialogs ----------
@@ -578,72 +571,155 @@ function stepsList(steps) {
   return el("ol", {}, ...steps.map(parts => el("li", {}, ...parts.map(p => Array.isArray(p) ? el("a", { href: p[1], target: "_blank", rel: "noopener", textContent: p[0] + " ↗" }) : (parts.indexOf(p) % 2 && typeof p === "string" ? el("b", { textContent: p }) : p)))));
 }
 
-// appDialog connects (or edits) one app. Nothing is saved until Connect; then
-// it waits for the connection result and shows it in the dialog.
-function appDialog(kind, slot) {
-  const app = APPS[kind], dlg = $("#dlg"), editing = !!slot;
-  slot = slot || slots().find(n => !usedSlots().includes(n));
-  if (!slot) { toast("You can connect up to 3 apps. Remove one first."); return; }
-  const k = (f) => "connectors.mcp." + slot + "." + f;
-  const cur = editing ? { url: values[k("url")] || "", ...(app.fromUrl ? app.fromUrl(values[k("url")] || "") : {}) } : {};
-  const inputs = {};
-  const fields = app.ask.map(a => {
-    const i = el("input", { class: "txt", type: a.secret ? "password" : "text", placeholder: editing && a.secret && values[k("token")] ? "Saved · leave empty to keep" : a.ph, value: cur[a.id] ?? a.def ?? "", autocomplete: "off" });
-    inputs[a.id] = i;
-    return el("div", { class: "field" }, el("label", { textContent: a.label }), i);
-  });
-  const strangers = el("input", { type: "checkbox", checked: !!values[k("unknown_voices")] });
-  const result = el("div", { class: "result" });
-  const go = el("button", { class: "btn", type: "button", textContent: editing ? "Save and test" : "Connect" });
-  const cancel = el("button", { class: "btn ghost", type: "button", textContent: editing ? "Close" : "Cancel" });
-  const remove = editing ? el("button", { class: "linkbtn", type: "button", textContent: "Disconnect", style: "margin-right:auto;color:var(--bad)" }) : null;
-  let connected = editing;
-  $("#dlg-body").replaceChildren(
-    el("h3", { textContent: (editing ? "" : "Connect ") + app.label }), el("p", { style: "margin:-8px 0 0;color:var(--mute);font-size:14px", textContent: app.what }),
-    stepsList(app.steps), ...fields,
-    el("details", { class: "more" }, el("summary", { textContent: "More options" }),
-      el("label", { style: "display:flex;gap:10px;align-items:center;font-size:14px" }, el("span", { class: "switch" }, strangers, el("span")), "Voices BB-8 doesn't know may use it too")),
-    result, el("div", { class: "actions" }, remove, cancel, go));
-  const say = (cls, msg) => { result.className = "result show " + cls; result.replaceChildren(cls === "busy" ? el("span", { class: "spin" }) : "", msg); };
-
-  go.onclick = async () => {
-    const a = {};
-    for (const [id, i] of Object.entries(inputs)) a[id] = i.value.trim();
-    const need = app.ask.find(x => !x.optional && !a[x.id] && !(x.secret && editing && values[k("token")]));
-    if (need) { inputs[need.id].focus(); say("bad", "Fill in “" + need.label + "”."); return; }
-    const url = app.url ? app.url(a) : a.url;
-    if (!/^https?:\/\/\S+$/.test(url)) { say("bad", "That doesn't look like a link. It should start with https://"); return; }
-    let name = editing ? values[k("name")] : app.name || (new URL(url).hostname.split(".").find(p => !/^(www|mcp|api)$/.test(p)) || "app").replace(/[^a-z0-9]/gi, "").toLowerCase();
-    if (!editing) { const taken = usedSlots().filter(n => n !== slot).map(n => values["connectors.mcp." + n + ".name"]); let base = name, i = 2; while (taken.includes(name)) name = base + i++; }
-    const vals = { "connectors.mcp.enabled": true, [k("name")]: name, [k("url")]: url, [k("unknown_voices")]: strangers.checked };
-    if (a.token) vals[k("token")] = a.token;
-    go.disabled = true; say("busy", "Connecting…");
-    const r = await patch(vals);
-    if (!r.ok) { go.disabled = false; say("bad", r.body.error || "Could not save."); return; }
-    // wait for the connector to report this server
-    let s;
-    for (let t = 0; t < 24 && !s; t++) { await sleep(500); await loadStatus(); s = mcpServers(conns.find(c => c.id === "mcp"))[name]; }
-    go.disabled = false; connected = true;
-    if (!s) { say("bad", "No answer yet. It may still be connecting; check back in a moment."); return; }
-    if (!s.ok) { say("bad", friendly(s.err)); go.textContent = "Try again"; return; }
-    say("ok", "Connected · BB-8 can now use " + s.n + " actions from " + app.label + ".");
-    go.textContent = "Done"; go.onclick = () => dlg.close();
-  };
-  // A new app that never connected is removed on Cancel, so no broken leftovers.
-  cancel.onclick = async () => { if (!editing && connected && !result.classList.contains("ok")) await clearSlot(slot); dlg.close(); };
-  if (remove) remove.onclick = async () => { if (confirm("Disconnect " + app.label + "?")) { await clearSlot(slot); dlg.close(); toast("Disconnected"); } };
-  $("#dlg-body").onsubmit = (e) => { e.preventDefault(); go.click(); };
-  dlg.oncancel = (e) => { e.preventDefault(); cancel.onclick(); };
-  dlg.showModal();
-  (Object.values(inputs).find(i => !i.value) || go).focus();
+function ownerSelect(value) {
+  const sel = el("select", { class: "txt" }, el("option", { value: "", textContent: "Everyone at home (shared)" }),
+    ...(accts.people || []).map(p => el("option", { value: p, textContent: p })));
+  if (value && !(accts.people || []).includes(value)) sel.append(el("option", { value, textContent: value }));
+  sel.value = value || "";
+  return sel;
 }
 
-async function clearSlot(n) {
-  const vals = {};
-  for (const f of ["name", "url", "token"]) vals["connectors.mcp." + n + "." + f] = "";
-  vals["connectors.mcp." + n + ".unknown_voices"] = false;
-  await patch(vals);
-  statusSoon();
+function openDialog(...kids) {
+  const dlg = $("#dlg");
+  $("#dlg-body").replaceChildren(...kids);
+  $("#dlg-body").onsubmit = (e) => e.preventDefault();
+  dlg.oncancel = null;
+  if (!dlg.open) dlg.showModal();
+  return dlg;
+}
+const resultBox = () => el("div", { class: "result" });
+const say = (box, cls, msg) => { box.className = "result show " + cls; box.replaceChildren(cls === "busy" ? el("span", { class: "spin" }) : "", msg); };
+
+// pickDialog: which service to connect.
+function pickDialog() {
+  const tile = (id) => {
+    const k = id === "alexa" ? { label: "Alexa", what: "Your Echo devices, through Home Assistant." } : accts.catalog[id];
+    if (!k) return null;
+    return el("button", { class: "tile", type: "button", onclick: () => id === "alexa" ? alexaDialog() : connectDialog(id) },
+      el("span", { class: "badge", textContent: k.label[0] }), el("b", { textContent: k.label }), el("small", { textContent: k.what }));
+  };
+  openDialog(el("h3", { textContent: "Connect a service" }),
+    el("p", { class: "lead", textContent: "BB-8 signs in once and then uses it when you ask." }),
+    el("div", { class: "tiles" }, ...TILES.map(tile)),
+    el("div", { class: "actions" }, el("button", { class: "btn ghost", type: "button", textContent: "Close", onclick: () => $("#dlg").close() })));
+}
+
+// connectDialog: whose account, the few fields it needs, then the service's own sign-in.
+function connectDialog(kind, existing) {
+  const k = accts.catalog[kind], g = GUIDE[kind] || {};
+  const owner = ownerSelect(existing ? existing.owner : (k.shared ? "" : accts.owner));
+  const fields = [], inputs = {};
+  if (kind === "home") {
+    inputs.url = el("input", { class: "txt", placeholder: "homeassistant.local:8123", value: existing ? existing.url.replace(/\/api\/mcp$/, "") : "" });
+    const found = el("small", { textContent: "Looking for it on your network…" });
+    fields.push(el("div", { class: "field" }, el("label", { textContent: "Home Assistant address" }), inputs.url, found));
+    api("/api/connections/discover").then(r => {
+      const ha = (r.body?.home_assistant || [])[0];
+      if (ha) { if (!inputs.url.value) inputs.url.value = ha.url; found.textContent = "Found on your network" + (ha.name ? ": " + ha.name : "") + " ✓"; }
+      else found.textContent = "Not found automatically; type its address (as you open it in the browser).";
+    });
+  }
+  if (kind === "custom" && !existing) {
+    inputs.url = el("input", { class: "txt", placeholder: "https://…" });
+    inputs.token = el("input", { class: "txt", type: "password", placeholder: "Only if the service gave you one" });
+    fields.push(el("div", { class: "field" }, el("label", { textContent: "Link" }), inputs.url),
+      el("details", { class: "more" }, el("summary", { textContent: "I have a token" }), el("div", { class: "field" }, inputs.token)));
+  }
+  const result = resultBox();
+  const verb = k.sign_in === "oauth" ? "Sign in with " + k.label : k.sign_in === "homeassistant" ? "Sign in to Home Assistant" : "Connect";
+  const go = el("button", { class: "btn", type: "button", textContent: verb });
+  go.onclick = async () => {
+    go.disabled = true; say(result, "busy", "Opening " + k.label + "…");
+    const body = { kind, owner: owner.value, origin: location.origin, url: inputs.url?.value.trim() || "", token: inputs.token?.value.trim() || "", id: existing?.id || "" };
+    const r = await api("/api/connections/start", { method: "POST", body: JSON.stringify(body) });
+    go.disabled = false;
+    if (!r.ok) { say(result, "bad", r.body.error || "It didn't work."); return; }
+    if (r.body.auth_url) {
+      try { sessionStorage.setItem("bb8-connecting", JSON.stringify({ kind })); } catch (e) {}
+      location.href = r.body.auth_url;
+      return;
+    }
+    await loadAccounts();
+    resultDialog({ connected: r.body.connected });
+  };
+  openDialog(el("h3", { textContent: (existing ? "Sign in again: " : "Connect ") + k.label }), el("p", { class: "lead", textContent: k.what }),
+    g.before ? stepsList(g.before) : "",
+    el("div", { class: "field" }, el("label", { textContent: "Whose account is this?" }), owner,
+      el("small", { textContent: "BB-8 uses it when this person talks. Shared: anyone in the house." })),
+    ...fields, result,
+    el("div", { class: "actions" }, el("button", { class: "btn ghost", type: "button", textContent: "Back", onclick: existing ? () => editDialog(existing.id) : pickDialog }), go));
+  $("#dlg-body").onsubmit = (e) => { e.preventDefault(); go.click(); };
+}
+
+function alexaDialog() {
+  const ha = (accts.connections || []).find(x => x.connection.kind === "home");
+  openDialog(el("h3", { textContent: "Alexa" }),
+    el("p", { class: "lead", textContent: "Amazon has no way for other assistants to use Alexa directly. BB-8 reaches your Echo devices through Home Assistant, which has an official Alexa integration." }),
+    stepsList([["In Home Assistant, add ", ["Alexa Devices", "https://my.home-assistant.io/redirect/config_flow_start/?domain=alexa_devices"], " and sign in with Amazon."],
+      ["In ", ["Voice assistants → Expose", "https://my.home-assistant.io/redirect/voice_assistants/"], ", expose your ", "Echo devices", "."],
+      ha ? ["Home Assistant is connected ", "✓", "."] : ["Connect ", "Home Assistant", " here."]]),
+    el("p", { class: "lead", textContent: "For BB-8 to speak through an Echo, make a Home Assistant script that sends notify.send_message to the Echo's Announce entity and expose the script too." }),
+    el("div", { class: "actions" }, el("button", { class: "btn ghost", type: "button", textContent: "Back", onclick: pickDialog }),
+      ha ? el("button", { class: "btn", type: "button", textContent: "Done", onclick: () => $("#dlg").close() })
+        : el("button", { class: "btn", type: "button", textContent: "Connect Home Assistant", onclick: () => connectDialog("home") })));
+}
+
+// editDialog: owner, how careful it is, sign in again, disconnect.
+function editDialog(id) {
+  const item = (accts.connections || []).find(x => x.connection.id === id); if (!item) return;
+  const c = item.connection, k = accts.catalog[c.kind] || { label: c.label, sign_in: "auto" };
+  const owner = ownerSelect(c.owner);
+  const confirmSw = el("input", { type: "checkbox", checked: c.confirm });
+  const strangers = el("input", { type: "checkbox", checked: c.strangers });
+  const strangersRow = el("label", { class: "opt" }, el("span", { class: "switch" }, strangers, el("span")), "Voices BB-8 doesn't know may use it (only to look things up)");
+  const showStrangers = () => { strangersRow.hidden = owner.value !== ""; };
+  owner.onchange = showStrangers; showStrangers();
+  const result = resultBox();
+  const save = el("button", { class: "btn", type: "button", textContent: "Save" });
+  save.onclick = async () => {
+    const r = await api("/api/connections/" + id, { method: "PATCH", body: JSON.stringify({ owner: owner.value, confirm: confirmSw.checked, strangers: strangers.checked }) });
+    if (!r.ok) { say(result, "bad", r.body.error || "Could not save."); return; }
+    $("#dlg").close(); toast("Saved"); loadAccounts();
+  };
+  const l = item.live;
+  openDialog(el("h3", { textContent: c.label }),
+    el("p", { class: "lead", textContent: (c.account ? "Signed in as " + c.account + ". " : "") + (l.state === "ok" ? l.tools + " actions available." : l.state === "error" ? friendly(l.error || "") : "Connecting…") }),
+    g8(GUIDE[c.kind]?.after),
+    el("div", { class: "field" }, el("label", { textContent: "Whose account is this?" }), owner),
+    el("label", { class: "opt" }, el("span", { class: "switch" }, confirmSw, el("span")), "Ask before sending, creating or deleting"),
+    strangersRow, result,
+    el("details", { class: "more" }, el("summary", { textContent: "Technical details" }), el("div", { class: "tech", textContent: c.url + (l.error ? " · " + l.error : "") })),
+    el("div", { class: "actions" },
+      el("button", { class: "linkbtn", type: "button", textContent: "Disconnect", style: "margin-right:auto;color:var(--bad)", onclick: async () => {
+        if (!confirm("Disconnect " + c.label + " (" + ownerName(c.owner) + ")?")) return;
+        await api("/api/connections/" + id, { method: "DELETE" }); $("#dlg").close(); toast("Disconnected"); loadAccounts();
+      } }),
+      k.sign_in !== "auto" || c.sign_in === "oauth" ? el("button", { class: "btn ghost", type: "button", textContent: "Sign in again", onclick: () => connectDialog(c.kind, c) }) : "",
+      save));
+}
+const g8 = (steps) => steps ? stepsList(steps) : "";
+
+// resultDialog: after a sign-in (or a direct connect), wait until BB-8 has its tools.
+async function resultDialog(res) {
+  const result = resultBox();
+  const done = el("button", { class: "btn", type: "button", textContent: "Done", onclick: () => $("#dlg").close() });
+  const c = res.connected;
+  openDialog(el("h3", { textContent: c ? c.label : "Not connected" }), result, el("div", { class: "actions" }, done));
+  if (!c) { say(result, "bad", res.error || "It didn't work."); return; }
+  say(result, "busy", "Connected" + (c.account ? " as " + c.account : "") + ". Loading what BB-8 can do…");
+  for (let i = 0; i < 30; i++) {
+    await loadAccounts();
+    const x = (accts.connections || []).find(y => y.connection.id === c.id);
+    if (x && x.live.state === "ok") {
+      say(result, "ok", "Connected for " + ownerName(c.owner) + (c.account ? " (" + c.account + ")" : "") + " · " + x.live.tools + " actions.");
+      const after = GUIDE[c.kind]?.after;
+      if (after) $("#dlg-body").insertBefore(stepsList(after), done.parentNode);
+      return;
+    }
+    if (x && x.live.state === "error") { say(result, "bad", friendly(x.live.error || "")); return; }
+    await sleep(700);
+  }
+  say(result, "bad", "Still connecting. Check back in a moment.");
 }
 
 function calendarDialog() {
@@ -690,7 +766,7 @@ function applyLive(l) {
   if (l.connectors) { conns = l.connectors; refreshServices(); }
   refreshOverview();
 }
-async function loadStatus() { const r = await api("/api/connectors"); if (r.ok) { conns = r.body; refreshServices(); refreshOverview(); } }
+async function loadStatus() { const r = await api("/api/connectors"); if (r.ok) { conns = r.body; refreshServices(); refreshOverview(); } loadAccounts(); }
 let statusTimer; const statusSoon = () => { clearTimeout(statusTimer); statusTimer = setTimeout(loadStatus, 1200); };
 
 function addAudit(c) {
@@ -742,6 +818,10 @@ async function clipsRefresh() {
   connect();
   setInterval(async () => { const r = await api("/api/config"); if (r.ok && r.body.live) applyLive(r.body.live); }, 5000);
   clipsRefresh(); setInterval(clipsRefresh, 4000);
+  // Back from a sign-in: the callback page left the result here.
+  let back = null;
+  try { back = JSON.parse(sessionStorage.getItem("bb8-connect") || "null"); sessionStorage.removeItem("bb8-connect"); sessionStorage.removeItem("bb8-connecting"); } catch (e) {}
+  if (back) { location.hash = "services"; resultDialog(back); }
 })();
 </script>
 </body>

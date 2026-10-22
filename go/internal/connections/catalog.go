@@ -1,0 +1,30 @@
+package connections
+
+// Kind is a service the page offers with its own button.
+type Kind struct {
+	Label  string `json:"label"`
+	What   string `json:"what"`
+	URL    string `json:"url,omitempty"` // MCP endpoint; empty: the user gives it
+	SignIn string `json:"sign_in"`       // oauth, homeassistant, auto (probe the link)
+	Shared bool   `json:"shared"`        // default owner: the house, not a person
+	// Confirm: ask before tools that send, create or delete. Off for the house
+	// (lights, plugs): asking "are you sure?" to turn on a lamp gets old fast.
+	Confirm bool `json:"confirm"`
+	Order   int  `json:"order"`
+}
+
+// Catalog: the services with a sign-in button. Their servers support the MCP
+// authorization flow (OAuth with automatic client registration), checked against
+// their published metadata.
+var Catalog = map[string]Kind{
+	"zapier": {Label: "Zapier", What: "Gmail, Google Calendar, Sheets and thousands of apps.",
+		URL: "https://mcp.zapier.com/api/mcp/mcp", SignIn: "oauth", Confirm: true, Order: 1},
+	"home": {Label: "Home Assistant", What: "Lights, plugs, thermostats and Alexa devices in your Home Assistant.",
+		SignIn: "homeassistant", Shared: true, Order: 2},
+	"notion": {Label: "Notion", What: "Your notes, lists and pages.",
+		URL: "https://mcp.notion.com/mcp", SignIn: "oauth", Confirm: true, Order: 3},
+	"linear": {Label: "Linear", What: "Issues and projects.",
+		URL: "https://mcp.linear.app/mcp", SignIn: "oauth", Confirm: true, Order: 4},
+	"custom": {Label: "Other", What: "Any service that gives you a link for AI assistants.",
+		SignIn: "auto", Confirm: true, Order: 9},
+}

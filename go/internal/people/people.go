@@ -77,6 +77,9 @@ func Open(dir string) (*Store, error) {
 		return s, nil
 	}
 	s.path = filepath.Join(dir, "people.json")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return nil, err
+	}
 	b, err := os.ReadFile(s.path)
 	if errors.Is(err, os.ErrNotExist) {
 		return s, nil

@@ -125,3 +125,45 @@ func TestGuestCannotMove(t *testing.T) {
 		t.Fatal(evs)
 	}
 }
+
+// A tool that sends needs a yes in the next turn; the model cannot confirm by itself.
+func TestConfirmAcrossTurns(t *testing.T) {
+	var confirmID string
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		var req chatReq
+		json.Unmarshal(b, &req)
+		last := req.Messages[len(req.Messages)-1]
+		switch {
+		case last.Role == "user" && strings.HasPrefix(last.Content.(string), "manda"):
+			w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"a","type":"function","function":{"name":"mail_send","arguments":"{\"to\":\"ana\"}"}}]}}]}`))
+		case last.Role == "tool" && strings.Contains(last.Content.(string), "needs_confirmation"):
+			var m map[string]any
+			json.Unmarshal([]byte(last.Content.(string)), &m)
+			confirmID = m["confirm_id"].(string)
+			if calls == 0 { // a sneaky model tries to confirm in the same turn
+				calls++
+				w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"b","type":"function","function":{"name":"mail_send","arguments":"{\"to\":\"ana\",\"confirm_id\":\"` + confirmID + `\"}"}}]}}]}`))
+				return
+			}
+			w.Write([]byte(`{"choices":[{"message":{"content":"¿Le mando el correo a Ana?"}}]}`))
+		case last.Role == "user": // "sí"
+			w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"c","type":"function","function":{"name":"mail_send","arguments":"{\"to\":\"ana\",\"confirm_id\":\"` + confirmID + `\"}"}}]}}]}`))
+		default:
+			w.Write([]byte(`{"choices":[{"message":{"content":"Listo."}}]}`))
+		}
+	}))
+	defer srv.Close()
+	a, _ := setup(t, srv.URL)
+	sent := 0
+	a.Reg.Set("x", []tools.Tool{{Name: "mail_send", Confirm: true, Schema: tools.Object(map[string]any{"to": tools.Str("")}),
+		Handler: func(context.Context, json.RawMessage) (tools.Output, error) { sent++; return tools.Data("sent") }}})
+	rep, err := a.AskAs(context.Background(), Turn{Text: "manda un correo a ana", Speaker: "Erick", Known: true})
+	if err != nil || sent != 0 || !strings.Contains(rep.Text, "¿Le mando") {
+		t.Fatal(rep, err, sent)
+	}
+	if _, err := a.AskAs(context.Background(), Turn{Text: "sí", Speaker: "Erick", Known: true}); err != nil || sent != 1 {
+		t.Fatal(err, sent)
+	}
+}

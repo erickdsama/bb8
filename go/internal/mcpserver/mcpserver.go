@@ -41,7 +41,7 @@ func New(reg *tools.Registry, instructions string) *mcp.Server {
 
 func handler(reg *tools.Registry, name string) mcp.ToolHandler {
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		out, err := reg.Call(ctx, name, req.Params.Arguments, tools.CallOpts{SpeakerKnown: true})
+		out, err := reg.Call(ctx, name, req.Params.Arguments, tools.CallOpts{SpeakerKnown: true, Admin: true})
 		if err != nil {
 			return &mcp.CallToolResult{IsError: true, Content: []mcp.Content{&mcp.TextContent{Text: err.Error()}}}, nil
 		}
