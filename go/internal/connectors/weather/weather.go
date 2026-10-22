@@ -22,8 +22,10 @@ type Weather struct {
 	GeocodeURL  string // https://geocoding-api.open-meteo.com/v1/search
 	HTTP        *http.Client
 
-	mu    sync.Mutex
-	cache map[string]geoHit // home.city text → place
+	mu      sync.Mutex
+	cache   map[string]geoHit // home.city text → place
+	failed  map[string]string // home.city text → why it was not found (for the page)
+	looking map[string]bool
 }
 
 func New() *Weather {
@@ -32,23 +34,58 @@ func New() *Weather {
 		GeocodeURL:  "https://geocoding-api.open-meteo.com/v1/search",
 		HTTP:        &http.Client{Timeout: 8 * time.Second},
 		cache:       map[string]geoHit{},
+		failed:      map[string]string{},
+		looking:     map[string]bool{},
 	}
 }
 
 func (w *Weather) ID() string      { return "weather" }
 func (w *Weather) DefaultOn() bool { return true } // Open-Meteo needs no key
+func (w *Weather) Title() string   { return "Weather" }
+func (w *Weather) Description() string {
+	return "Weather now and the forecast for today and tomorrow (Open-Meteo, no account). Uses Home → City."
+}
 
 func (w *Weather) Fields() []config.Field {
 	return []config.Field{{Key: "connectors.weather.units", Label: "Units", Type: config.Enum,
 		Options: []string{"metric", "imperial"}, Default: "metric",
-		Help: "Uses home.latitude/longitude, or home.city when they are 0."}}
+		Help: "Uses home.latitude/longitude, or home.city when they are 0.", Advanced: true}}
 }
 
 func (w *Weather) Status(c *config.Store) connectors.Status {
-	if c.Float("home.latitude") == 0 && c.Float("home.longitude") == 0 && c.String("home.city") == "" {
-		return connectors.Status{ID: w.ID(), State: connectors.NeedsConf, Detail: "set home.city or home.latitude/longitude"}
+	city := c.String("home.city")
+	if c.Float("home.latitude") != 0 || c.Float("home.longitude") != 0 {
+		return connectors.Status{ID: w.ID(), State: connectors.OK, Detail: "Home: latitude/longitude"}
 	}
-	return connectors.Status{ID: w.ID(), State: connectors.OK}
+	if city == "" {
+		return connectors.Status{ID: w.ID(), State: connectors.NeedsConf, Detail: "Set Home → City."}
+	}
+	// Look the city up in the background so the page shows what it matched.
+	w.mu.Lock()
+	hit, ok := w.cache[city]
+	failed, looking := w.failed[city], w.looking[city]
+	if !ok && failed == "" && !looking {
+		w.looking[city] = true
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			_, _, _, err := w.geocode(ctx, city)
+			w.mu.Lock()
+			delete(w.looking, city)
+			if errors.Is(err, errNotFound) { // network errors are retried on the next look
+				w.failed[city] = err.Error()
+			}
+			w.mu.Unlock()
+		}()
+	}
+	w.mu.Unlock()
+	switch {
+	case ok:
+		return connectors.Status{ID: w.ID(), State: connectors.OK, Detail: "Home: " + strings.Trim(hit.Name+", "+hit.Admin1+", "+hit.Country, ", ")}
+	case failed != "":
+		return connectors.Status{ID: w.ID(), State: connectors.Error, Detail: failed}
+	}
+	return connectors.Status{ID: w.ID(), State: connectors.OK, Detail: "Looking up " + city + "…"}
 }
 
 func (w *Weather) Tools(c *config.Store) []tools.Tool {
@@ -104,6 +141,8 @@ type geoHit struct {
 	Country   string  `json:"country"`
 }
 
+var errNotFound = errors.New("not found")
+
 // geocode resolves a free-form city. Open-Meteo only matches the place name, so
 // "Cd. Juarez Chihuahua" or "Monterrey, NL" find nothing as typed: abbreviations
 // are expanded, then words are dropped from the end and used as a state/country
@@ -147,7 +186,7 @@ func (w *Weather) geocode(ctx context.Context, text string) (lat, lon float64, n
 		w.mu.Unlock()
 		return hit.Latitude, hit.Longitude, hit.Name, nil
 	}
-	return 0, 0, "", fmt.Errorf("city %q not found; try just the city name, e.g. \"Ciudad Juárez\"", text)
+	return 0, 0, "", fmt.Errorf("city %q %w; try just the city name, e.g. \"Ciudad Juárez\"", text, errNotFound)
 }
 
 // fold lowercases and strips Spanish accents so "Juárez" matches "juarez".

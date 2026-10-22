@@ -32,19 +32,23 @@ func New() *Web { return &Web{HTTP: &http.Client{Timeout: 45 * time.Second}} }
 
 func (w *Web) ID() string      { return "web" }
 func (w *Web) DefaultOn() bool { return true }
+func (w *Web) Title() string   { return "Web search" }
+func (w *Web) Description() string {
+	return "News, prices, schedules and anything current, through OpenRouter's web plugin. Uses the agent's OpenRouter key (~$0.02 per search)."
+}
 
 func (w *Web) Fields() []config.Field {
 	return []config.Field{
 		{Key: keyModel, Label: "Search model (OpenRouter id)", Type: config.String, Default: "",
-			Help: "Empty = the agent's model. A cheap fast model is enough: it only reads and summarizes the results."},
+			Help: "Empty = the agent's model. A cheap fast model is enough: it only reads and summarizes the results.", Advanced: true},
 		{Key: keyResults, Label: "Results per search", Type: config.Number, Default: 5.0, Min: config.F(1), Max: config.F(10),
-			Help: "Each result costs about $0.004 on OpenRouter."},
+			Help: "Each result costs about $0.004 on OpenRouter.", Advanced: true},
 	}
 }
 
 func (w *Web) Status(c *config.Store) connectors.Status {
 	if c.Secret("agent.api_key") == "" {
-		return connectors.Status{ID: w.ID(), State: connectors.NeedsConf, Detail: "uses agent.api_key (OpenRouter)"}
+		return connectors.Status{ID: w.ID(), State: connectors.NeedsConf, Detail: "Set Agent → OpenRouter API key."}
 	}
 	return connectors.Status{ID: w.ID(), State: connectors.OK}
 }

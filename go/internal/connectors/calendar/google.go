@@ -42,9 +42,9 @@ func GoogleFields() []config.Field {
 		{Key: keyClientSecret, Label: "Google OAuth client secret", Type: config.Secret},
 		{Key: keyRedirect, Label: "OAuth redirect URL", Type: config.String,
 			Default: "http://localhost:8765/api/connectors/calendar/callback",
-			Help:    "Register it in the OAuth client. Open the config page through an SSH tunnel to use localhost."},
-		{Key: keyRefresh, Label: "Google refresh token", Type: config.Secret, Help: "Filled by \"Connect Google\"."},
-		{Key: keyCalendarID, Label: "Calendar ID", Type: config.String, Default: "primary"},
+			Help:    "Register it in the OAuth client. Open the config page through an SSH tunnel to use localhost.", Advanced: true},
+		{Key: keyRefresh, Label: "Google refresh token", Type: config.Secret, Help: "Filled by \"Connect Google\".", Advanced: true},
+		{Key: keyCalendarID, Label: "Calendar ID", Type: config.String, Default: "primary", Advanced: true},
 	}
 }
 

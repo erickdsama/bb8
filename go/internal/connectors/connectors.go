@@ -23,9 +23,12 @@ const (
 )
 
 type Status struct {
-	ID     string `json:"id"`
-	State  State  `json:"state"`
-	Detail string `json:"detail,omitempty"`
+	ID          string   `json:"id"`
+	State       State    `json:"state"`
+	Detail      string   `json:"detail,omitempty"`
+	Title       string   `json:"title,omitempty"`       // filled by the Manager
+	Description string   `json:"description,omitempty"` // filled by the Manager
+	Tools       []string `json:"tools,omitempty"`       // registered now; filled by the Manager
 }
 
 type Connector interface {
@@ -33,6 +36,12 @@ type Connector interface {
 	Fields() []config.Field             // shown in the web form; keys start with "connectors.<id>."
 	Tools(c *config.Store) []tools.Tool // added to the registry → agent and MCP
 	Status(c *config.Store) Status
+}
+
+// Describer gives the config page a name and one line on what the connector does.
+type Describer interface {
+	Title() string
+	Description() string
 }
 
 // DefaultOn is implemented by connectors that start enabled (no account needed).
@@ -49,10 +58,13 @@ type Manager struct {
 	reg  *tools.Registry
 	list []Connector
 	mu   map[string]*sync.Mutex // one apply at a time per connector
+
+	toolsMu sync.Mutex
+	tools   map[string][]string // id → tool names registered now
 }
 
 func NewManager(cfg *config.Store, reg *tools.Registry, cs ...Connector) *Manager {
-	m := &Manager{cfg: cfg, reg: reg, list: cs, mu: map[string]*sync.Mutex{}}
+	m := &Manager{cfg: cfg, reg: reg, list: cs, mu: map[string]*sync.Mutex{}, tools: map[string][]string{}}
 	for _, c := range cs {
 		m.mu[c.ID()] = &sync.Mutex{}
 		on := false
@@ -88,6 +100,7 @@ func (m *Manager) apply(c Connector) {
 	owner := "connector:" + c.ID()
 	if !m.cfg.Bool(EnabledKey(c.ID())) {
 		m.reg.Set(owner, nil)
+		m.setTools(c.ID(), nil)
 		if cl, ok := c.(Closer); ok {
 			cl.Close()
 		}
@@ -99,17 +112,31 @@ func (m *Manager) apply(c Connector) {
 	for i, t := range ts {
 		names[i] = t.Name
 	}
+	m.setTools(c.ID(), names)
 	slog.Info("connector on", "id", c.ID(), "tools", strings.Join(names, ","))
+}
+
+func (m *Manager) setTools(id string, names []string) {
+	m.toolsMu.Lock()
+	m.tools[id] = names
+	m.toolsMu.Unlock()
 }
 
 func (m *Manager) Status() []Status {
 	out := make([]Status, 0, len(m.list))
 	for _, c := range m.list {
-		if !m.cfg.Bool(EnabledKey(c.ID())) {
-			out = append(out, Status{ID: c.ID(), State: Disabled})
-			continue
+		st := Status{ID: c.ID(), State: Disabled}
+		if m.cfg.Bool(EnabledKey(c.ID())) {
+			st = c.Status(m.cfg)
+			m.toolsMu.Lock()
+			st.Tools = m.tools[c.ID()]
+			m.toolsMu.Unlock()
 		}
-		out = append(out, c.Status(m.cfg))
+		st.Title = c.ID()
+		if d, ok := c.(Describer); ok {
+			st.Title, st.Description = d.Title(), d.Description()
+		}
+		out = append(out, st)
 	}
 	return out
 }

@@ -41,7 +41,11 @@ func New() *Calendar {
 	return &Calendar{Providers: map[string]Factory{"google": func(c *config.Store) Provider { return NewGoogle(c) }}, Now: time.Now}
 }
 
-func (c *Calendar) ID() string { return "calendar" }
+func (c *Calendar) ID() string    { return "calendar" }
+func (c *Calendar) Title() string { return "Calendar" }
+func (c *Calendar) Description() string {
+	return "Reads and adds events in Google Calendar. Needs a Google OAuth client, then Connect Google."
+}
 
 func (c *Calendar) names() []string {
 	var n []string
@@ -54,7 +58,7 @@ func (c *Calendar) names() []string {
 
 func (c *Calendar) Fields() []config.Field {
 	return append([]config.Field{
-		{Key: "connectors.calendar.provider", Label: "Provider", Type: config.Enum, Options: c.names(), Default: "google"},
+		{Key: "connectors.calendar.provider", Label: "Provider", Type: config.Enum, Options: c.names(), Default: "google", Advanced: true},
 	}, GoogleFields()...)
 }
 

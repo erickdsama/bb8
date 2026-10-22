@@ -9,6 +9,10 @@
 @media (prefers-color-scheme: dark) { :root { --bg:#151514; --card:#1f1f1d; --ink:#ecebe6; --mute:#9a9891; --line:#33322f; --flash:#3a2f1a; } }
 * { box-sizing: border-box; }
 body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 system-ui, sans-serif; }
+nav#toc { position:sticky; top:0; z-index:2; background:var(--bg); border-bottom:1px solid var(--line); padding:8px 16px; display:flex; gap:14px; overflow-x:auto; font-size:13px; }
+nav#toc a { color:var(--mute); text-decoration:none; white-space:nowrap; text-transform:capitalize; }
+nav#toc a:hover { color:var(--accent); }
+section { scroll-margin-top:44px; }
 header { display:flex; align-items:center; gap:12px; padding:16px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
 h1 { font-size:18px; margin:0; }
 .dot { width:10px; height:10px; border-radius:50%; background:var(--bad); display:inline-block; }
@@ -37,6 +41,47 @@ button { background:var(--accent); color:#fff; border:0; cursor:pointer; width:a
 .clips .meta { font-size:12px; color:var(--mute); white-space:nowrap; }
 .clips .txt { font-size:14px; }
 .clips audio { grid-column:1 / -1; width:100%; height:36px; }
+.conns { display:grid; gap:12px; }
+.conn { border:1px solid var(--line); border-radius:12px; padding:14px; transition: background .6s; }
+.conn.flash { background:var(--flash); }
+.conn-head { display:flex; align-items:flex-start; gap:12px; }
+.conn-icon { font-size:26px; line-height:1; }
+.conn-head b { font-size:16px; }
+.conn-desc { font-size:13px; color:var(--mute); margin:2px 0 0; }
+.conn-state { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:10px 0 0; font-size:14px; }
+.led { width:9px; height:9px; border-radius:50%; background:var(--line); flex:none; }
+.led.ok { background:var(--ok); } .led.warn { background:var(--accent); } .led.bad { background:var(--bad); }
+.asks { font-size:13px; color:var(--mute); margin:8px 0 0; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.asks q { background:var(--bg); border:1px solid var(--line); border-radius:99px; padding:2px 10px; color:var(--ink); }
+.conn.off .conn-body, .conn.off .asks, .conn.off .tech { display:none; }
+.conn.off .conn-state { color:var(--mute); }
+.conn-body { margin-top:8px; }
+.tip { font-size:13px; color:var(--mute); margin:6px 0; }
+.switch { margin-left:auto; position:relative; width:42px; height:24px; flex:none; }
+.switch input { opacity:0; width:100%; height:100%; margin:0; position:absolute; cursor:pointer; z-index:1; transform:none; }
+.switch span { position:absolute; inset:0; background:var(--line); border-radius:99px; transition:background .2s; }
+.switch span::after { content:""; position:absolute; left:3px; top:3px; width:18px; height:18px; border-radius:50%; background:#fff; transition:left .2s; }
+.switch input:checked + span { background:var(--ok); }
+.switch input:checked + span::after { left:21px; }
+.chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+.chips code { font-size:11px; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:1px 6px; }
+.conn-detail { font-size:12px; color:var(--mute); margin:4px 0 0; word-break:break-word; }
+details.adv { margin-top:6px; }
+details.adv summary { font-size:13px; color:var(--mute); cursor:pointer; padding:4px 0; }
+ol.steps { margin:6px 0; padding-left:20px; font-size:14px; display:grid; gap:6px; }
+ol.steps .row { border-top:0; }
+ol.steps code { font-size:12px; word-break:break-all; background:var(--bg); padding:1px 4px; border-radius:4px; }
+.slot { border:1px solid var(--line); border-radius:10px; padding:8px 10px; margin-top:8px; }
+.slot-head { display:flex; align-items:center; gap:8px; font-size:14px; }
+.slot-msg { color:var(--mute); font-size:13px; flex:1; }
+.slot-form { margin-top:6px; }
+.steps-box a { font-size:13px; }
+.presets { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:10px; }
+button.preset { background:var(--bg); color:var(--ink); border:1px solid var(--line); padding:6px 12px; border-radius:99px; }
+button.preset:hover { border-color:var(--accent); }
+button.link { background:none; color:var(--accent); padding:2px 4px; }
+a.btn { display:inline-block; background:var(--accent); color:#fff; border-radius:8px; padding:6px 12px; text-decoration:none; font-size:14px; }
+a.btn.dim { opacity:.5; }
 </style>
 </head>
 <body>
@@ -48,6 +93,7 @@ button { background:var(--accent); color:#fff; border:0; cursor:pointer; width:a
   <a id="people-link" href="/people" style="font-size:13px">People</a>
   <span class="pill" id="rev-txt"></span>
 </header>
+<nav id="toc"></nav>
 <main>
   <div id="sections"></div>
   <section id="chat" hidden>
@@ -101,13 +147,15 @@ function read(f, i) {
 }
 
 function show(key, v, flash) {
+  if (/^connectors\.[^.]+\.enabled$/.test(key)) document.getElementById("c-" + key.split(".")[1])?.classList.toggle("off", !v);
   const f = schema.find(x => x.key === key), i = document.getElementById("f-" + key);
   if (!f || !i || document.activeElement === i) return;
   if (f.type === "bool") i.checked = !!v;
   else if (f.type === "secret") { i.value = ""; i.placeholder = v ? "set (type to replace, clear with a space)" : "not set"; }
   else i.value = v ?? "";
   i.classList.remove("err");
-  if (flash) { const row = i.closest(".row"); row.classList.add("flash"); setTimeout(() => row.classList.remove("flash"), 900); }
+  const row = i.closest(".row, .conn");
+  if (flash && row) { row.classList.add("flash"); setTimeout(() => row.classList.remove("flash"), 900); }
 }
 
 async function save(f, i) {
@@ -118,6 +166,7 @@ async function save(f, i) {
   if (r.status === 409) { apply(r.body); toast("Changed elsewhere meanwhile; reloaded. Try again."); return; }
   if (!r.ok) { i.classList.add("err"); toast(r.body.error || "Error"); return; }
   apply(r.body);
+  if (f.key.startsWith("connectors.") || f.key.startsWith("home.") || f.key === "agent.api_key") statusSoon();
   toast("Saved" + (f.restart ? " (applies after restart)" : ""));
 }
 
@@ -133,18 +182,244 @@ function live(l) {
   document.getElementById("head-txt").textContent = h.connected ? "head connected" + (h.config_rev !== undefined ? " · head rev " + h.config_rev : "") : "head offline";
 }
 
-function build() {
-  const groups = {};
-  for (const f of schema) (groups[f.key.split(".")[0]] ||= []).push(f);
-  const root = document.getElementById("sections");
-  root.replaceChildren(...Object.entries(groups).map(([name, fs]) =>
-    el("section", {}, el("h2", { textContent: name }), ...fs.map(f => {
-      const row = el("div", { className: "row" }, el("label", { htmlFor: "f-" + f.key, textContent: f.label || f.key }), input(f));
-      const extra = [f.help, f.agent ? "BB-8 can change this by voice." : "", f.restart ? "Needs a restart." : ""].filter(Boolean).join(" ");
-      if (extra) row.append(el("div", { className: "help", textContent: extra }));
-      return row;
-    }))));
+function row(f) {
+  const r = el("div", { className: "row" }, el("label", { htmlFor: "f-" + f.key, textContent: f.label || f.key }), input(f));
+  const extra = [f.help, f.agent ? "BB-8 can change this by voice." : "", f.restart ? "Needs a restart." : ""].filter(Boolean).join(" ");
+  if (extra) r.append(el("div", { className: "help", textContent: extra }));
+  return r;
 }
+
+// fields: plain rows, then the advanced ones folded.
+function rows(fs) {
+  const adv = fs.filter(f => f.advanced), out = fs.filter(f => !f.advanced).map(row);
+  if (adv.length) out.push(el("details", { className: "adv" }, el("summary", { textContent: "Advanced" }), ...adv.map(row)));
+  return out;
+}
+
+function build(conns) {
+  const groups = {};
+  for (const f of schema) if (!f.key.startsWith("connectors.")) (groups[f.key.split(".")[0]] ||= []).push(f);
+  const root = document.getElementById("sections");
+  const secs = Object.entries(groups).map(([name, fs]) => el("section", {}, el("h2", { textContent: name }), ...rows(fs)));
+  secs.push(el("section", { id: "connectors" }, el("h2", { textContent: "connectors" }),
+    el("div", { className: "conns" }, ...conns.map(connCard))));
+  root.replaceChildren(...secs);
+  const names = [...Object.keys(groups), "connectors"];
+  document.getElementById("toc").replaceChildren(...names.map(n => {
+    secs[names.indexOf(n)].id = "s-" + n;
+    return el("a", { href: "#s-" + n, textContent: n });
+  }));
+}
+
+// Connector cards: what it does, one plain status line with the next step, and
+// what to ask BB-8. Settings stay folded; raw details live under "Details".
+const CONN = {
+  weather: { icon: "☀️", asks: ["¿Va a llover mañana?", "¿Qué temperatura hace?"] },
+  web: { icon: "🔎", asks: ["¿Quién ganó el partido de anoche?", "¿A qué hora abre Costco?"] },
+  calendar: { icon: "📅", asks: ["¿Qué tengo hoy?", "Agéndame dentista el martes a las 5"] },
+  mcp: { icon: "🔌", asks: ["Mándale un correo a Ana", "Apaga la luz de la sala"] },
+};
+const MCP_PRESETS = {
+  zapier: { label: "Zapier", hint: "Gmail, Google Calendar, Sheets, IFTTT-style automations and 7,000+ apps.",
+    steps: ["Open mcp.zapier.com and create a server.", "Add the actions BB-8 may use (e.g. Gmail: send email).", "Copy the server URL and paste it below."],
+    link: "https://mcp.zapier.com" },
+  composio: { label: "Composio", hint: "Gmail, Calendar, Drive, Slack, Notion…",
+    steps: ["Open composio.dev and create an MCP server with the apps you want.", "Copy its URL and paste it below."], link: "https://composio.dev" },
+  homeassistant: { label: "Home Assistant", hint: "Lights, plugs, thermostats in your house.",
+    steps: ["In Home Assistant: Settings → Devices & services → Add integration → Model Context Protocol Server.",
+      "Profile → Security → create a long-lived access token.", "URL: http://homeassistant.local:8123/api/mcp, and paste the token below."],
+    link: "https://www.home-assistant.io/integrations/mcp_server/", url: "http://homeassistant.local:8123/api/mcp" },
+  other: { label: "Other", hint: "Any MCP server over HTTP.", steps: ["Paste its URL (and a token if it needs one)."] },
+};
+const val = (k) => { const i = document.getElementById("f-" + k); return !i ? "" : i.type === "checkbox" ? i.checked : i.value; };
+
+// goTo scrolls to another setting (e.g. Home → City), opens its fold and focuses it.
+function goTo(key) {
+  const i = document.getElementById("f-" + key);
+  if (!i) return;
+  const d = i.closest("details"); if (d) d.open = true;
+  i.scrollIntoView({ behavior: "smooth", block: "center" });
+  setTimeout(() => i.focus(), 400);
+  const r = i.closest(".row"); r.classList.add("flash"); setTimeout(() => r.classList.remove("flash"), 1500);
+}
+
+function connCard(c) {
+  const pre = "connectors." + c.id + ".", meta = CONN[c.id] || {};
+  const fs = schema.filter(f => f.key.startsWith(pre) && f.key !== pre + "enabled");
+  const on = schema.find(f => f.key === pre + "enabled");
+  const body = el("div", { className: "conn-body" });
+  if (c.id === "mcp") body.append(...mcpBody(fs));
+  else if (c.id === "calendar") body.append(...calendarBody(fs));
+  else if (fs.length) body.append(el("details", { className: "adv" }, el("summary", { textContent: "Settings" }), ...fs.map(row)));
+  const card = el("div", { className: "conn", id: "c-" + c.id },
+    el("div", { className: "conn-head" }, el("span", { className: "conn-icon", textContent: meta.icon || "•" }),
+      el("div", {}, el("b", { textContent: c.title || c.id }), el("p", { className: "conn-desc", textContent: c.description || "" })),
+      el("label", { className: "switch", title: "On / off" }, input(on), el("span"))),
+    el("div", { className: "conn-state" }, el("span", { className: "led" }), el("span", { className: "conn-msg" }), el("span", { className: "conn-act" })),
+    meta.asks ? el("p", { className: "asks" }, "Ask: ", ...meta.asks.map(a => el("q", { textContent: a }))) : "",
+    body,
+    el("details", { className: "adv tech" }, el("summary", { textContent: "Details" }), el("p", { className: "conn-detail" }), el("div", { className: "chips" })));
+  return card;
+}
+
+function calendarBody(fs) {
+  const by = (k) => fs.find(f => f.key === "connectors.calendar." + k);
+  const redirect = el("code", { id: "cal-redirect" });
+  const copy = el("button", { className: "link", type: "button", textContent: "Copy" });
+  copy.onclick = () => { navigator.clipboard?.writeText(redirect.textContent); toast("Copied"); };
+  const connect = el("a", { className: "btn", id: "google-connect",
+    href: "/api/connectors/calendar/auth" + (token ? "?token=" + encodeURIComponent(token) : ""), textContent: "Connect Google" });
+  return [
+    el("p", { className: "tip" }, "Easier: add Zapier under ", el("b", { textContent: "MCP servers" }), " and give it Google Calendar. This one talks to Google directly and needs a Google Cloud project."),
+    el("details", { className: "adv", id: "cal-setup" }, el("summary", { textContent: "Set up Google" }),
+      el("ol", { className: "steps" },
+        el("li", {}, "In ", el("a", { href: "https://console.cloud.google.com/apis/credentials", target: "_blank", textContent: "Google Cloud → Credentials" }),
+          ", create an OAuth client of type Web application (enable the Google Calendar API first)."),
+        el("li", {}, "Add this authorized redirect URL: ", redirect, " ", copy),
+        el("li", {}, "Paste the client ID and secret:", row(by("google_client_id")), row(by("google_client_secret"))),
+        el("li", {}, "Sign in with your Google account: ", connect)),
+      el("details", { className: "adv" }, el("summary", { textContent: "More settings" }),
+        ...fs.filter(f => !/google_client_(id|secret)$/.test(f.key)).map(row))),
+  ];
+}
+
+// MCP: a short list of services ("zapier · 12 tools") with Edit/Remove, and
+// "Add a service" with presets that say where to get the URL.
+function mcpBody(fs) {
+  const slots = {};
+  for (const f of fs) (slots[f.key.split(".")[2]] ||= []).push(f);
+  const list = el("div", { id: "mcp-list" });
+  for (const [n, sfs] of Object.entries(slots)) {
+    const k = (x) => "connectors.mcp." + n + "." + x;
+    const edit = el("button", { className: "link", type: "button", textContent: "Edit" });
+    const rm = el("button", { className: "link", type: "button", textContent: "Remove" });
+    const form = el("div", { className: "slot-form", hidden: true }, el("div", { className: "steps-box" }),
+      ...sfs.map(f => { const r = row(f); if (f.key.endsWith(".name")) r.querySelector("label").textContent = "Short name"; if (f.key.endsWith(".unknown_voices")) r.querySelector("label").textContent = "Strangers may use it"; return r; }));
+    const done = el("button", { type: "button", textContent: "Done" });
+    done.onclick = () => { form.hidden = true; mcpRefresh(); statusSoon(); };
+    form.append(done);
+    const slot = el("div", { className: "slot", id: "slot-" + n, hidden: true },
+      el("div", { className: "slot-head" }, el("span", { className: "led" }), el("b", { className: "slot-name" }), el("span", { className: "slot-msg" }), edit, rm), form);
+    edit.onclick = () => { form.hidden = !form.hidden; };
+    rm.onclick = async () => {
+      if (!confirm("Remove " + (val(k("name")) || "this server") + "?")) return;
+      const values = {};
+      for (const f of sfs) values[f.key] = f.type === "bool" ? false : "";
+      const r = await api("/api/config", { method: "PATCH", body: JSON.stringify({ baseRev: rev, values }) });
+      if (r.ok) { apply(r.body); form.hidden = true; mcpRefresh(); statusSoon(); toast("Removed"); } else toast(r.body.error || "Error");
+    };
+    list.append(slot);
+  }
+  const picker = el("div", { className: "presets", id: "mcp-add" }, el("span", { className: "pill", textContent: "Add a service:" }),
+    ...Object.entries(MCP_PRESETS).map(([id, p]) => {
+      const b = el("button", { type: "button", className: "preset", textContent: p.label, title: p.hint });
+      b.onclick = () => mcpAdd(id);
+      return b;
+    }));
+  return [list, picker];
+}
+
+async function mcpAdd(preset) {
+  const slot = [...document.querySelectorAll("#c-mcp .slot")].find(s => s.hidden);
+  if (!slot) { toast("All 3 slots are in use"); return; }
+  const n = slot.id.slice(5), p = MCP_PRESETS[preset], values = {};
+  if (!val("connectors.mcp.enabled")) values["connectors.mcp.enabled"] = true;
+  if (preset !== "other") values["connectors.mcp." + n + ".name"] = preset === "homeassistant" ? "home" : preset;
+  if (p.url) values["connectors.mcp." + n + ".url"] = p.url;
+  if (Object.keys(values).length) {
+    const r = await api("/api/config", { method: "PATCH", body: JSON.stringify({ baseRev: rev, values }) });
+    if (r.ok) apply(r.body);
+  }
+  slot.hidden = false;
+  const form = slot.querySelector(".slot-form");
+  form.hidden = false;
+  form.querySelector(".steps-box").replaceChildren(el("ol", { className: "steps" }, ...p.steps.map(t => el("li", { textContent: t }))),
+    p.link ? el("a", { href: p.link, target: "_blank", textContent: "Open " + p.label + " ↗" }) : "");
+  mcpRefresh();
+  (form.querySelector('[id$=".url"]').value ? form.querySelector('[id$=".token"]') : form.querySelector('[id$=".url"]')).focus();
+}
+
+function mcpRefresh() {
+  const blocks = [...document.querySelectorAll("#c-mcp .slot")];
+  for (const b of blocks) {
+    const n = b.id.slice(5), used = ["name", "url"].some(k => val("connectors.mcp." + n + "." + k));
+    b.querySelector(".slot-name").textContent = val("connectors.mcp." + n + ".name") || "New service";
+    if (used) b.hidden = false; else if (b.querySelector(".slot-form").hidden) b.hidden = true;
+  }
+  const add = document.getElementById("mcp-add");
+  if (add) add.hidden = !blocks.some(b => b.hidden);
+}
+
+// friendly turns a raw error into what to do about it.
+function friendly(err) {
+  if (/401|403|unauthori[sz]ed|forbidden/i.test(err)) return "The token was rejected. Check it.";
+  if (/refused|no such host|dial tcp|timeout|deadline|unreachable/i.test(err)) return "Can't reach it. Check the URL and that it is online.";
+  if (/404|not found/i.test(err)) return "Nothing there. Check the URL.";
+  return "Something went wrong (see Details).";
+}
+
+// What each state means for each connector, in plain words, plus the fix.
+function message(c) {
+  const fix = (label, key) => { const b = el("button", { className: "link", type: "button", textContent: label }); b.onclick = () => goTo(key); return b; };
+  if (c.state === "disabled") return ["off", "Off.", null];
+  if (c.id === "weather") {
+    if (c.state === "needs_config") return ["warn", "Tell BB-8 where home is.", fix("Set city", "home.city")];
+    if (c.state === "error") return ["bad", "Couldn't find that city. Try just its name, like “Ciudad Juárez”.", fix("Change city", "home.city")];
+    return ["ok", c.detail?.startsWith("Home: ") ? "Ready · " + c.detail.slice(6) : "Ready.", null];
+  }
+  if (c.id === "web") {
+    if (c.state === "needs_config") return ["warn", "Needs the OpenRouter key (the same one the agent uses).", fix("Add key", "agent.api_key")];
+    return ["ok", "Ready.", null];
+  }
+  if (c.id === "calendar") {
+    if (c.state === "needs_auth") return ["warn", "Almost: sign in with Google (step 4).", null];
+    if (c.state === "needs_config") return ["warn", "Not set up yet. Follow “Set up Google” below.", null];
+    if (c.state === "error") return ["bad", friendly(c.detail || ""), null];
+    return ["ok", "Ready · connected to Google.", null];
+  }
+  if (c.id === "mcp") {
+    if (c.state === "needs_config") {
+      const pending = [...document.querySelectorAll("#c-mcp .slot")].some(b => !b.hidden);
+      return pending ? ["warn", "Connecting…", null] : ["warn", "No services yet. Add one below.", null];
+    }
+    const n = (c.tools || []).length;
+    return [c.state === "error" ? "bad" : "ok", c.state === "error" ? "A service has a problem (see below)." : "Ready · " + n + " actions available.", null];
+  }
+  return [c.state === "ok" ? "ok" : c.state === "error" ? "bad" : "warn", c.detail || c.state, null];
+}
+
+async function connStatus() {
+  const r = await api("/api/connectors");
+  if (!r.ok) return;
+  for (const c of r.body) {
+    const card = document.getElementById("c-" + c.id);
+    if (!card) continue;
+    const [cls, msg, act] = message(c);
+    card.querySelector(".conn-state .led").className = "led " + cls;
+    card.querySelector(".conn-msg").textContent = msg;
+    card.querySelector(".conn-act").replaceChildren(...(act ? [act] : []));
+    card.classList.toggle("off", c.state === "disabled");
+    card.querySelector(".conn-detail").textContent = c.detail || "No details.";
+    card.querySelector(".chips").replaceChildren(...(c.tools || []).map(t => el("code", { textContent: t })));
+    if (c.id === "calendar") {
+      document.getElementById("cal-redirect").textContent = val("connectors.calendar.google_redirect_url");
+      document.getElementById("google-connect").classList.toggle("dim", !val("connectors.calendar.google_client_id"));
+    }
+    if (c.id === "mcp") {
+      // detail is "name: 12 tools; other: error…"
+      const per = {};
+      for (const part of (c.detail || "").split("; ")) { const i = part.indexOf(": "); if (i > 0) per[part.slice(0, i)] = part.slice(i + 2); }
+      for (const b of document.querySelectorAll("#c-mcp .slot")) {
+        const name = b.querySelector(".slot-name").textContent, d = per[name];
+        const ok = d && /^\d+ tools$/.test(d);
+        b.querySelector(".led").className = "led " + (!d ? "off" : ok ? "ok" : "bad");
+        b.querySelector(".slot-msg").textContent = !d ? (c.state === "disabled" ? "" : "not connected yet") : ok ? d.replace("tools", "actions") : friendly(d);
+      }
+    }
+  }
+}
+let statusTimer;
+const statusSoon = () => { clearTimeout(statusTimer); statusTimer = setTimeout(connStatus, 1200); };
 
 function addAudit(c) {
   const ul = document.getElementById("audit");
@@ -166,6 +441,7 @@ function connect() {
     document.getElementById("rev-txt").textContent = "rev " + rev;
     for (const [k, v] of Object.entries(c.values)) show(k, v, true);
     addAudit(c);
+    if (Object.keys(c.values).some(k => k.startsWith("connectors.") || k.startsWith("home."))) { mcpRefresh(); statusSoon(); }
   });
   es.onerror = () => { dot.classList.remove("on"); txt.textContent = "reconnecting…"; };
 }
@@ -205,8 +481,11 @@ async function audioRefresh() {
 (async () => {
   const s = await api("/api/config/schema");
   if (!s.ok) { toast(s.status === 401 ? "Open with ?token=…" : "Cannot load config"); return; }
-  schema = s.body; build();
+  schema = s.body;
+  const cs = await api("/api/connectors");
+  build(cs.ok ? cs.body : []);
   apply((await api("/api/config")).body);
+  mcpRefresh(); connStatus(); setInterval(connStatus, 5000);
   (await api("/api/config/audit")).body.forEach?.(addAudit);
   setInterval(async () => { const r = await api("/api/config"); if (r.ok) live(r.body.live || {}); }, 3000);
   connect(); chatInit();

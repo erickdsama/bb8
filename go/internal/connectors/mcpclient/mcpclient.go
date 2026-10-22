@@ -49,21 +49,24 @@ func New() *Client {
 	return &Client{HTTP: &http.Client{Timeout: 60 * time.Second}, Timeout: 10 * time.Second}
 }
 
-func (c *Client) ID() string { return "mcp" }
+func (c *Client) ID() string    { return "mcp" }
+func (c *Client) Title() string { return "Apps and smart home" }
+func (c *Client) Description() string {
+	return "Gmail, Google, IFTTT-style automations or your lights, through Zapier, Composio or Home Assistant (MCP servers)."
+}
 
 func (c *Client) Fields() []config.Field {
 	var fs []config.Field
 	for i := 0; i < Slots; i++ {
-		n := fmt.Sprint(i + 1)
 		fs = append(fs,
-			config.Field{Key: key(i, "name"), Label: "Server " + n + " name", Type: config.String, Default: "",
-				Help: "Short prefix for its tools, e.g. zapier → zapier_gmail_send. Empty = slot off."},
-			config.Field{Key: key(i, "url"), Label: "Server " + n + " URL", Type: config.String, Default: "",
-				Help: "Streamable HTTP endpoint, e.g. https://mcp.zapier.com/api/mcp/s/…/mcp"},
-			config.Field{Key: key(i, "token"), Label: "Server " + n + " bearer token", Type: config.Secret,
-				Help: "Sent as Authorization: Bearer …. Leave empty if the URL already carries the key."},
-			config.Field{Key: key(i, "unknown_voices"), Label: "Server " + n + ": unknown voices may use it", Type: config.Bool, Default: false,
-				Help: "Off: only known voices (and the web page) can call these tools."},
+			config.Field{Key: key(i, "name"), Label: "Name", Type: config.String, Default: "",
+				Help: "One word; its actions are named after it (zapier_gmail_send)."},
+			config.Field{Key: key(i, "url"), Label: "URL", Type: config.String, Default: "",
+				Help: "The server address the service shows you, e.g. https://mcp.zapier.com/api/mcp/s/…/mcp"},
+			config.Field{Key: key(i, "token"), Label: "Token", Type: config.Secret,
+				Help: "Only if the service gave you one. Zapier and Composio URLs already include it."},
+			config.Field{Key: key(i, "unknown_voices"), Label: "Unknown voices may use it", Type: config.Bool, Default: false,
+				Help: "Off: only voices BB-8 knows (and this page) can use it."},
 		)
 	}
 	return fs
