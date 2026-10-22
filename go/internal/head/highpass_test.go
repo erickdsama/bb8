@@ -29,3 +29,43 @@ func TestHighPass(t *testing.T) {
 		}
 	}
 }
+
+// feedNoise runs n seconds of generated noise through a fresh VAD stream.
+func feedNoise(sec int, gen func(i int) float64) *vadStream {
+	v := newVADStream(0.058, func(AudioChunk) {}, func(SoundEvent) {})
+	n := 0
+	for f := 0; f < sec*MicRate/frameSamples; f++ {
+		l := make([]float64, frameSamples)
+		for j := range l {
+			l[j] = gen(n)
+			n++
+		}
+		v.feed(l, l, false)
+	}
+	return v
+}
+
+func TestAutoHighPass(t *testing.T) {
+	rnd := uint32(1)
+	white := func() float64 { // tiny LCG: deterministic, no rand state
+		rnd = rnd*1664525 + 1013904223
+		return float64(int32(rnd)) / (1 << 31)
+	}
+	// A minisplit: strong hum and rumble under 200 Hz over faint hiss.
+	rumble := feedNoise(20, func(i int) float64 {
+		x := float64(i) / MicRate
+		s := 0.0
+		for _, h := range [][2]float64{{39, 250}, {58, 300}, {78, 200}, {147, 150}, {194, 120}} {
+			s += h[1] * math.Sin(2*math.Pi*h[0]*x)
+		}
+		return s + 20*white()
+	})
+	if rumble.auto.fc < 200 {
+		t.Errorf("rumble: corner %v Hz, want ≥ 200", rumble.auto.fc)
+	}
+	// A quiet room with even hiss: keep all of the voice.
+	hiss := feedNoise(20, func(int) float64 { return 60 * white() })
+	if hiss.auto.fc != 80 {
+		t.Errorf("hiss: corner %v Hz, want 80", hiss.auto.fc)
+	}
+}

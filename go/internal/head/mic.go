@@ -29,10 +29,11 @@ const (
 	maxUtterMS    = 15000
 	noiseWindow   = 100   // 2 s of frames: the floor is the quietest of them
 	minVoiceRMS   = 120.0 // int16 units, after the high-pass; below this is never voice
-	// highPassHz cuts the rumble a minisplit, a fan or a servo makes before the
-	// level is measured: measured on the robot, a minisplit put 95 % of the room
-	// noise under 200 Hz (RMS 413, three times the floor without it) and the
-	// voice threshold above the voice. Speech carries its words above it.
+	// highPassHz is where the high-pass starts; autoHP then moves it (80–300 Hz)
+	// with the room's noise. It cuts the rumble a minisplit, a fan or a servo
+	// makes before the level is measured: on the robot a minisplit put 95 % of
+	// the noise under 200 Hz (RMS 413 vs ~115 without it), which lifted the voice
+	// threshold above the voice. Speech carries its words above it.
 	highPassHz     = 200.0
 	voiceOverNoise = 3.2 // ≈ +10 dB over the noise floor
 	// dBFS → approximate dB SPL for the HAT's MEMS mics (calibrate on the robot).
@@ -69,7 +70,8 @@ type vadStream struct {
 	gcc        *GCC
 	d, blk     int        // capture rate / MicRate; GCC block length at the capture rate
 	lp         *decimator // capture rate → MicRate for the voice (nil when d == 1)
-	hp         [2]biquad  // 4th-order high-pass at highPassHz, at MicRate
+	hp         [2]biquad  // 4th-order high-pass, at MicRate
+	auto       *autoHP    // moves the high-pass corner with the room's noise
 	sumSq      float64
 	voicedSamp int
 }
@@ -86,7 +88,8 @@ func newVADStreamAt(d int, spacing float64, emit func(AudioChunk), sound func(So
 		blk *= 2
 	}
 	v := &vadStream{spacing: spacing, emit: emit, sound: sound, noise: 60, d: d, blk: blk, gcc: NewGCC(blk)}
-	v.hp[0], v.hp[1] = highPass(highPassHz, MicRate), highPass(highPassHz, MicRate)
+	v.setCorner(highPassHz)
+	v.auto = newAutoHP(highPassHz)
 	if d > 1 {
 		v.lp = newDecimator(d)
 	}
@@ -126,6 +129,7 @@ func (v *vadStream) feed(l, r []float64, muted bool) {
 	if v.lp != nil {
 		mono = v.lp.run(mono)
 	}
+	raw := mono
 	mono = v.hp[1].run(v.hp[0].run(mono))
 	level := rms(mono)
 	// The EMA below only learns while nobody speaks, so a steady noise above
@@ -147,6 +151,15 @@ func (v *vadStream) feed(l, r []float64, muted bool) {
 		if !voiced {
 			v.noise = math.Max(20, 0.97*v.noise+0.03*level)
 			v.voicedRun = 0
+			v.auto.quiet(raw)
+			if fc, changed, scale := v.auto.decide(); changed {
+				v.setCorner(fc)
+				v.noise = math.Max(20, v.noise*math.Sqrt(scale)) // same room, new filter
+				for i := range v.recent {
+					v.recent[i] *= math.Sqrt(scale)
+				}
+				slog.Info("mic high-pass", "hz", fc, "noise_rms", int(v.noise))
+			}
 		} else {
 			v.voicedRun++
 		}
@@ -211,7 +224,7 @@ func (v *vadStream) flush() {
 
 func (v *vadStream) end() {
 	if v.voicedSamp > 0 {
-		slog.Info("utterance", "ms", v.lenMS, "voice_rms", int(math.Sqrt(v.sumSq/float64(v.voicedSamp))), "noise_rms", int(v.noise),
+		slog.Info("utterance", "ms", v.lenMS, "hp_hz", v.auto.fc, "voice_rms", int(math.Sqrt(v.sumSq/float64(v.voicedSamp))), "noise_rms", int(v.noise),
 			"threshold", int(math.Max(v.noise*voiceOverNoise, minVoiceRMS)))
 	}
 	v.flush()
@@ -357,6 +370,15 @@ func (z *decimator) run(x []float64) []float64 {
 	}
 	z.hist = append(make([]float64, 0, len(z.taps)-1), buf[len(buf)-(len(z.taps)-1):]...)
 	return out
+}
+
+// setCorner retunes the high-pass, keeping the filter state (between utterances).
+func (v *vadStream) setCorner(fc float64) {
+	for i := range v.hp {
+		st := v.hp[i]
+		v.hp[i] = highPass(fc, MicRate)
+		v.hp[i].x1, v.hp[i].x2, v.hp[i].y1, v.hp[i].y2 = st.x1, st.x2, st.y1, st.y2
+	}
 }
 
 // biquad is one second-order section (RBJ cookbook), state kept across frames.
