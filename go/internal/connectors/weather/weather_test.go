@@ -45,3 +45,34 @@ func TestWeatherByCity(t *testing.T) {
 		t.Fatal(tm)
 	}
 }
+
+func TestGeocodeFreeForm(t *testing.T) {
+	var asked []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query().Get("name")
+		asked = append(asked, q)
+		if q == "Ciudad Juarez" {
+			w.Write([]byte(`{"results":[{"name":"Ciudad Juárez","latitude":22.3,"longitude":-98.4,"admin1":"Tamaulipas","country":"México"},
+				{"name":"Ciudad Juárez","latitude":31.72,"longitude":-106.46,"admin1":"Estado de Chihuahua","country":"México"}]}`))
+			return
+		}
+		w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+	w := New()
+	w.GeocodeURL = srv.URL
+	lat, _, name, err := w.geocode(context.Background(), "Cd. Juarez Chihuahua")
+	if err != nil || lat != 31.72 || name != "Ciudad Juárez" {
+		t.Fatal(lat, name, err, asked)
+	}
+	if asked[0] != "Ciudad Juarez Chihuahua" || len(asked) != 2 {
+		t.Fatal(asked)
+	}
+	w.geocode(context.Background(), "Cd. Juarez Chihuahua") // cached
+	if len(asked) != 2 {
+		t.Fatal("not cached", asked)
+	}
+	if _, _, _, err := w.geocode(context.Background(), "Nowhere"); err == nil {
+		t.Fatal("want not found")
+	}
+}

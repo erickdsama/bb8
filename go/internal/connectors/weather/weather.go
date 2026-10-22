@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/erickdsama/bb8/go/internal/config"
@@ -19,6 +21,9 @@ type Weather struct {
 	ForecastURL string // https://api.open-meteo.com/v1/forecast
 	GeocodeURL  string // https://geocoding-api.open-meteo.com/v1/search
 	HTTP        *http.Client
+
+	mu    sync.Mutex
+	cache map[string]geoHit // home.city text → place
 }
 
 func New() *Weather {
@@ -26,6 +31,7 @@ func New() *Weather {
 		ForecastURL: "https://api.open-meteo.com/v1/forecast",
 		GeocodeURL:  "https://geocoding-api.open-meteo.com/v1/search",
 		HTTP:        &http.Client{Timeout: 8 * time.Second},
+		cache:       map[string]geoHit{},
 	}
 }
 
@@ -83,20 +89,70 @@ func (w *Weather) place(ctx context.Context, c *config.Store) (lat, lon float64,
 	if name == "" {
 		return 0, 0, "", errors.New("I don't know where home is: set home.city")
 	}
-	var g struct {
-		Results []struct {
-			Name      string  `json:"name"`
-			Latitude  float64 `json:"latitude"`
-			Longitude float64 `json:"longitude"`
-		} `json:"results"`
+	return w.geocode(ctx, name)
+}
+
+// abbrev expands what people write before a place name ("Cd. Juárez", "Sta. Ana").
+var abbrev = map[string]string{"cd": "Ciudad", "cd.": "Ciudad", "cdad.": "Ciudad", "sta.": "Santa", "sto.": "Santo",
+	"sn.": "San", "gral.": "General", "st.": "Saint", "ft.": "Fort", "mt.": "Mount"}
+
+type geoHit struct {
+	Name      string  `json:"name"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+	Admin1    string  `json:"admin1"`
+	Country   string  `json:"country"`
+}
+
+// geocode resolves a free-form city. Open-Meteo only matches the place name, so
+// "Cd. Juarez Chihuahua" or "Monterrey, NL" find nothing as typed: abbreviations
+// are expanded, then words are dropped from the end and used as a state/country
+// hint to pick among the results.
+func (w *Weather) geocode(ctx context.Context, text string) (lat, lon float64, name string, err error) {
+	w.mu.Lock()
+	if hit, ok := w.cache[text]; ok {
+		w.mu.Unlock()
+		return hit.Latitude, hit.Longitude, hit.Name, nil
 	}
-	if err := w.getJSON(ctx, w.GeocodeURL+"?count=1&language=es&name="+url.QueryEscape(name), &g); err != nil {
-		return 0, 0, "", err
+	w.mu.Unlock()
+
+	words := strings.Fields(strings.NewReplacer(",", " ", ";", " ").Replace(text))
+	for i, wd := range words {
+		if full, ok := abbrev[strings.ToLower(wd)]; ok {
+			words[i] = full
+		}
 	}
-	if len(g.Results) == 0 {
-		return 0, 0, "", fmt.Errorf("city %q not found", name)
+	for n := len(words); n >= 1; n-- {
+		var g struct {
+			Results []geoHit `json:"results"`
+		}
+		q := strings.Join(words[:n], " ")
+		if err := w.getJSON(ctx, w.GeocodeURL+"?count=10&language=es&name="+url.QueryEscape(q), &g); err != nil {
+			return 0, 0, "", err
+		}
+		if len(g.Results) == 0 {
+			continue
+		}
+		hit := g.Results[0]
+		if hint := fold(strings.Join(words[n:], " ")); hint != "" {
+			for _, r := range g.Results {
+				if strings.Contains(fold(r.Admin1+" "+r.Country), hint) {
+					hit = r
+					break
+				}
+			}
+		}
+		w.mu.Lock()
+		w.cache[text] = hit
+		w.mu.Unlock()
+		return hit.Latitude, hit.Longitude, hit.Name, nil
 	}
-	return g.Results[0].Latitude, g.Results[0].Longitude, g.Results[0].Name, nil
+	return 0, 0, "", fmt.Errorf("city %q not found; try just the city name, e.g. \"Ciudad Juárez\"", text)
+}
+
+// fold lowercases and strips Spanish accents so "Juárez" matches "juarez".
+func fold(s string) string {
+	return strings.NewReplacer("á", "a", "é", "e", "í", "i", "ó", "o", "ú", "u", "ü", "u", "ñ", "n").Replace(strings.ToLower(strings.TrimSpace(s)))
 }
 
 // Get returns the weather for when (now|today|tomorrow).
