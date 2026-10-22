@@ -54,6 +54,7 @@ button { background:var(--accent); color:#fff; border:0; cursor:pointer; width:a
 .asks { font-size:13px; color:var(--mute); margin:8px 0 0; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
 .asks q { background:var(--bg); border:1px solid var(--line); border-radius:99px; padding:2px 10px; color:var(--ink); }
 .conn.off .conn-body, .conn.off .asks, .conn.off .tech { display:none; }
+#c-mcp.off .conn-body { display:block; } /* "Add a service" turns it on */
 .conn.off .conn-state { color:var(--mute); }
 .conn-body { margin-top:8px; }
 .tip { font-size:13px; color:var(--mute); margin:6px 0; }
