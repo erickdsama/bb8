@@ -43,7 +43,7 @@ func (w *Weather) ID() string      { return "weather" }
 func (w *Weather) DefaultOn() bool { return true } // Open-Meteo needs no key
 func (w *Weather) Title() string   { return "Weather" }
 func (w *Weather) Description() string {
-	return "Weather now and the forecast for today and tomorrow (Open-Meteo, no account). Uses Home → City."
+	return "Weather now, today and tomorrow where you live. Free, no account."
 }
 
 func (w *Weather) Fields() []config.Field {

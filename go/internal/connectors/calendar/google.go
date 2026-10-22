@@ -37,9 +37,9 @@ var (
 
 func GoogleFields() []config.Field {
 	return []config.Field{
-		{Key: keyClientID, Label: "Google OAuth client ID", Type: config.String,
-			Help: "Google Cloud console → APIs → Credentials → OAuth client (Web application)."},
-		{Key: keyClientSecret, Label: "Google OAuth client secret", Type: config.Secret},
+		{Key: keyClientID, Label: "Client ID", Type: config.String,
+			Help: "From the Google Cloud page in step 1."},
+		{Key: keyClientSecret, Label: "Client secret", Type: config.Secret},
 		{Key: keyRedirect, Label: "OAuth redirect URL", Type: config.String,
 			Default: "http://localhost:8765/api/connectors/calendar/callback",
 			Help:    "Register it in the OAuth client. Open the config page through an SSH tunnel to use localhost.", Advanced: true},

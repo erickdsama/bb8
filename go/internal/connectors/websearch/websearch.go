@@ -34,7 +34,7 @@ func (w *Web) ID() string      { return "web" }
 func (w *Web) DefaultOn() bool { return true }
 func (w *Web) Title() string   { return "Web search" }
 func (w *Web) Description() string {
-	return "News, prices, schedules and anything current, through OpenRouter's web plugin. Uses the agent's OpenRouter key (~$0.02 per search)."
+	return "News, prices, opening hours and anything current. Uses your OpenRouter key (about $0.02 per search)."
 }
 
 func (w *Web) Fields() []config.Field {

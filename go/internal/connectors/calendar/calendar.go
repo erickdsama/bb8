@@ -44,7 +44,7 @@ func New() *Calendar {
 func (c *Calendar) ID() string    { return "calendar" }
 func (c *Calendar) Title() string { return "Calendar" }
 func (c *Calendar) Description() string {
-	return "Reads and adds events in Google Calendar. Needs a Google OAuth client, then Connect Google."
+	return "Reads and adds events in your Google Calendar."
 }
 
 func (c *Calendar) names() []string {

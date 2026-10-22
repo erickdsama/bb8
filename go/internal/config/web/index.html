@@ -201,13 +201,13 @@ function build(conns) {
   for (const f of schema) if (!f.key.startsWith("connectors.")) (groups[f.key.split(".")[0]] ||= []).push(f);
   const root = document.getElementById("sections");
   const secs = Object.entries(groups).map(([name, fs]) => el("section", {}, el("h2", { textContent: name }), ...rows(fs)));
-  secs.push(el("section", { id: "connectors" }, el("h2", { textContent: "connectors" }),
+  secs.push(el("section", { id: "connectors" }, el("h2", { textContent: "Services" }),
     el("div", { className: "conns" }, ...conns.map(connCard))));
   root.replaceChildren(...secs);
   const names = [...Object.keys(groups), "connectors"];
   document.getElementById("toc").replaceChildren(...names.map(n => {
     secs[names.indexOf(n)].id = "s-" + n;
-    return el("a", { href: "#s-" + n, textContent: n });
+    return el("a", { href: "#s-" + n, textContent: n === "connectors" ? "Services" : n });
   }));
 }
 
@@ -221,15 +221,15 @@ const CONN = {
 };
 const MCP_PRESETS = {
   zapier: { label: "Zapier", hint: "Gmail, Google Calendar, Sheets, IFTTT-style automations and 7,000+ apps.",
-    steps: ["Open mcp.zapier.com and create a server.", "Add the actions BB-8 may use (e.g. Gmail: send email).", "Copy the server URL and paste it below."],
+    steps: ["Open Zapier and create a new connection.", "Pick what BB-8 may do (e.g. Gmail: send email).", "Copy the URL Zapier shows and paste it below."],
     link: "https://mcp.zapier.com" },
   composio: { label: "Composio", hint: "Gmail, Calendar, Drive, Slack, Notion…",
-    steps: ["Open composio.dev and create an MCP server with the apps you want.", "Copy its URL and paste it below."], link: "https://composio.dev" },
+    steps: ["Open Composio and pick the apps BB-8 may use.", "Copy the URL it shows and paste it below."], link: "https://composio.dev" },
   homeassistant: { label: "Home Assistant", hint: "Lights, plugs, thermostats in your house.",
-    steps: ["In Home Assistant: Settings → Devices & services → Add integration → Model Context Protocol Server.",
-      "Profile → Security → create a long-lived access token.", "URL: http://homeassistant.local:8123/api/mcp, and paste the token below."],
+    steps: ["In Home Assistant: Settings → Devices & services → Add integration, search “Model Context Protocol Server” (its name for this).",
+      "Profile → Security → create a long-lived access token.", "The URL is already filled in; paste the token below."],
     link: "https://www.home-assistant.io/integrations/mcp_server/", url: "http://homeassistant.local:8123/api/mcp" },
-  other: { label: "Other", hint: "Any MCP server over HTTP.", steps: ["Paste its URL (and a token if it needs one)."] },
+  other: { label: "Other", hint: "Any service that gives you a connection URL for AI assistants.", steps: ["Paste the URL it gives you, and its token if it has one."] },
 };
 const val = (k) => { const i = document.getElementById("f-" + k); return !i ? "" : i.type === "checkbox" ? i.checked : i.value; };
 
@@ -270,7 +270,7 @@ function calendarBody(fs) {
   const connect = el("a", { className: "btn", id: "google-connect",
     href: "/api/connectors/calendar/auth" + (token ? "?token=" + encodeURIComponent(token) : ""), textContent: "Connect Google" });
   return [
-    el("p", { className: "tip" }, "Easier: add Zapier under ", el("b", { textContent: "MCP servers" }), " and give it Google Calendar. This one talks to Google directly and needs a Google Cloud project."),
+    el("p", { className: "tip" }, "Easier: add Zapier under ", el("b", { textContent: "Apps and smart home" }), " and give it Google Calendar. This one talks to Google directly and needs a Google Cloud project."),
     el("details", { className: "adv", id: "cal-setup" }, el("summary", { textContent: "Set up Google" }),
       el("ol", { className: "steps" },
         el("li", {}, "In ", el("a", { href: "https://console.cloud.google.com/apis/credentials", target: "_blank", textContent: "Google Cloud → Credentials" }),

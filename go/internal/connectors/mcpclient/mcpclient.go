@@ -52,7 +52,7 @@ func New() *Client {
 func (c *Client) ID() string    { return "mcp" }
 func (c *Client) Title() string { return "Apps and smart home" }
 func (c *Client) Description() string {
-	return "Gmail, Google, IFTTT-style automations or your lights, through Zapier, Composio or Home Assistant (MCP servers)."
+	return "Gmail, Google Calendar, automations or the lights at home: connect Zapier, Composio or Home Assistant."
 }
 
 func (c *Client) Fields() []config.Field {
@@ -60,7 +60,7 @@ func (c *Client) Fields() []config.Field {
 	for i := 0; i < Slots; i++ {
 		fs = append(fs,
 			config.Field{Key: key(i, "name"), Label: "Name", Type: config.String, Default: "",
-				Help: "One word; its actions are named after it (zapier_gmail_send)."},
+				Help: "One word to tell your services apart, e.g. zapier."},
 			config.Field{Key: key(i, "url"), Label: "URL", Type: config.String, Default: "",
 				Help: "The server address the service shows you, e.g. https://mcp.zapier.com/api/mcp/s/…/mcp"},
 			config.Field{Key: key(i, "token"), Label: "Token", Type: config.Secret,
