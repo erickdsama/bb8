@@ -41,6 +41,24 @@ type Head struct {
 	mu  sync.Mutex
 	cfg Config
 	rev int64
+	eye eyeState // the last eye asked for, before the brightness cap
+}
+
+type eyeState struct {
+	RGB        [3]uint8 `json:"rgb"`
+	Pattern    string   `json:"pattern"`
+	Brightness float64  `json:"brightness"`
+}
+
+// startEye is what the ring shows at boot (real.go newRingEye).
+var startEye = eyeState{RGB: [3]uint8{40, 110, 255}, Pattern: "steady", Brightness: 0.3}
+
+// capped applies the eye_brightness setting as a ceiling. Called with mu held.
+func (h *Head) capped(e eyeState) eyeState {
+	if h.cfg.EyeBrightness > 0 && e.Brightness > h.cfg.EyeBrightness {
+		e.Brightness = h.cfg.EyeBrightness
+	}
+	return e
 }
 
 func (h *Head) handle(ctx context.Context, typ string, body json.RawMessage) (any, []byte, error) {
@@ -56,20 +74,15 @@ func (h *Head) handle(ctx context.Context, typ string, body json.RawMessage) (an
 		}
 		return map[string]any{"ok": true, "bytes": len(jpg)}, jpg, nil
 	case "eye":
-		var in struct {
-			RGB        [3]uint8 `json:"rgb"`
-			Pattern    string   `json:"pattern"`
-			Brightness float64  `json:"brightness"`
-		}
+		var in eyeState
 		if err := json.Unmarshal(body, &in); err != nil {
 			return nil, nil, err
 		}
 		h.mu.Lock()
-		if h.cfg.EyeBrightness > 0 && in.Brightness > h.cfg.EyeBrightness {
-			in.Brightness = h.cfg.EyeBrightness
-		}
+		h.eye = in
+		e := h.capped(in)
 		h.mu.Unlock()
-		return map[string]any{"ok": true}, nil, h.B.Eye(in.RGB, in.Pattern, in.Brightness)
+		return map[string]any{"ok": true}, nil, h.B.Eye(e.RGB, e.Pattern, e.Brightness)
 	case "say":
 		var in struct{ Text, Sound string }
 		if err := json.Unmarshal(body, &in); err != nil {
@@ -97,8 +110,17 @@ func (h *Head) onEvent(p *link.Peer, typ string, body json.RawMessage, _ []byte)
 			return
 		}
 		h.mu.Lock()
+		changed := h.cfg.EyeBrightness != in.Values.EyeBrightness
 		h.cfg, h.rev = in.Values, in.Rev
+		cur := h.eye
+		if cur.Pattern == "" {
+			cur = startEye
+		}
+		e := h.capped(cur)
 		h.mu.Unlock()
+		if changed { // show the new brightness now, not at the next color change
+			_ = h.B.Eye(e.RGB, e.Pattern, e.Brightness)
+		}
 		if v, ok := h.B.(interface{ SetVolume(float64) }); ok {
 			v.SetVolume(in.Values.Volume)
 		}

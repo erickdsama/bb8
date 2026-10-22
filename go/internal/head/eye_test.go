@@ -1,6 +1,8 @@
 package head
 
 import (
+	"context"
+	"fmt"
 	"io"
 	"net"
 	"path/filepath"
@@ -46,5 +48,28 @@ func TestHelperEyeFrames(t *testing.T) {
 		case <-deadline:
 			t.Fatal("no cyan frame")
 		}
+	}
+}
+
+type eyeRec struct {
+	Backend
+	got []float64
+}
+
+func (e *eyeRec) Eye(rgb [3]uint8, pattern string, b float64) error {
+	e.got = append(e.got, b)
+	return nil
+}
+
+func TestBrightnessAppliesNow(t *testing.T) {
+	b := &eyeRec{}
+	h := &Head{B: b}
+	cfg := func(v float64) { h.onEvent(nil, "config", []byte(fmt.Sprintf(`{"rev":1,"values":{"eye_brightness":%g,"volume":0.5}}`, v)), nil) }
+	cfg(0.1) // before any eye command: the boot color dims too
+	h.handle(context.Background(), "eye", []byte(`{"rgb":[255,0,0],"pattern":"steady","brightness":0.3}`))
+	cfg(0.25) // brighter: back up towards what was asked
+	cfg(0.25) // same value: nothing to redo
+	if fmt.Sprint(b.got) != "[0.1 0.1 0.25]" {
+		t.Fatal(b.got)
 	}
 }
