@@ -6,7 +6,7 @@
 
 | Archivo | Para qué |
 | --- | --- |
-| [`bebocho-google-120.png`](bebocho-google-120.png) | **Logo para Google** (Branding → App logo): cuadrado, todo cabe en el círculo |
+| [`bebocho-google-120.png`](bebocho-google-120.png) | **Logo para Google** (Branding → App logo): diseño propio (una esfera que escucha), sin parecido a BB-8, para que Google no lo rechace; cabe en el círculo |
 | [`bebocho-icono.svg`](bebocho-icono.svg) · [`bebocho-120.png`](bebocho-120.png) · [`bebocho-512.png`](bebocho-512.png) | Ícono: rodando, con la cabeza ladeada |
 | [`bebocho-horizontal.svg`](bebocho-horizontal.svg) / [`.png`](bebocho-horizontal.png) | Logo con nombre, fondo claro (transparente) |
 | [`bebocho-horizontal-oscuro.svg`](bebocho-horizontal-oscuro.svg) / [`.png`](bebocho-horizontal-oscuro.png) | Logo con nombre, fondo oscuro |
