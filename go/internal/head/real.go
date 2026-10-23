@@ -47,6 +47,7 @@ type Real struct {
 
 	sayMu  sync.Mutex
 	volume atomic.Value // float64
+	mixer  atomic.Bool  // the codec's own volume works: play at full scale
 	paused atomic.Bool
 }
 
@@ -72,7 +73,7 @@ func NewReal(ctx context.Context, c RealConfig) *Real {
 		r.sound, r.mic = m, m
 		go m.Run(ctx)
 	}
-	r.volume.Store(0.7)
+	r.SetVolume(0.7)
 	r.tofMM.Store(-1)
 	for _, c := range []string{"rpicam-jpeg", "libcamera-jpeg"} {
 		if _, err := exec.LookPath(c); err == nil {
@@ -167,6 +168,9 @@ func (r *Real) SayPCM(ctx context.Context, text, sound string, pcm []byte, rate 
 		defer r.mic.Mute(tail)
 	}
 	vol := r.volume.Load().(float64)
+	if r.mixer.Load() { // the codec turns it down; keep full resolution here
+		vol = 1
+	}
 	key := sound
 	if key == "" {
 		key = text
@@ -226,8 +230,33 @@ func (r *Real) ToF() (int, bool) {
 	return int(v), v >= 0
 }
 
-// SetVolume is applied from the head config section.
-func (r *Real) SetVolume(v float64) { r.volume.Store(max(0, min(1, v))) }
+// SetVolume is applied from the head config section. It sets the ReSpeaker's
+// codec (both the speaker and the jack, wherever the speaker hangs) on a dB scale,
+// which is how loudness is heard: 0 mutes, 0.05 is -43 dB, 0.5 about -22 dB, 1 is
+// 0 dB. Scaling the samples alone only went from -3 dB to 0 dB between 70 % and
+// 100 %, and the jack sat at -20 dB. Without the codec (no amixer, another card)
+// it falls back to scaling the samples.
+func (r *Real) SetVolume(v float64) {
+	v = max(0, min(1, v))
+	r.volume.Store(v)
+	raw := 0
+	if v > 0 {
+		raw = 76 + int(math.Round(45*v)) // 1 dB per step, 121 = 0 dB
+	}
+	ok := true
+	for _, ctl := range []string{"Speaker", "Headphone"} {
+		if err := exec.Command("amixer", "-q", "-c", codecCard, "sset", ctl, fmt.Sprint(raw)).Run(); err != nil {
+			ok = false
+		}
+	}
+	if ok && !r.mixer.Load() {
+		_ = exec.Command("amixer", "-q", "-c", codecCard, "sset", "Playback", "255").Run() // DAC at 0 dB
+	}
+	r.mixer.Store(ok)
+}
+
+// codecCard is the ReSpeaker 2-Mic HAT v1's ALSA card (WM8960).
+const codecCard = "wm8960soundcard"
 
 func (r *Real) Sound() SoundDir { return r.sound }
 
