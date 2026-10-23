@@ -4,7 +4,7 @@
 // en soportes impresos, la LiPo en una charola justo bajo los motores y, a los lados de la
 // LiPo, dos compartimentos para 1–1.5 kg de lastre. Las ruedas locas RL4 van adelante y
 // atrás en soportes inclinados que apuntan al centro de la esfera. Todo impreso en PETG.
-// Bajo la charola cuelga la bobina receptora de la carga inalámbrica (ver cuna.scad).
+// Bajo la charola cuelga la bobina receptora de la carga inalámbrica (ver plato.scad).
 //
 // Las medidas que salen de la geometría (altura del eje, de la plataforma, inclinación de
 // los ball transfers) se calculan en parametros.scad; corre `reportar()` para verlas.

@@ -11,7 +11,7 @@
 //   - la junta entre mitades es un traslape a media pared con bayoneta de 6 lengüetas
 //     que viven dentro del grosor de la pared (se cierra girando 7°);
 //   - los gajos de una misma mitad se pegan a tope con espigas de filamento de 1.75 mm.
-// No hay tapa de carga: la esfera carga por inducción en su cuna (cuna.scad), así que
+// No hay tapa de carga: la esfera carga por inducción en su plato (plato.scad), así que
 // los 6 círculos son iguales y el casco no tiene huecos.
 //
 // Marco del patrón: ejes del cubo. La mitad A es la que queda del lado +(1,1,1).

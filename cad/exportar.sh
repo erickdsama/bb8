@@ -30,7 +30,7 @@ if [[ $QUE == todo || $QUE == stl ]]; then
             echo "esfera.scad esfera_gajo_$p $p"
         done
         echo "esfera.scad esfera_circulo circulo"
-        echo "cuna.scad esfera_cuna cuna"
+        for p in centro rampa rampa_cable caja; do echo "plato.scad esfera_plato_$p $p"; done
         for p in soporte_motor soporte_motor_izq charola soporte_bt panel_interruptor; do echo "base.scad base_$p $p"; done
         for p in pie_poste soporte_servo portaimanes; do echo "poste.scad poste_$p $p"; done
         for p in casco plato tapon soporte_ojo soporte_bocina antena_corta antena_larga; do echo "cabeza.scad cabeza_$p $p"; done
@@ -56,5 +56,5 @@ if [[ $QUE == todo || $QUE == png ]]; then
     png poste 0,0,50,75,0,30,500 poste.scad
     png cabeza 0,0,30,75,0,200,420 cabeza.scad
     png esfera 0,0,0,62,0,25,750 esfera.scad
-    png cuna 0,0,120,80,0,30,700 cuna.scad
+    png plato 0,0,60,65,0,25,900 plato.scad
 fi

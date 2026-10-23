@@ -74,13 +74,13 @@ esfera, como pide la Parte 6.
   - los círculos son tapas de 2 mm pegadas en un asiento de 2 mm (debajo queda un piso de 2 mm);
   - la junta es un traslape a media pared (10 mm) con **bayoneta de 6 lengüetas** de 0.6 mm que viven dentro de la pared: se encajan las mitades y se giran 7° para cerrar;
   - los gajos de una misma mitad se pegan a tope con espigas de filamento de 1.75 mm (18 agujeros), y luego se refuerzan por dentro con fibra de vidrio fina, lijada a ras.
-- **Carga inalámbrica, sin tapa:** la base gira alrededor del centro de la esfera (ruedas y ball transfers tocan la pared), así que el portabobina bajo la charola queda siempre a `bobina_aire` (4 mm) de la pared. La esfera se sienta en la cuna (`cad/cuna.scad`), que tiene la bobina emisora bajo 1 mm de plástico: 9–10 mm de bobina a bobina. Los 6 círculos son iguales y el casco no tiene huecos.
+- **Carga inalámbrica, sin tapa:** la base gira alrededor del centro de la esfera (ruedas y ball transfers tocan la pared), así que el portabobina bajo la charola queda siempre a `bobina_aire` (4 mm) de la pared. Bebocho rueda al plato de carga (`cad/plato.scad`, Ø340: rampa de ~7° a 8 mm y un hoyo de 2.5 mm que lo centra), que tiene la bobina emisora bajo 1 mm de plástico: 9–10 mm de bobina a bobina. Los 6 círculos son iguales y el casco no tiene huecos.
 
 ## Cambios respecto al documento técnico
 
 | Documento técnico | Diseño 3D | Por qué |
 | --- | --- | --- |
-| XT60 y balanceo en un panel de la base, alcanzado por una tapa atornillada del casco | **Carga inalámbrica** en una cuna | Había que girar la esfera a mano contra los motores hasta alinear la tapa, quitar 4 tornillos y conectar el XT60 a 66 mm de profundidad |
+| XT60 y balanceo en un panel de la base, alcanzado por una tapa atornillada del casco | **Carga inalámbrica** en un plato al ras del piso | Había que girar la esfera a mano contra los motores hasta alinear la tapa, quitar 4 tornillos y conectar el XT60 a 66 mm de profundidad |
 | Cabeza con 3 ruedecitas | 3 bolas de acero de 1/2″ en copas | Una rueda solo rueda en un sentido; la esfera pasa en todos |
 | Cúpula de 12–14 cm | Cabeza de 198 mm (paramétrica) | El power bank mide 97 mm de largo y la proporción del BB-8 es ~0.6 del cuerpo. Cambia `cabeza_d` si prefieres otra |
 | VL53L0X por I2C del Arduino | VL53L0X en la cabeza (ojo chico) | Dentro de la esfera solo vería el casco; en la cabeza lo lee la Zero (`/tof`) y el firmware va con `USAR_TOF_LOCAL 0` |
@@ -100,7 +100,9 @@ gajo mide hasta 165 mm por lado).
 | --- | --- | --- |
 | `esfera_gajo_A_ppp` … `esfera_gajo_B_mmm` (14) | 1 de cada | 0.2 mm, 4 perímetros (pared maciza), soportes de árbol solo por dentro. El nombre dice la mitad (A/B) y el octante (p = +, m = −) |
 | `esfera_circulo` | 6 | 0.2 mm, en naranja, cara convexa arriba, sin soportes |
-| `esfera_cuna` | 1 | 30 %, PETG; el asiento hacia arriba. Bobina emisora pegada en su hueco desde abajo |
+| `esfera_plato_centro` | 1 | 30 %, PETG, el hoyo hacia arriba. Bobina emisora pegada en su hueco desde abajo |
+| `esfera_plato_rampa` + `esfera_plato_rampa_cable` | 3 + 1 | 30 %, PETG. Se pegan alrededor del centro; la de la ranura va atrás, hacia la caja |
+| `esfera_plato_caja` | 1 | 20 %. Cubre la placa del emisor y el jack |
 | `base_soporte_motor`, `base_soporte_motor_izq` | 1 y 1 | 30 % de relleno, 4 perímetros |
 | `base_charola` | 1 | 30 %; carga 450 g de LiPo + el lastre. El portabobina cuelga debajo: soportes bajo el piso |
 | `base_soporte_bt` | 2 | 40 %, soportes en el hueco del cuerpo |

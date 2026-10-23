@@ -193,15 +193,14 @@ module cono(ang, h) {
 // ───────────── Carga inalámbrica ─────────────
 // La base siempre cuelga abajo y gira alrededor del centro de la esfera (ruedas y ball
 // transfers tocan la pared), así que un punto de la base queda siempre a la misma
-// distancia de la pared: la bobina receptora va ahí, bajo la charola, y la emisora en la
-// cuna. Bobinas de ~50 mm: MEDIR las que lleguen y ajustar.
+// distancia de la pared: la bobina receptora va ahí, bajo la charola, y la emisora en el
+// plato de carga (plato.scad). Bobinas de ~50 mm: MEDIR las que lleguen y ajustar.
 bobina_d     = 50;     // Ø de la bobina (receptora y emisora)
 bobina_e     = 4;      // grosor con su ferrita
 bobina_aire  = 4;      // aire entre la bobina y la pared en el centro (en la orilla ~2 mm)
-cuna_tapa    = 1;      // plástico entre la bobina emisora y la esfera
-cuna_r_apoyo = 62;     // radio del anillo donde se apoya la esfera
-// distancia bobina-bobina: aire + pared + tapa de la cuna (el módulo debe dar ≥ 10 mm)
-bobina_dist  = bobina_aire + pared + cuna_tapa;
+piel_bobina  = 1;      // plástico del plato entre la bobina emisora y la esfera
+// distancia bobina-bobina: aire + pared + piel del plato (el módulo debe dar ≥ 10 mm)
+bobina_dist  = bobina_aire + pared + piel_bobina;
 
 module reportar() {
     echo(str("a_rueda (plano medio) = ", a_rueda, " mm"));

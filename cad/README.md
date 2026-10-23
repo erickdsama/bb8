@@ -12,7 +12,7 @@ tubo, inclinación de los ball transfers…).
 | `parametros.scad` | Todas las medidas. Las marcadas **MEDIR** vienen de hojas de vendedores que no coinciden: mide tu pieza antes de imprimir lo que depende de ellas |
 | `componentes.scad` | Maquetas de lo comprado (JGB37, L298N, Uno, Pi 4, MG996R, Pi Zero, OV5647, anillo WS2812…). No se imprimen |
 | `esfera.scad` | Casco: 14 gajos blancos, 6 círculos naranjas, junta de bayoneta |
-| `cuna.scad` | Cuna de carga inalámbrica: asiento de la esfera, bobina emisora y su placa |
+| `plato.scad` | Plato de carga inalámbrica al ras del piso: centro con la bobina, rampa en 4 cuartos, caja del emisor |
 | `base.scad` | Plataforma (plantilla 1:1), soportes de motor, charola de LiPo con lastre y portabobina, soportes de ball transfer, panel del interruptor |
 | `poste.scad` | Pie del poste, soporte del servo, portaimanes |
 | `cabeza.scad` | Casco de la cabeza, plato interior, soportes del ojo y de la bocina, tapones de las bolas |
