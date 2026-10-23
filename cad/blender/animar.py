@@ -46,12 +46,15 @@ SERVO_INF = PORTA_INF + 2.5 - 42.9 - 1.5
 TUBO_SUP = SERVO_INF - 6
 IMAN_D, IMAN_E, IMAN_R = 20.0, 5.0, 27.0
 SEPARADOR = 8.0
-# carga inalámbrica (cad/cuna.scad): bobina receptora bajo la charola, emisora en la cuna
+# carga inalámbrica (cad/plato.scad): bobina receptora bajo la charola, emisora en el plato
 BOBINA_D, BOBINA_E, BOBINA_AIRE = 50.0, 4.0, 4.0
-CUNA_D, CUNA_PLACA, CUNA_TAPA = 150.0, (45.0, 35.0, 12.0), 1.0
-CUNA_Z_BOBINA = CUNA_PLACA[2] + 1
-CUNA_Z_CENTRO = CUNA_Z_BOBINA + BOBINA_E + CUNA_TAPA + RE + 0.6   # centro de la esfera sentada
-CUNA_POS = (0.0, -450.0)          # en el piso, detrás de donde arranca la animación
+PLATO_R1, PLATO_R2, PIEL_BOBINA = 100.0, 170.0, 1.0
+PLATO_C = PIEL_BOBINA + BOBINA_E + 0.5          # grosor en el centro del hoyo
+PLATO_H = PLATO_C + 2.5                         # orilla del hoyo
+PLATO_Z_BOBINA = PLATO_C - PIEL_BOBINA - BOBINA_E
+PLATO_Z_CENTRO = PLATO_C + RE                   # centro de la esfera sentada
+PLATO_CAJA = (60.0, 50.0, 22.0)                 # cajita del emisor, atrás (−y)
+PLATO_POS = (0.0, -450.0)         # en el piso, detrás de donde arranca la animación
 # cabeza (marco con origen en el polo de la esfera)
 RC = 0.6 * 330 / 2
 TAPA_R = 0.45 * RC
@@ -267,20 +270,27 @@ def esfera(padre):
         stl("parte6-esfera/esfera_circulo.stl", f"Circulo {i + 1}", "Naranja", padre, R_ESFERA @ apuntar(e))
 
 
-# ── Cuna de carga (en el piso) ──
-def cuna(padre):
-    """La cuna con su bobina emisora, la placa del emisor y el cable del eliminador de 24 V."""
-    c = vacio("Cuna de carga", padre)
-    c.location = (CUNA_POS[0] * MM, CUNA_POS[1] * MM, 0)
-    stl("parte6-esfera/esfera_cuna.stl", "Cuna", "Impreso", c)
-    prim("cil", "Bobina emisora", "Negro", c, (0, 0, CUNA_Z_BOBINA + BOBINA_E / 2), dim=(BOBINA_D, BOBINA_D, BOBINA_E), vertices=64)
-    caja("Emisor placa", "PCB", c, -CUNA_PLACA[0] / 2 + 1, -CUNA_PLACA[1] / 2 + 1, 1, CUNA_PLACA[0] - 2, CUNA_PLACA[1] - 2, 1.6)
-    cil_x("Jack 24 V", "Negro", c, CUNA_D / 2 - 10, CUNA_D / 2 + 2, 0, 6, 8)
-    cable("Cuna cable eliminador 24 V", [(CUNA_D / 2 + 2, 0, 6), (CUNA_D / 2 + 30, 0, 4), (CUNA_D / 2 + 90, 40, 2), (CUNA_D / 2 + 160, 60, 2)], "negro", 1.6, c)
-    caja("Eliminador 24 V", "Negro", c, CUNA_D / 2 + 160, 45, 0, 60, 30, 25)
-    for n in ("+", "-"):
-        cable(f"Cuna cable emisor {n}", [(CUNA_D / 2 - 10, 0, 6), (20, (1 if n == "+" else -1) * 4, 5), (0, (1 if n == "+" else -1) * 4, CUNA_Z_BOBINA)],
-              "rojo" if n == "+" else "negro", 0.5, c)
+# ── Plato de carga (en el piso) ──
+def plato(padre):
+    """El plato con su bobina emisora, la caja del emisor con su placa y jack, y el eliminador de 24 V."""
+    c = vacio("Plato de carga", padre)
+    c.location = (PLATO_POS[0] * MM, PLATO_POS[1] * MM, 0)
+    stl("parte6-esfera/esfera_plato_centro.stl", "Plato centro", "Impreso", c)
+    for k in range(4):   # como la vista de plato.scad: el cuarto con la ranura del cable va atrás
+        stl(f"parte6-esfera/esfera_plato_{'rampa_cable' if k == 0 else 'rampa'}.stl", f"Plato rampa {k + 1}", "Impreso", c,
+            Matrix.Rotation(math.radians(90 * k - 135), 4, "Z"))
+    yc = -(PLATO_R2 + 2)             # cara de la caja que da al plato
+    stl("parte6-esfera/esfera_plato_caja.stl", "Plato caja emisor", "Impreso", c,
+        Matrix.Translation((0, yc, 0)) @ Matrix.Rotation(math.pi, 4, "Z"))
+    prim("cil", "Bobina emisora", "Negro", c, (0, 0, PLATO_Z_BOBINA + BOBINA_E / 2), dim=(BOBINA_D, BOBINA_D, BOBINA_E), vertices=64)
+    caja("Emisor placa", "PCB", c, -25, yc - 45, 2, 50, 40, 1.6)
+    prim("cil", "Jack 24 V", "Negro", c, (0, yc - PLATO_CAJA[1] + 1, 9), (math.pi / 2, 0, 0), (8, 8, 10), vertices=48)
+    for n, dx in (("+", 1.2), ("-", -1.2)):   # bobina → ranura bajo el plato → placa
+        cable(f"Plato cable bobina {n}", [(dx, 0, PLATO_Z_BOBINA + 0.5), (dx, -BOBINA_D / 2 - 4, 1.5), (dx, -PLATO_R1, 1.5),
+                                         (dx, yc + 2, 1.5), (dx * 4, yc - 8, 3.6)], "rojo" if n == "+" else "negro", 0.5, c)
+    yj = yc - PLATO_CAJA[1] - 4
+    cable("Plato cable eliminador 24 V", [(0, yj, 9), (0, yj - 40, 3), (60, yj - 90, 2), (140, yj - 110, 2)], "negro", 1.6, c)
+    caja("Eliminador 24 V", "Negro", c, 140, yj - 125, 0, 60, 30, 25)
     return c
 
 
@@ -971,10 +981,12 @@ def cableado(base_, cabeza_):
     cc = vacio("Cableado cabeza", cabeza_)
     cableado_base(cb)
     cableado_cabeza(cc)
-    c = bpy.data.objects.get("Cuna de carga")
+    c = bpy.data.objects.get("Plato de carga")
     if c:
-        etiqueta("Cuna de carga: bobina emisora bajo 1 mm", (0, 0, CUNA_Z_CENTRO - RE + 40), c, 3.0)
-        etiqueta("Eliminador 24 V 2 A", (CUNA_D / 2 + 190, 60, 40), c, 2.6)
+        etiqueta("Plato de carga: bobina emisora bajo 1 mm", (0, 0, 60), c, 3.0)
+        etiqueta("Rampa 7° · orilla 8 mm · hoyo 2.5 mm", (PLATO_R2 + 30, 0, 30), c, 2.6)
+        etiqueta("Caja del emisor + jack 24 V", (0, -(PLATO_R2 + 2) - PLATO_CAJA[1] / 2, 50), c, 2.6)
+        etiqueta("Eliminador 24 V 2 A", (170, -(PLATO_R2 + 2) - PLATO_CAJA[1] - 114, 45), c, 2.6)
     # si el poste o la cabeza están escondidos, sus cables también
     for grupo, ref in ((bpy.data.objects.get("Cableado poste"), "Servo"), (cc, "Casco cabeza")):
         o = bpy.data.objects.get(ref)
@@ -1079,7 +1091,7 @@ def main():
     poste(base_)
     cabeza(cabeza_)
     escenario(raiz)
-    cuna(None)
+    plato(None)
     cableado(base_, cabeza_)      # después del escenario: las etiquetas miran a la cámara
     animar(raiz, cuerpo, base_, cabeza_)
     render()
