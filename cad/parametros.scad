@@ -22,7 +22,6 @@ lengueta_n = 6;                // lengüetas de la bayoneta (múltiplo de 3 por 
 lengueta_alto = 0.6;           // cuánto sobresale cada lengüeta
 lengueta_giro = 7;             // grados que se gira para cerrar
 espiga_d   = 1.9;              // agujero para espiga de filamento 1.75 entre gajos
-ceja_tapa  = 8;                // ceja que sostiene la tapa de carga (mm de arco)
 
 // ───────────────────────── Motores JGB37-520B (encoder, 319 RPM) ─────────────────────────
 caja_d     = 37;     // diámetro de la caja de engranes
@@ -191,6 +190,19 @@ module cono(ang, h) {
     cylinder(h = h, r1 = 0, r2 = h * tan(ang));
 }
 
+// ───────────── Carga inalámbrica ─────────────
+// La base siempre cuelga abajo y gira alrededor del centro de la esfera (ruedas y ball
+// transfers tocan la pared), así que un punto de la base queda siempre a la misma
+// distancia de la pared: la bobina receptora va ahí, bajo la charola, y la emisora en la
+// cuna. Bobinas de ~50 mm: MEDIR las que lleguen y ajustar.
+bobina_d     = 50;     // Ø de la bobina (receptora y emisora)
+bobina_e     = 4;      // grosor con su ferrita
+bobina_aire  = 4;      // aire entre la bobina y la pared en el centro (en la orilla ~2 mm)
+cuna_tapa    = 1;      // plástico entre la bobina emisora y la esfera
+cuna_r_apoyo = 62;     // radio del anillo donde se apoya la esfera
+// distancia bobina-bobina: aire + pared + tapa de la cuna (el módulo debe dar ≥ 10 mm)
+bobina_dist  = bobina_aire + pared + cuna_tapa;
+
 module reportar() {
     echo(str("a_rueda (plano medio) = ", a_rueda, " mm"));
     echo(str("eje de ruedas z = ", z_eje, " mm; pared donde pisa la rueda a ", angulo_contacto, "°"));
@@ -200,4 +212,5 @@ module reportar() {
     echo(str("ball transfers: centro bola (0, ±", bt_y, ", ", bt_c_z, "), inclinación ", bt_inclinacion, "°"));
     echo(str("tubo del poste: cortar a ", tubo_L - 2, " mm (del fondo del pie a la manga del servo)"));
     echo(str("cabeza: Ø", cabeza_d, ", alto sobre el polo ", cab_z_tope));
+    echo(str("carga: bobina a ", bobina_aire, " mm de la pared; bobina a bobina ", bobina_dist, " mm"));
 }

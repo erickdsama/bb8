@@ -16,7 +16,12 @@ y buck del servo. La cabeza sigue con su power bank.
 - **El Arduino come por VIN desde la batería** (después del interruptor), no solo por el USB de la Pi, para seguir vivo cuando corta la Pi.
 - Nunca bajar de 3.3 V por celda (~10 V); la alarma de voltaje (en el pedido) se pone a 3.5 V.
 - Divisor 10 kΩ / 4.7 kΩ de la batería a **A0** y `HAY_DIVISOR_BAT 1` en el firmware: así `?` reporta `V=` y el firmware rechaza `M` por debajo de 9.9 V.
-- Carga: el XT60 hembra, la extensión de balanceo JST-XH y el rocker van en un panel **en la base** (no en el casco: la esfera gira alrededor de la base y el cable se enredaría). Se alcanzan por la tapa de carga, uno de los círculos naranjas, girando la esfera con la mano. Rocker apagado, iMAX B6AC en modo Balance a 2.6 A (~2 h). La batería nunca sale del robot.
+- **Carga inalámbrica, como el BB-8 de Sphero:** se sienta a Bebocho en su cuna y carga.
+  - La base siempre queda abajo y gira alrededor del centro de la esfera, así que la bobina receptora, bajo la charola, queda siempre a 4 mm de la pared. La emisora va en la cuna bajo 1 mm de plástico: 9–10 mm de bobina a bobina.
+  - Cuna → eliminador 24 V → emisor. Receptor → cargador CC/CV a **12.6 V y 1.5 A** → BMS 3S con balance → LiPo (~4 h de vacía a llena). El LED del panel prende mientras recibe corriente.
+  - El rocker del panel queda adentro: solo para apagar del todo al abrir la esfera. En uso normal se duerme solo.
+  - Cada ~10 cargas, o si las celdas se separan más de 0.05 V, abrir la esfera y cargar en modo Balance con el iMAX B6AC.
+  - Pendiente: que el robot sepa que está cargando (para quedarse quieto en la cuna). Hoy solo se ve en el voltaje de la batería.
 
 Diagrama "banco contra LiPo" en el artefacto [Diagramas](Artefactos.md#diagramas), sección 2.
 
@@ -52,7 +57,7 @@ para `systemctl poweroff`.
 ## Esfera
 
 El modelo ya está hecho: [Diseño 3D](Diseno-3D.md#esfera) tiene los 14 gajos, los 6
-círculos, la tapa de carga y la bayoneta de la junta, en OpenSCAD paramétrico y en STL.
+círculos, la bayoneta de la junta y la cuna de carga, en OpenSCAD paramétrico y en STL.
 
 1. Imprime los gajos de [`cad/stl/parte6-esfera`](https://github.com/erickdsama/bb8/tree/main/cad/stl/parte6-esfera) (6 círculos naranjas + 14 piezas blancas que forman los 8 gajos), con espigas de filamento de 1.75 mm.
 2. Imprime con capa de 0.28 mm y 10–15 % de relleno (~2–3 kg de PLA).
