@@ -20,6 +20,7 @@ y buck del servo. La cabeza sigue con su power bank.
   - El plato (`cad/plato.scad`) mide Ø34 cm: sube por una rampa de ~7° a una orilla de 8 mm y cae a un hoyo de 2.5 mm (máx. ~3°) que lo deja centrado. Para salir solo sube esos ~3°; Bebocho, que se mueve inclinando su base como péndulo, aguanta 10–15°.
   - La base siempre queda abajo y gira alrededor del centro de la esfera, así que la bobina receptora, bajo la charola, queda siempre a 4 mm de la pared. La emisora va en el centro del plato bajo 1 mm de plástico: 9–10 mm de bobina a bobina.
   - Eliminador 24 V → emisor (en una cajita atrás del plato) → bobina emisora. Receptor → cargador CC/CV a **12.6 V y 1.5 A** → BMS 3S con balance → LiPo (~4 h de vacía a llena). El LED del panel prende mientras recibe corriente.
+  - El receptor y el cargador van pegados con cinta doble cara bajo la plataforma, con los componentes hacia abajo, entre los soportes de motor y la pestaña de atrás de la charola. El BMS va de canto, detrás del cargador. Los dos pasacables quedan libres.
   - El rocker del panel queda adentro: solo para apagar del todo al abrir la esfera. En uso normal se duerme solo.
   - Cada ~10 cargas, o si las celdas se separan más de 0.05 V, abrir la esfera y cargar en modo Balance con el iMAX B6AC.
   - Pendiente: que el robot sepa que está cargando (para quedarse quieto en el plato) y que vaya solo al plato con "ve a cargarte" o con batería baja (necesita la cámara de la cabeza). Hoy solo se ve en el voltaje de la batería.
