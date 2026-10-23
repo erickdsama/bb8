@@ -327,6 +327,14 @@ func (f *Flows) commit(draft Connection) (Connection, error) {
 	if draft.Owner != "" {
 		draft.Strangers = false
 	}
+	if draft.ID == "" && draft.Account != "" { // the same account signing in again replaces itself
+		for _, c := range f.Store.List() {
+			if c.Kind == draft.Kind && c.URL == draft.URL && c.Account == draft.Account {
+				draft.ID = c.ID
+				break
+			}
+		}
+	}
 	if draft.ID == "" {
 		return f.Store.Add(draft)
 	}

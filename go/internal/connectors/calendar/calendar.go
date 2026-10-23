@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/erickdsama/bb8/go/internal/config"
@@ -21,6 +22,9 @@ type Event struct {
 	End      time.Time `json:"end"`
 	AllDay   bool      `json:"all_day,omitempty"`
 	Location string    `json:"location,omitempty"`
+	// Calendar is which calendar it is on, when the person has several; for
+	// Add, which one to put it on (an account's e-mail or a calendar's name).
+	Calendar string `json:"calendar,omitempty"`
 }
 
 // Provider is one calendar backend.
@@ -43,13 +47,22 @@ type Calendar struct {
 
 // New uses the Google accounts in accts; owner is home.owner.
 func New(accts *connections.Store, owner func() string) *Calendar {
-	return &Calendar{Providers: map[string]Factory{"google": func(c *config.Store) Provider { return NewGoogle(c, accts, owner) }}, Now: time.Now}
+	var mu sync.Mutex
+	var g *Google // one per config store, so its list of calendars stays cached
+	return &Calendar{Providers: map[string]Factory{"google": func(c *config.Store) Provider {
+		mu.Lock()
+		defer mu.Unlock()
+		if g == nil || g.c != c {
+			g = NewGoogle(c, accts, owner)
+		}
+		return g
+	}}, Now: time.Now}
 }
 
 func (c *Calendar) ID() string    { return "calendar" }
 func (c *Calendar) Title() string { return "Calendar" }
 func (c *Calendar) Description() string {
-	return "Reads and adds events in each person's Google Calendar."
+	return "Reads and adds events in each person's Google Calendars (all their accounts and calendars)."
 }
 
 func (c *Calendar) names() []string {
@@ -103,6 +116,9 @@ func view(es []Event, loc *time.Location) []map[string]any {
 		if e.Location != "" {
 			m["location"] = e.Location
 		}
+		if e.Calendar != "" {
+			m["calendar"] = e.Calendar
+		}
 		out = append(out, m)
 	}
 	return out
@@ -120,7 +136,7 @@ func (c *Calendar) Tools(s *config.Store) []tools.Tool {
 		confirm = p.Confirm()
 	}
 	return []tools.Tool{
-		{Name: "calendar_today", For: serves(false), Description: "Events for today (or tomorrow with day=tomorrow), in home time.",
+		{Name: "calendar_today", For: serves(false), Description: "Events for today (or tomorrow with day=tomorrow), in home time, from all of the speaker's calendars (\"calendar\" says which, when there are several).",
 			Schema: tools.Object(map[string]any{"day": tools.Enum("default today", "today", "tomorrow")}),
 			Handler: tools.Bind(func(ctx context.Context, in struct {
 				Day string `json:"day"`
@@ -166,13 +182,15 @@ func (c *Calendar) Tools(s *config.Store) []tools.Tool {
 			})},
 		{Name: "calendar_add", For: serves(true), KnownOnly: true, Confirm: confirm,
 			Description: "Add an event when someone asks. start: \"2026-10-16 17:30\" in home time. duration_min default 60. " +
+				"calendar: only if they name one (\"en el de trabajo\"): an account e-mail or a calendar name; default their main calendar. " +
 				"Repeat the title and time back before calling it.",
 			Schema: tools.Object(map[string]any{"title": tools.Str("what"), "start": tools.Str("YYYY-MM-DD HH:MM, home time"),
-				"duration_min": tools.Num("minutes, default 60")}, "title", "start"),
+				"duration_min": tools.Num("minutes, default 60"), "calendar": tools.Str("optional: which calendar or account")}, "title", "start"),
 			Handler: tools.Bind(func(ctx context.Context, in struct {
 				Title    string  `json:"title"`
 				Start    string  `json:"start"`
 				Duration float64 `json:"duration_min"`
+				Calendar string  `json:"calendar"`
 			}) (tools.Output, error) {
 				p, err := c.provider(s)
 				if err != nil {
@@ -190,7 +208,7 @@ func (c *Calendar) Tools(s *config.Store) []tools.Tool {
 				if d <= 0 {
 					d = 60
 				}
-				e, err := p.Add(ctx, Event{Title: in.Title, Start: st, End: st.Add(time.Duration(d) * time.Minute)})
+				e, err := p.Add(ctx, Event{Title: in.Title, Start: st, End: st.Add(time.Duration(d) * time.Minute), Calendar: in.Calendar})
 				if err != nil {
 					return tools.Output{}, err
 				}

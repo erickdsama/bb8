@@ -73,11 +73,14 @@ viene encendido y solo necesita `home.city`.
   que no caduque a los 7 días, cliente *Web application* con `https://bb8.zerock.name/oauth/` como dirección de
   regreso). Su Client ID y secret van en `google_client.env` (ignorado por git; ver
   `google_client.env.example`) y `make` los mete en `bb8-body`. Después cada persona presiona
-  *Connect Google* y entra con su cuenta.
+  *Connect Google* y entra con su cuenta (o con varias). Al preguntarle junta todos tus calendarios;
+  para agendar usa el principal de tu primera cuenta, o el que nombres ("en el de trabajo").
 - **Avisos del calendario** (tarjeta *Calendar* → *Notices*): BB-8 dice en voz alta cuando alguien
   más te agenda, te mueve o te cancela algo ("Erick, Ana te agendó «Revisión» mañana a las 10:00"),
-  y te recuerda los eventos 10 minutos antes. Solo las cuentas con dueño; de 22:00 a 8:00 se guarda
-  los avisos y los dice al terminar. Con `connectors.calendar.push_url` (la dirección pública de
+  y te recuerda los eventos 10 minutos antes. Revisa todos los calendarios de todas tus cuentas
+  (puedes conectar varias, p. ej. la personal y la del trabajo) y dice cada cosa una sola vez aunque
+  aparezca en dos. Con *Also the ones I add myself* también avisa de lo que agregas tú. Solo las
+  cuentas con dueño; de 22:00 a 8:00 se guarda los avisos y los dice al terminar. Con `connectors.calendar.push_url` (la dirección pública de
   bb8-web, p. ej. `https://bb8.zerock.name`) Google avisa al instante a `/hooks/google` y bb8-web
   se lo pasa al robot por su enlace; sin ella, el robot revisa cada 2 minutos.
 

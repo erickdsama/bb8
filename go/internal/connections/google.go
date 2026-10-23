@@ -18,7 +18,7 @@ var (
 		TokenEndpoint:         "https://oauth2.googleapis.com/token",
 		UserinfoEndpoint:      "https://openidconnect.googleapis.com/v1/userinfo",
 	}
-	GoogleScope     = "openid email https://www.googleapis.com/auth/calendar.events"
+	GoogleScope     = "openid email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendarlist.readonly"
 	GoogleHomeScope = "openid email https://www.googleapis.com/auth/home.platform.v2"
 )
 
@@ -62,6 +62,40 @@ func Pick(list []Connection, known bool, person string, admin, write bool) (Conn
 		return list[0], true
 	}
 	return Connection{}, false
+}
+
+// PickAll is Pick for reading: every account that serves the request, oldest
+// first. A person reads all of their own accounts; with none of their own,
+// the shared ones.
+func PickAll(list []Connection, known bool, person string, admin bool) []Connection {
+	if !known {
+		var out []Connection
+		for _, c := range list {
+			if c.Owner == "" && c.Strangers {
+				out = append(out, c)
+			}
+		}
+		return out
+	}
+	var own, shared []Connection
+	for _, c := range list {
+		switch {
+		case c.Owns(person):
+			own = append(own, c)
+		case c.Owner == "":
+			shared = append(shared, c)
+		}
+	}
+	if len(own) > 0 {
+		return own
+	}
+	if len(shared) > 0 {
+		return shared
+	}
+	if person == "" && admin {
+		return list
+	}
+	return nil
 }
 
 // OfKind lists the accounts of one kind, oldest first.

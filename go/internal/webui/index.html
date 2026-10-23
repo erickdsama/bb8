@@ -509,7 +509,7 @@ function serviceCards() {
     if (id === "web") { const more = schema.filter(f => f.key.startsWith("connectors.web.") && !f.key.endsWith(".enabled")); body.append(el("details", { class: "more" }, el("summary", { textContent: "Settings" }), ...more.map(settingRow))); }
     if (id === "calendar") body.append(el("div", { class: "apps", id: "gaccts" }),
       el("details", { class: "more" }, el("summary", { textContent: "Notices" }),
-        ...["notify", "remind_min", "quiet_from", "quiet_until"].map(k => schema.find(f => f.key === "connectors.calendar." + k)).filter(Boolean).map(settingRow)),
+        ...["notify", "notify_own", "remind_min", "quiet_from", "quiet_until"].map(k => schema.find(f => f.key === "connectors.calendar." + k)).filter(Boolean).map(settingRow)),
       el("div", { class: "add" }, el("button", { class: "btn small", type: "button", id: "cal-btn", textContent: "Connect Google", onclick: () => googleSignIn() })));
     if (id === "mcp") body.append(el("div", { class: "apps", id: "apps" }),
       el("div", { class: "add" }, el("button", { class: "btn small", type: "button", textContent: "+ Connect a service", onclick: () => pickDialog() })));

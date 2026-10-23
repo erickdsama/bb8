@@ -261,6 +261,15 @@ func TestGoogleSignIn(t *testing.T) {
 		t.Fatalf("%+v", list)
 	}
 
+	// The same account signing in again replaces itself.
+	_, out = start()
+	au, _ = url.Parse(out["auth_url"].(string))
+	res, _ = http.Get(api.URL + CallbackPath + "?code=g-code&state=" + url.QueryEscape(au.Query().Get("state")))
+	res.Body.Close()
+	if n := len(st.OfKind(KindGoogle)); n != 1 {
+		t.Fatal("accounts after signing in twice:", n)
+	}
+
 	// Google Home: the same client, the Home scope and Google's MCP server.
 	body, _ := json.Marshal(map[string]any{"kind": KindGoogleHome, "origin": "http://debian.local:8780"})
 	r, _ := http.Post(api.URL+"/api/connections/start", "application/json", bytes.NewReader(body))
