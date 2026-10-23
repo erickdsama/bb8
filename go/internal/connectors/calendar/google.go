@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"sort"
@@ -143,7 +145,26 @@ func (g *Google) doAs(ctx context.Context, acctID, method, path string, q url.Va
 	}
 	defer r.Body.Close()
 	if r.StatusCode >= 300 {
-		return fmt.Errorf("Google Calendar: HTTP %d", r.StatusCode)
+		var e struct {
+			Error struct {
+				Message string `json:"message"`
+				Errors  []struct {
+					Reason string `json:"reason"`
+				} `json:"errors"`
+			} `json:"error"`
+		}
+		_ = json.NewDecoder(io.LimitReader(r.Body, 8<<10)).Decode(&e)
+		reason := ""
+		if len(e.Error.Errors) > 0 {
+			reason = e.Error.Errors[0].Reason
+		}
+		switch reason {
+		case "accessNotConfigured":
+			return errors.New("Google Calendar: the Calendar API is off in the Google Cloud project (enable it)")
+		case "insufficientPermissions":
+			return errors.New("Google Calendar: no calendar permission (sign in again and tick the calendar box)")
+		}
+		return fmt.Errorf("Google Calendar: HTTP %d %s %s", r.StatusCode, reason, e.Error.Message)
 	}
 	if out == nil {
 		return nil
