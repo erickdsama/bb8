@@ -109,7 +109,9 @@ func WAV(pcm []byte, rate int) []byte {
 func (g *Gemini) synth(ctx context.Context, key, voice, text string) (pcm []byte, rate int, err error) {
 	model, _ := g.Cfg.Get("voice.gemini_model").(string)
 	if style, _ := g.Cfg.Get("voice.gemini_style").(string); strings.TrimSpace(style) != "" {
-		text = "Dilo con voz " + strings.TrimSpace(style) + ": " + text
+		// Director notes: Gemini follows them without reading them out (a "Dilo
+		// con voz…:" prefix was spoken; system instructions are refused).
+		text = "### DIRECTOR NOTES\nStyle: " + strings.TrimSpace(style) + "\n### TRANSCRIPT\n" + text
 	}
 	body, _ := json.Marshal(map[string]any{
 		"contents": []any{map[string]any{"parts": []any{map[string]string{"text": text}}}},
