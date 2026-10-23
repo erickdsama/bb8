@@ -72,7 +72,18 @@ def main():
     cabeza.location.z = z0 + 0.9
     cabeza.keyframe_insert("location", frame=F0 + 12)
 
+    # el cableado no se separa: se esconde mientras la base se abre
+    for o in bpy.data.objects:
+        if o.name.startswith("Cableado"):
+            for h in [o] + list(o.children_recursive):
+                for f, oculto in ((F0 - 1, h.hide_render), (F0, True)):
+                    h.hide_viewport = h.hide_render = oculto
+                    h.keyframe_insert("hide_viewport", frame=f)
+                    h.keyframe_insert("hide_render", frame=f)
+
     for o in base.children:
+        if o.name.startswith("Cableado"):
+            continue
         o.keyframe_insert("location", frame=F0)
         o.location = o.location + Vector(desplazamiento(o.name)) * MM
         o.keyframe_insert("location", frame=F1)
