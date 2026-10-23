@@ -260,4 +260,19 @@ func TestGoogleSignIn(t *testing.T) {
 	if len(list) != 1 || list[0].Owner != "Ana" || list[0].Account != "ana@gmail.com" || list[0].Auth.Refresh != "g-rt" || list[0].Auth.TokenURL != g.URL+"/token" {
 		t.Fatalf("%+v", list)
 	}
+
+	// Google Home: the same client, the Home scope and Google's MCP server.
+	body, _ := json.Marshal(map[string]any{"kind": KindGoogleHome, "origin": "http://debian.local:8780"})
+	r, _ := http.Post(api.URL+"/api/connections/start", "application/json", bytes.NewReader(body))
+	var hs map[string]any
+	json.NewDecoder(r.Body).Decode(&hs)
+	hu, _ := url.Parse(hs["auth_url"].(string))
+	if sc := hu.Query().Get("scope"); !strings.Contains(sc, "home.platform.v2") || strings.Contains(sc, "calendar") {
+		t.Fatal(sc)
+	}
+	res, _ = http.Get(api.URL + CallbackPath + "?code=g-code&state=" + url.QueryEscape(hu.Query().Get("state")))
+	res.Body.Close()
+	if h := st.OfKind(KindGoogleHome); len(h) != 1 || h[0].URL != "https://home.googleapis.com/mcp" || h[0].Owner != "" {
+		t.Fatalf("%+v", h)
+	}
 }

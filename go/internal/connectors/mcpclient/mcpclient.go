@@ -166,6 +166,11 @@ func readOnly(t *mcp.Tool) bool {
 func (c *Client) connect(ctx context.Context, conn connections.Connection) (*mcp.ClientSession, error) {
 	hc := c.Store.Client(conn.ID, c.HTTP)
 	cl := mcp.NewClient(&mcp.Implementation{Name: "bb8", Version: "0.6"}, nil)
+	if conn.Kind == connections.KindGoogleHome { // Google's server speaks the older SSE transport
+		sse := *hc
+		sse.Timeout = 0 // the event stream stays open
+		return cl.Connect(ctx, &mcp.SSEClientTransport{Endpoint: conn.URL, HTTPClient: &sse}, nil)
+	}
 	return cl.Connect(ctx, &mcp.StreamableClientTransport{Endpoint: conn.URL, HTTPClient: hc, DisableStandaloneSSE: true}, nil)
 }
 

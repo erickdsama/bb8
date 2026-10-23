@@ -8,6 +8,9 @@ import "strings"
 // then every person signs in with it, through the same bridge as the others.
 const KindGoogle = "google"
 
+// KindGoogleHome is Google Home through Google's MCP server (signs in like KindGoogle).
+const KindGoogleHome = "googlehome"
+
 // Google's endpoints; variables so tests can point them at a fake.
 var (
 	GoogleMeta = ASMeta{
@@ -15,13 +18,14 @@ var (
 		TokenEndpoint:         "https://oauth2.googleapis.com/token",
 		UserinfoEndpoint:      "https://openidconnect.googleapis.com/v1/userinfo",
 	}
-	GoogleScope = "openid email https://www.googleapis.com/auth/calendar.events"
+	GoogleScope     = "openid email https://www.googleapis.com/auth/calendar.events"
+	GoogleHomeScope = "openid email https://www.googleapis.com/auth/home.platform.v2"
 )
 
 // googleAuthURL asks for a refresh token too: offline access, and the consent
 // screen every time (Google only sends a refresh token on consent).
-func googleAuthURL(a Auth, redirect, state, challenge string) string {
-	u := AuthURL(GoogleMeta, a, redirect, state, challenge, GoogleScope)
+func googleAuthURL(a Auth, redirect, state, challenge, scope string) string {
+	u := AuthURL(GoogleMeta, a, redirect, state, challenge, scope)
 	sep := "&"
 	if !strings.Contains(u, "?") {
 		sep = "?"

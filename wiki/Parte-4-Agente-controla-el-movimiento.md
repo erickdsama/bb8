@@ -63,6 +63,10 @@ viene encendido y solo necesita `home.city`.
 - **Home Assistant**: BB-8 lo busca en la red; entras con tu usuario de Home Assistant. Antes,
   agrega allí la integración *Model Context Protocol Server* y expón lo que BB-8 puede controlar.
 - **Alexa**: a través de Home Assistant, con su integración *Alexa Devices*.
+- **Google Home**: el [servidor MCP oficial de Google](https://developers.home.google.com/mcp/home)
+  (`https://home.googleapis.com/mcp`): luces, enchufes, termostatos y cámaras. Usa el mismo
+  cliente de Google que el calendario (activa *Home API* en el proyecto) y es de la casa
+  (compartido). Está en acceso anticipado y pide una suscripción **Google Home Premium Advanced**.
 - **Other**: cualquier servicio que dé un link para asistentes de IA (con token si lo pide).
 - **Google Calendar** (en la tarjeta *Calendar*): Google no deja que las apps se registren
   solas: se crea una vez un proyecto gratis en Google Cloud (API de Calendar, *Publish app* para

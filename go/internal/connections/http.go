@@ -213,12 +213,19 @@ func (f *Flows) start(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, 500, map[string]any{"error": "no sign-in bridge page is set (connectors.mcp.oauth_bridge)"})
 			return
 		}
-		draft.Name = "google"
+		draft.Name, draft.URL = "google", kind.URL
+		if in.Kind == KindGoogleHome {
+			draft.Name = "google_home"
+		}
+		scope := kind.Scope
+		if scope == "" {
+			scope = GoogleScope
+		}
 		draft.Auth = Auth{Type: "oauth", ClientID: id, ClientSecret: secret, AuthMethod: "client_secret_post", TokenURL: GoogleMeta.TokenEndpoint}
 		verifier, challenge := PKCE()
 		state := newState(callback)
 		f.park(state, &flow{draft: draft, verifier: verifier, redirect: bridge, userinfo: GoogleMeta.UserinfoEndpoint})
-		writeJSON(w, 200, map[string]any{"auth_url": googleAuthURL(draft.Auth, bridge, state, challenge)})
+		writeJSON(w, 200, map[string]any{"auth_url": googleAuthURL(draft.Auth, bridge, state, challenge, scope)})
 		return
 	}
 

@@ -208,7 +208,7 @@ func main() {
 	signin := connections.NewFlows(accounts, apps.HTTP)
 	signin.Bridge = func() string { return mcpclient.Bridge(cfg) }
 	signin.Client = func(kind string) (string, string) {
-		if kind == connections.KindGoogle {
+		if kind == connections.KindGoogle || kind == connections.KindGoogleHome { // one Google client for both
 			return calendar.GoogleClient(cfg)
 		}
 		return "", ""
