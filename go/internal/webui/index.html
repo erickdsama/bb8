@@ -508,7 +508,7 @@ function serviceCards() {
     if (id === "weather") body.append(el("details", { class: "more" }, el("summary", { textContent: "Settings" }), settingRow(schema.find(f => f.key === "connectors.weather.units"))));
     if (id === "web") { const more = schema.filter(f => f.key.startsWith("connectors.web.") && !f.key.endsWith(".enabled")); body.append(el("details", { class: "more" }, el("summary", { textContent: "Settings" }), ...more.map(settingRow))); }
     if (id === "calendar") body.append(el("div", { class: "apps", id: "gaccts" }),
-      el("div", { class: "add" }, el("button", { class: "btn small", type: "button", id: "cal-btn", textContent: "Set up Google", onclick: () => googleReady() ? connectDialog("google") : calendarDialog() })));
+      el("div", { class: "add" }, el("button", { class: "btn small", type: "button", id: "cal-btn", textContent: "Connect Google", onclick: () => googleReady() ? googleSignIn() : calendarDialog() })));
     if (id === "mcp") body.append(el("div", { class: "apps", id: "apps" }),
       el("div", { class: "add" }, el("button", { class: "btn small", type: "button", textContent: "+ Connect a service", onclick: () => pickDialog() })));
     return el("div", { class: "card svc", id: "svc-" + id },
@@ -563,7 +563,6 @@ function refreshServices() {
     card.querySelector(".status .msg").textContent = msg;
     card.querySelector(".status .fix").replaceChildren(key ? el("button", { class: "linkbtn", type: "button", textContent: label + " →", onclick: () => goTo(key) }) : "");
     card.querySelector(".tech").replaceChildren(el("div", { textContent: c.detail || "No details." }), ...(c.tools || []).map(t => el("code", { textContent: t })));
-    if (c.id === "calendar") $("#cal-btn").textContent = googleReady() ? "+ Add a Google account" : "Set up Google";
   }
 }
 
@@ -738,6 +737,13 @@ async function resultDialog(res) {
 
 // Google has no automatic sign-up for apps: the owner creates one OAuth client
 // in Google Cloud, once; then everyone signs in with "+ Add a Google account".
+// googleSignIn goes straight to Google; the account is the owner's (change it with Edit).
+async function googleSignIn() {
+  const r = await api("/api/connections/start", { method: "POST", body: JSON.stringify({ kind: "google", owner: accts.owner || "", origin: location.origin }) });
+  if (!r.ok) { toast(r.body.error || "It didn't work."); return; }
+  try { sessionStorage.setItem("bb8-connecting", JSON.stringify({ kind: "google" })); } catch (e) {}
+  location.href = r.body.auth_url;
+}
 const googleReady = () => !!(values["connectors.calendar.google_client_id"] && values["connectors.calendar.google_client_secret"]);
 function calendarDialog() {
   const id = el("input", { class: "txt", placeholder: "…apps.googleusercontent.com", value: values["connectors.calendar.google_client_id"] || "" });
@@ -764,7 +770,7 @@ function calendarDialog() {
     if (!r.ok) { say(result, "bad", r.body.error || "Could not save."); return; }
     values["connectors.calendar.google_client_id"] = vals["connectors.calendar.google_client_id"];
     if (vals["connectors.calendar.google_client_secret"]) values["connectors.calendar.google_client_secret"] = "set"; // the page never keeps secrets
-    connectDialog("google");
+    googleSignIn();
   };
   $("#dlg-body").onsubmit = (e) => { e.preventDefault(); go.click(); };
 }
