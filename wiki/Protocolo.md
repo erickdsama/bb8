@@ -263,6 +263,7 @@ The robot serves no pages (they are in `bb8-web`, § 2.9): this API is what they
 | `PATCH /api/connections/{id}` | `{"owner","confirm","strangers"}` | the view. Giving it an owner turns `strangers` off |
 | `DELETE /api/connections/{id}` | — | 204 |
 | `GET /api/connections/callback` | `?code&state` | Where sign-ins come back. **No page token**: the single-use state proves it. Answers a page that returns to `/#services` |
+| `POST /hooks/google` | Google's `X-Goog-Channel-*` headers, no body | Google Calendar change notice (relayed by bb8-web, no session). **No page token**: the channel token, random per account and renewed weekly, proves it. Always `200`; the robot then asks Google what changed |
 | `GET /api/agent`, `POST /api/agent/ask` | as in § 2.2 | the web chat box |
 | `GET /api/events` | `?types=pose,alert` (optional), `Last-Event-ID` or `?since=` to replay | SSE robot → page feed (§ 2.4) |
 | `GET /api/people` | — | `[{"name","role","notes":[{"text","at"}],"voice","created","last_seen"}]` |
@@ -347,7 +348,7 @@ The pages (`go/internal/webui`: `/`, `/control`, `/voice`, `/people`) are served
 `bb8-web`:
 - `GET /login`, `POST /login` (password in `~/.bb8-web/password`, made on the first run), `GET /logout`. A session is an HMAC-signed cookie, 30 days, `HttpOnly`, `SameSite=Lax`.
 - Pages without a session → `/login`; `/api/*` and `/mcp` without one → 401 `{"error":"sign in"}`.
-- With a session, `/api/*` and `/mcp` go down the link. `GET /api/connections/callback` goes down without a session (the robot checks their single-use state).
+- With a session, `/api/*` and `/mcp` go down the link. `GET /api/connections/callback` and `POST /hooks/google` go down without a session (the robot checks the single-use state or the channel token).
 - Robot not linked → 503 `{"error":"BB-8 is not connected","offline":true}`. `GET /api/web` → `{"robot": true, "since": …}`.
 - `--no-login` only on a loopback address (the simulator: `127.0.0.1:8780`).
 

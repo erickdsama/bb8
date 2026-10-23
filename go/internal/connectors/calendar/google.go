@@ -122,6 +122,11 @@ func (g *Google) do(ctx context.Context, method, path string, q url.Values, body
 	if !ok {
 		return tools.ErrNotYours
 	}
+	return g.doAs(ctx, acct.ID, method, path, q, body, out)
+}
+
+// doAs calls the Calendar API with one account's token.
+func (g *Google) doAs(ctx context.Context, acctID, method, path string, q url.Values, body any, out any) error {
 	var buf bytes.Buffer
 	if body != nil {
 		_ = json.NewEncoder(&buf).Encode(body)
@@ -132,13 +137,16 @@ func (g *Google) do(ctx context.Context, method, path string, q url.Values, body
 	}
 	req, _ := http.NewRequestWithContext(ctx, method, u, bytes.NewReader(buf.Bytes()))
 	req.Header.Set("Content-Type", "application/json")
-	r, err := g.accts.Client(acct.ID, g.HTTP).Do(req) // signs and refreshes the token
+	r, err := g.accts.Client(acctID, g.HTTP).Do(req) // signs and refreshes the token
 	if err != nil {
 		return err
 	}
 	defer r.Body.Close()
 	if r.StatusCode >= 300 {
 		return fmt.Errorf("Google Calendar: HTTP %d", r.StatusCode)
+	}
+	if out == nil {
+		return nil
 	}
 	return json.NewDecoder(r.Body).Decode(out)
 }

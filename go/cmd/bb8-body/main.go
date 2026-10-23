@@ -237,6 +237,15 @@ func main() {
 	// Sign-ins come back here from the person's browser without the page token;
 	// the single-use state ties them to a start the page made.
 	mux.HandleFunc("GET "+connections.CallbackPath, signin.Callback)
+	// Calendar notices: someone else adds, moves or cancels an event, and reminders.
+	// Google's "something changed" comes through bb8-web; its channel token is the check.
+	watch := calendar.NewWatcher(calendar.NewGoogle(cfg, accounts, apps.Owner), func(ctx context.Context, text string) {
+		slog.Info("calendar notice", "text", text)
+		bus.Publish("calendar", map[string]any{"text": text})
+		head.Say(ctx, text, "")
+	})
+	go watch.Run(ctx)
+	mux.HandleFunc("POST "+calendar.HookPath, watch.Hook)
 	// The pages live off the robot (bb8-web): the robot dials out to it and
 	// answers their requests through that link. It opens no port for them.
 	if *webURL != "" {

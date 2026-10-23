@@ -64,7 +64,7 @@ func (c *Calendar) names() []string {
 func (c *Calendar) Fields() []config.Field {
 	return append([]config.Field{
 		{Key: "connectors.calendar.provider", Label: "Provider", Type: config.Enum, Options: c.names(), Default: "google", Advanced: true},
-	}, GoogleFields()...)
+	}, append(GoogleFields(), WatchFields()...)...)
 }
 
 func (c *Calendar) provider(s *config.Store) (Provider, error) {

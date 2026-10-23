@@ -161,6 +161,8 @@ func main() {
 	// Sign-ins (Zapier, Home Assistant, Google) come back here without a session;
 	// the robot checks their single-use state.
 	mux.Handle("GET /api/connections/callback", rl)
+	// Google Calendar's change notices (no data, only "changed"); the robot checks their channel token.
+	mux.Handle("POST /hooks/google", rl)
 	mux.HandleFunc("GET /login", func(w http.ResponseWriter, r *http.Request) {
 		_ = loginPage.Execute(w, map[string]string{"Next": r.URL.Query().Get("next")})
 	})
