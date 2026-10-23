@@ -40,7 +40,7 @@ func (w *Web) Description() string {
 func (w *Web) Fields() []config.Field {
 	return []config.Field{
 		{Key: keyModel, Label: "Search model (OpenRouter id)", Type: config.String, Default: "",
-			Help: "Empty = the agent's model. A cheap fast model is enough: it only reads and summarizes the results.", Advanced: true},
+			Help: "Empty = the agent's model. A cheap one is enough.", Advanced: true},
 		{Key: keyResults, Label: "Results per search", Type: config.Number, Default: 5.0, Min: config.F(1), Max: config.F(10),
 			Help: "Each result costs about $0.004 on OpenRouter.", Advanced: true},
 	}

@@ -49,7 +49,7 @@ func (w *Weather) Description() string {
 func (w *Weather) Fields() []config.Field {
 	return []config.Field{{Key: "connectors.weather.units", Label: "Units", Type: config.Enum,
 		Options: []string{"metric", "imperial"}, Default: "metric",
-		Help: "Uses home.latitude/longitude, or home.city when they are 0.", Advanced: true}}
+		Help: "Uses the home location.", Advanced: true}}
 }
 
 func (w *Weather) Status(c *config.Store) connectors.Status {

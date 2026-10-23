@@ -490,10 +490,10 @@ async function loadAccounts() { const r = await api("/api/connections"); if (r.o
 
 // What to do in the service itself, shown in its dialog.
 const GUIDE = {
-  zapier: { after: [["After signing in, open ", ["Zapier", "https://mcp.zapier.com"], " and add what BB-8 may do, e.g. ", "Gmail: Send Email", " or ", "Google Calendar: Find Events", "."]] },
-  home: { before: [["In Home Assistant, add the integration ", ["Model Context Protocol Server", "https://my.home-assistant.io/redirect/config_flow_start/?domain=mcp_server"], "."],
-    ["In ", ["Settings → Voice assistants → Expose", "https://my.home-assistant.io/redirect/voice_assistants/"], ", pick the ", "lights and devices", " BB-8 may control."]] },
-  custom: { before: [["Paste the link the service gives you for AI assistants. If it has a sign-in, BB-8 opens it for you."]] },
+  zapier: { after: [["In ", ["Zapier", "https://mcp.zapier.com"], " add what BB-8 may do, e.g. ", "Gmail: Send Email", "."]] },
+  home: { before: [["Add ", ["MCP Server", "https://my.home-assistant.io/redirect/config_flow_start/?domain=mcp_server"], " in Home Assistant."],
+    ["", ["Expose", "https://my.home-assistant.io/redirect/voice_assistants/"], " the ", "devices", " BB-8 may control."]] },
+  custom: { before: [["Paste the service's link for AI assistants."]] },
 };
 // Tiles in "Connect a service", in this order; Alexa goes through Home Assistant.
 const TILES = ["zapier", "home", "alexa", "notion", "linear", "custom"];
@@ -615,7 +615,6 @@ function pickDialog() {
       el("span", { class: "badge", textContent: k.label[0] }), el("b", { textContent: k.label }), el("small", { textContent: k.what }));
   };
   openDialog(el("h3", { textContent: "Connect a service" }),
-    el("p", { class: "lead", textContent: "BB-8 signs in once and then uses it when you ask." }),
     el("div", { class: "tiles" }, ...TILES.map(tile)),
     el("div", { class: "actions" }, el("button", { class: "btn ghost", type: "button", textContent: "Close", onclick: () => $("#dlg").close() })));
 }
@@ -632,7 +631,7 @@ function connectDialog(kind, existing) {
     api("/api/connections/discover").then(r => {
       const ha = (r.body?.home_assistant || [])[0];
       if (ha) { if (!inputs.url.value) inputs.url.value = ha.url; found.textContent = "Found on your network" + (ha.name ? ": " + ha.name : "") + " ✓"; }
-      else found.textContent = "Not found automatically; type its address (as you open it in the browser).";
+      else found.textContent = "Not found; type its address.";
     });
   }
   if (kind === "custom" && !existing) {
@@ -661,7 +660,7 @@ function connectDialog(kind, existing) {
   openDialog(el("h3", { textContent: (existing ? "Sign in again: " : "Connect ") + k.label }), el("p", { class: "lead", textContent: k.what }),
     g.before ? stepsList(g.before) : "",
     el("div", { class: "field" }, el("label", { textContent: "Whose account is this?" }), owner,
-      el("small", { textContent: "BB-8 uses it when this person talks. Shared: anyone in the house." })),
+      ),
     ...fields, result,
     el("div", { class: "actions" }, el("button", { class: "btn ghost", type: "button", textContent: "Back", onclick: existing ? () => editDialog(existing.id) : kind === "google" ? () => $("#dlg").close() : pickDialog }), go));
   $("#dlg-body").onsubmit = (e) => { e.preventDefault(); go.click(); };
@@ -670,11 +669,10 @@ function connectDialog(kind, existing) {
 function alexaDialog() {
   const ha = (accts.connections || []).find(x => x.connection.kind === "home");
   openDialog(el("h3", { textContent: "Alexa" }),
-    el("p", { class: "lead", textContent: "Amazon has no way for other assistants to use Alexa directly. BB-8 reaches your Echo devices through Home Assistant, which has an official Alexa integration." }),
-    stepsList([["In Home Assistant, add ", ["Alexa Devices", "https://my.home-assistant.io/redirect/config_flow_start/?domain=alexa_devices"], " and sign in with Amazon."],
-      ["In ", ["Voice assistants → Expose", "https://my.home-assistant.io/redirect/voice_assistants/"], ", expose your ", "Echo devices", "."],
-      ha ? ["Home Assistant is connected ", "✓", "."] : ["Connect ", "Home Assistant", " here."]]),
-    el("p", { class: "lead", textContent: "For BB-8 to speak through an Echo, make a Home Assistant script that sends notify.send_message to the Echo's Announce entity and expose the script too." }),
+    el("p", { class: "lead", textContent: "Works through Home Assistant." }),
+    stepsList([["Add ", ["Alexa Devices", "https://my.home-assistant.io/redirect/config_flow_start/?domain=alexa_devices"], " in Home Assistant."],
+      ["", ["Expose", "https://my.home-assistant.io/redirect/voice_assistants/"], " your ", "Echo devices", "."],
+      ha ? ["Home Assistant ", "✓"] : ["Connect ", "Home Assistant", "."]]),
     el("div", { class: "actions" }, el("button", { class: "btn ghost", type: "button", textContent: "Back", onclick: pickDialog }),
       ha ? el("button", { class: "btn", type: "button", textContent: "Done", onclick: () => $("#dlg").close() })
         : el("button", { class: "btn", type: "button", textContent: "Connect Home Assistant", onclick: () => connectDialog("home") })));
@@ -687,7 +685,7 @@ function editDialog(id) {
   const owner = ownerSelect(c.owner);
   const confirmSw = el("input", { type: "checkbox", checked: c.confirm });
   const strangers = el("input", { type: "checkbox", checked: c.strangers });
-  const strangersRow = el("label", { class: "opt" }, el("span", { class: "switch" }, strangers, el("span")), "Voices BB-8 doesn't know may use it (only to look things up)");
+  const strangersRow = el("label", { class: "opt" }, el("span", { class: "switch" }, strangers, el("span")), "Unknown voices may use it (look up only)");
   const showStrangers = () => { strangersRow.hidden = owner.value !== ""; };
   owner.onchange = showStrangers; showStrangers();
   const result = resultBox();
@@ -702,7 +700,7 @@ function editDialog(id) {
     el("p", { class: "lead", textContent: (c.account ? "Signed in as " + c.account + ". " : "") + (l.state === "ok" ? l.tools + " actions available." : l.state === "error" ? friendly(l.error || "") : "Connecting…") }),
     g8(GUIDE[c.kind]?.after),
     el("div", { class: "field" }, el("label", { textContent: "Whose account is this?" }), owner),
-    el("label", { class: "opt" }, el("span", { class: "switch" }, confirmSw, el("span")), "Ask before sending, creating or deleting"),
+    el("label", { class: "opt" }, el("span", { class: "switch" }, confirmSw, el("span")), "Ask before changing anything"),
     strangersRow, result,
     el("details", { class: "more" }, el("summary", { textContent: "Technical details" }), el("div", { class: "tech", textContent: c.url + (l.error ? " · " + l.error : "") })),
     el("div", { class: "actions" },
@@ -749,15 +747,15 @@ function calendarDialog() {
   const go = el("button", { class: "btn", type: "button", textContent: "Save and sign in" });
   openDialog(
     el("h3", { textContent: "Set up Google" }),
-    el("p", { class: "lead", textContent: "Google asks for a free project of your own, once. About 5 minutes; after that each person just signs in." }),
-    stepsList([["In ", ["Google Cloud", "https://console.cloud.google.com/apis/library/calendar-json.googleapis.com"], " create a project and turn on the ", "Google Calendar API", "."],
-      ["In ", ["Branding", "https://console.cloud.google.com/auth/branding"], " give it a name, like ", "BB-8", ", and your e-mail."],
-      ["In ", ["Audience", "https://console.cloud.google.com/auth/audience"], " choose External and press ", "Publish app", " (otherwise Google signs everyone out every 7 days)."],
-      ["In ", ["Clients", "https://console.cloud.google.com/auth/clients"], " create one of type ", "Web application", " with this redirect address:"]]),
+    el("p", { class: "lead", textContent: "Once, about 5 minutes." }),
+    stepsList([["", ["Google Cloud", "https://console.cloud.google.com/apis/library/calendar-json.googleapis.com"], ": new project, enable ", "Calendar API", "."],
+      ["", ["Branding", "https://console.cloud.google.com/auth/branding"], ": name ", "BB-8", " and your e-mail."],
+      ["", ["Audience", "https://console.cloud.google.com/auth/audience"], ": External → ", "Publish app", "."],
+      ["", ["Clients", "https://console.cloud.google.com/auth/clients"], ": new ", "Web application", " with this redirect:"]]),
     el("div", { class: "copy" }, el("code", { textContent: redirect }), el("button", { class: "btn ghost small", type: "button", textContent: "Copy", onclick: () => { navigator.clipboard?.writeText(redirect); toast("Copied"); } })),
     el("div", { class: "field" }, el("label", { textContent: "Client ID" }), id),
     el("div", { class: "field" }, el("label", { textContent: "Client secret" }), secret),
-    el("p", { class: "lead", textContent: "When you sign in, Google warns that it hasn't verified the app: it is your own, so choose Advanced → Go to BB-8." }),
+    el("small", { textContent: "If Google says “unverified app”: Advanced → Go to BB-8." }),
     result, el("div", { class: "actions" }, el("button", { class: "btn ghost", type: "button", textContent: "Cancel", onclick: () => $("#dlg").close() }), go));
   go.onclick = async () => {
     if (!id.value.trim() || (!secret.value.trim() && !values["connectors.calendar.google_client_secret"])) { say(result, "bad", "Paste the client ID and secret."); return; }
