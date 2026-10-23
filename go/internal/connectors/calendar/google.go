@@ -34,15 +34,24 @@ var GoogleAPI = "https://www.googleapis.com/calendar/v3"
 func GoogleFields() []config.Field {
 	return []config.Field{
 		{Key: keyClientID, Label: "Client ID", Type: config.String,
-			Help: "From Google Cloud: see \"Set up Google\" on the Services page."},
+			Help: "Empty = the one built in (google_client.env)."},
 		{Key: keyClientSecret, Label: "Client secret", Type: config.Secret},
 		{Key: keyCalendarID, Label: "Calendar ID", Type: config.String, Default: "primary", Advanced: true},
 	}
 }
 
-// GoogleClient is the OAuth client the sign-in uses (connections.Flows.Client).
+// The built-in Google client, baked in at build time from the gitignored
+// google_client.env (see the Makefile), so nobody has to paste it in the page.
+var builtinID, builtinSecret string
+
+// GoogleClient is the OAuth client the sign-in uses (connections.Flows.Client):
+// the settings when both are set, else the built-in one.
 func GoogleClient(c *config.Store) (id, secret string) {
-	return strings.TrimSpace(c.String(keyClientID)), strings.TrimSpace(c.Secret(keyClientSecret))
+	id, secret = strings.TrimSpace(c.String(keyClientID)), strings.TrimSpace(c.Secret(keyClientSecret))
+	if id == "" || secret == "" {
+		return builtinID, builtinSecret
+	}
+	return id, secret
 }
 
 type Google struct {

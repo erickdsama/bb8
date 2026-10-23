@@ -62,9 +62,10 @@ BB-8 también tiene su propio agente dentro de `bb8-body`: usa cualquier modelo 
 1. `agent.api_key`: tu clave de OpenRouter (se guarda en `secrets.json`, 0600, y la página solo muestra "set").
 2. `agent.model`: el modelo; `agent.vision` apagado si el modelo no ve imágenes.
 3. Conectores: `connectors.weather.enabled` + `home.city` para el clima;
-   Google Calendar en Servicios → Calendar: "Set up Google" la primera vez (un
-   proyecto gratis en Google Cloud con su Client ID y secret) y luego cada persona
-   entra con "+ Add a Google account". BB-8 usa el calendario de quien le habla.
+   Google Calendar en Servicios → Calendar: cada persona presiona "Connect Google"
+   y entra con su cuenta. El cliente de Google (Client ID y secret) va en
+   `google_client.env` (ignorado por git, copia de `google_client.env.example`) y
+   `make` lo mete en `bb8-body`. BB-8 usa el calendario de quien le habla.
 
 La página tiene un chat para probarlo. El agente de voz de la
 [Parte 4](Parte-4-Agente-controla-el-movimiento.md) le manda lo que oye a

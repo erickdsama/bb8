@@ -107,3 +107,12 @@ func TestGoogleEventsAndAdd(t *testing.T) {
 		t.Fatal("shared calendar")
 	}
 }
+
+func TestGoogleClientBuiltin(t *testing.T) {
+	builtinID, builtinSecret = "built.apps", "built-secret"
+	defer func() { builtinID, builtinSecret = "", "" }()
+	c := store(t)
+	if id, s := GoogleClient(c); id != "built.apps" || s != "built-secret" {
+		t.Fatalf("builtin not used: %q %q", id, s)
+	}
+}

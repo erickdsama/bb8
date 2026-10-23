@@ -65,10 +65,11 @@ viene encendido y solo necesita `home.city`.
 - **Alexa**: a través de Home Assistant, con su integración *Alexa Devices*.
 - **Other**: cualquier servicio que dé un link para asistentes de IA (con token si lo pide).
 - **Google Calendar** (en la tarjeta *Calendar*): Google no deja que las apps se registren
-  solas, así que la primera vez *Set up Google* te guía para crear un proyecto gratis en Google
-  Cloud (API de Calendar, *Publish app* para que no caduque a los 7 días, cliente *Web
-  application* con la página puente como dirección de regreso) y pegar su Client ID y secret.
-  Después cada persona entra con *+ Add a Google account*.
+  solas: se crea una vez un proyecto gratis en Google Cloud (API de Calendar, *Publish app* para
+  que no caduque a los 7 días, cliente *Web application* con la página puente como dirección de
+  regreso). Su Client ID y secret van en `google_client.env` (ignorado por git; ver
+  `google_client.env.example`) y `make` los mete en `bb8-body`. Después cada persona presiona
+  *Connect Google* y entra con su cuenta.
 
 Cada cuenta tiene dueño: cuando Ana habla, BB-8 usa la cuenta de Ana; cuando hablas tú, la
 tuya; las compartidas (la casa) las usa cualquiera conocido. Antes de mandar, crear o borrar

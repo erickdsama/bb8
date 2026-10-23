@@ -6,7 +6,10 @@
 #   make test       # go vet + go test
 #   make probar     # dummy + Go binaries + end-to-end test (fresh dummy)
 GO      ?= $(shell command -v go 2>/dev/null || echo $(HOME)/.local/go/bin/go)
-FLAGS   := -trimpath -ldflags "-s -w"
+# Google sign-in client (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET): gitignored, see google_client.env.example
+-include google_client.env
+CAL     := github.com/erickdsama/bb8/go/internal/connectors/calendar
+FLAGS   := -trimpath -ldflags "-s -w -X $(CAL).builtinID=$(GOOGLE_CLIENT_ID) -X $(CAL).builtinSecret=$(GOOGLE_CLIENT_SECRET)"
 PY      ?= $(shell [ -x .venv/bin/python ] && echo .venv/bin/python || echo python3)
 export CGO_ENABLED=0
 
