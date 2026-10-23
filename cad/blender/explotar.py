@@ -17,7 +17,7 @@ MM = 0.001
 def desplazamiento(nombre):
     """Cuánto se separa cada pieza (mm, en el marco de la base)."""
     lado = 1 if nombre.endswith(("der", "der 1", "der 2")) else -1
-    if nombre.startswith(("Raspberry", "Arduino", "L298N", "Buck", "MPU")):
+    if nombre.startswith(("Raspberry", "Arduino", "L298N", "Buck", "MPU", "Receptor carga", "Cargador CC/CV", "BMS 3S")):
         return (0, 0, 230)
     if nombre.startswith(("Pie del poste", "Soporte servo", "Portaimanes", "Tubo", "Servo", "Cuerno", "Iman poste")):
         return (0, 0, 450)   # el poste sale de cuadro
@@ -41,7 +41,7 @@ def desplazamiento(nombre):
         return (0, 0, 10)
     if nombre.startswith("Lastre"):
         return (lado * 60, 0, -10)
-    if nombre.startswith("Charola"):
+    if nombre.startswith(("Charola", "Bobina receptora")):
         return (0, 0, -40)
     return (0, 0, 0)
 

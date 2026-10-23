@@ -46,6 +46,12 @@ SERVO_INF = PORTA_INF + 2.5 - 42.9 - 1.5
 TUBO_SUP = SERVO_INF - 6
 IMAN_D, IMAN_E, IMAN_R = 20.0, 5.0, 27.0
 SEPARADOR = 8.0
+# carga inalámbrica (cad/cuna.scad): bobina receptora bajo la charola, emisora en la cuna
+BOBINA_D, BOBINA_E, BOBINA_AIRE = 50.0, 4.0, 4.0
+CUNA_D, CUNA_PLACA, CUNA_TAPA = 150.0, (45.0, 35.0, 12.0), 1.0
+CUNA_Z_BOBINA = CUNA_PLACA[2] + 1
+CUNA_Z_CENTRO = CUNA_Z_BOBINA + BOBINA_E + CUNA_TAPA + RE + 0.6   # centro de la esfera sentada
+CUNA_POS = (0.0, -450.0)          # en el piso, detrás de donde arranca la animación
 # cabeza (marco con origen en el polo de la esfera)
 RC = 0.6 * 330 / 2
 TAPA_R = 0.45 * RC
@@ -258,8 +264,24 @@ def esfera(padre):
         m = R_ESFERA @ (RX180 if g[4] == "m" else Matrix())
         stl(f"parte6-esfera/esfera_gajo_{g}.stl", f"Gajo {g}", "Blanco", padre, m)
     for i, e in enumerate([(1, 0, 0), (0, 1, 0), (0, 0, 1), (-1, 0, 0), (0, -1, 0), (0, 0, -1)]):
-        pieza = "tapa_carga" if e == (0, 0, -1) else "circulo"
-        stl(f"parte6-esfera/esfera_{pieza}.stl", f"Circulo {i + 1}", "Naranja", padre, R_ESFERA @ apuntar(e))
+        stl("parte6-esfera/esfera_circulo.stl", f"Circulo {i + 1}", "Naranja", padre, R_ESFERA @ apuntar(e))
+
+
+# ── Cuna de carga (en el piso) ──
+def cuna(padre):
+    """La cuna con su bobina emisora, la placa del emisor y el cable del eliminador de 24 V."""
+    c = vacio("Cuna de carga", padre)
+    c.location = (CUNA_POS[0] * MM, CUNA_POS[1] * MM, 0)
+    stl("parte6-esfera/esfera_cuna.stl", "Cuna", "Impreso", c)
+    prim("cil", "Bobina emisora", "Negro", c, (0, 0, CUNA_Z_BOBINA + BOBINA_E / 2), dim=(BOBINA_D, BOBINA_D, BOBINA_E), vertices=64)
+    caja("Emisor placa", "PCB", c, -CUNA_PLACA[0] / 2 + 1, -CUNA_PLACA[1] / 2 + 1, 1, CUNA_PLACA[0] - 2, CUNA_PLACA[1] - 2, 1.6)
+    cil_x("Jack 24 V", "Negro", c, CUNA_D / 2 - 10, CUNA_D / 2 + 2, 0, 6, 8)
+    cable("Cuna cable eliminador 24 V", [(CUNA_D / 2 + 2, 0, 6), (CUNA_D / 2 + 30, 0, 4), (CUNA_D / 2 + 90, 40, 2), (CUNA_D / 2 + 160, 60, 2)], "negro", 1.6, c)
+    caja("Eliminador 24 V", "Negro", c, CUNA_D / 2 + 160, 45, 0, 60, 30, 25)
+    for n in ("+", "-"):
+        cable(f"Cuna cable emisor {n}", [(CUNA_D / 2 - 10, 0, 6), (20, (1 if n == "+" else -1) * 4, 5), (0, (1 if n == "+" else -1) * 4, CUNA_Z_BOBINA)],
+              "rojo" if n == "+" else "negro", 0.5, c)
+    return c
 
 
 # ── Base ──
@@ -320,7 +342,9 @@ def base(padre):
             prim("cil", f"RL4 {nombre} brida {k}", "Metal", padre, cara - u * 0.75 + q, rot, dim=(RL4_BRIDA[1], RL4_BRIDA[1], 1.5), vertices=32)
             q2 = apuntar(u) @ Vector((0, k * 17.5, 0))
             prim("cil", f"RL4 {nombre} tornillo {k}", "Negro", padre, cara + q2 + u * 1.0, rot, dim=(7, 7, 2.5), vertices=6)
-    stl("parte2-base/base_panel_carga.stl", "Panel de carga", "Impreso", padre)
+    stl("parte2-base/base_panel_interruptor.stl", "Panel del interruptor", "Impreso", padre)
+    # bobina receptora, pegada en el portabobina de la charola a 4 mm de la pared
+    prim("cil", "Bobina receptora", "Negro", padre, (0, 0, -(RI - BOBINA_AIRE) + BOBINA_E / 2), dim=(BOBINA_D, BOBINA_D, BOBINA_E), vertices=64)
 
     z = PLAT_SUP + SEPARADOR
     tarjeta("Raspberry Pi 3", "PCB", padre, -42.5, 34, z, 85, 56,
@@ -578,7 +602,7 @@ def cableado_base(padre):
     for f, i, q in (("12V", 0, "rocker"), ("12V", 1, "l298"), ("12V", 2, "b1"), ("12V", 3, "b2"), ("12V", 4, "vin"),
                     ("5V", 0, "uno"), ("5V", 1, "encI"), ("5V", 2, "encD"), ("5V", 3, "mpu"),
                     ("GND", 0, "bat"), ("GND", 1, "l298"), ("GND", 2, "b1"), ("GND", 3, "b2"), ("GND", 4, "uno"),
-                    ("GND", 5, "encI"), ("GND", 6, "encD"), ("GND", 7, "mpu")):
+                    ("GND", 5, "encI"), ("GND", 6, "encD"), ("GND", 7, "mpu"), ("GND", 8, "led")):
         r.p(f"riel {f} {q}", pad(f, i))
 
     # --- MOSFET AO3401 (corte de la Pi por A3), en placa adaptadora con 100 kΩ de G a GND ---
@@ -609,25 +633,52 @@ def cableado_base(padre):
             r.p(f"mpu {n}", q, texto=n, off=(0, -2.5 - 3 * (k % 3), 4.5 + 3 * (k % 3)))
     etiqueta("MPU6050 (0x68)", (-64.5, 44, piso + 20), padre, 2.4)
 
-    # --- Panel de carga (atrás a la izquierda, 225°): rocker, XT60 hembra y JST-XH de balanceo ---
+    # --- Panel del interruptor (atrás a la izquierda, 225°): rocker y LED de carga ---
     def panel(x, y, zz):    # x: hacia afuera desde la cara interior (r = 86), y: a lo largo del panel
         c, s = math.cos(math.radians(225)), math.sin(math.radians(225))
         return (c * (86 + x) - s * y, s * (86 + x) + c * y, PLAT_SUP + zz)
     rot = (0, 0, math.radians(225))
     mat("XT60", (0.9, 0.7, 0.05), 0.4)
+    mat("LED", (0.1, 0.9, 0.2), 0.3, emision=(0.1, 1, 0.2), fuerza=2)
     prim("cubo", "Rocker cuerpo", "Negro", padre, panel(-10, -11, 18), rot, (20, 19, 13))
-    prim("cubo", "XT60 panel cuerpo", "XT60", padre, panel(-7, 14.1, 10.2), rot, (16, 16.2, 8.4))
-    prim("cubo", "JST-XH panel cuerpo", "Blanco", padre, panel(-4, 12.3, 25), rot, (8, 12.6, 6))
+    prim("cil", "LED carga", "LED", padre, panel(-3, 14, 18), (0, math.pi / 2, math.radians(225)), (5, 5, 8), vertices=24)
     sale = Vector(panel(-1, 0, 0)) - Vector(panel(0, 0, 0))
     sale.z = 0
     for n, y in (("rocker 1", -15.5), ("rocker 2", -6.5)):
         r.p(n, panel(-21, y, 18), sale, None)
-    r.p("xt60 +", panel(-16, 10.5, 10.2), sale, None)
-    r.p("xt60 -", panel(-16, 17.7, 10.2), sale, None)
-    r.p("jst panel", panel(-9, 12.3, 25), sale, None)
+    r.p("led +", panel(-8, 13, 18), sale, None)
+    r.p("led -", panel(-8, 15, 18), sale, None)
     etiqueta("Rocker", panel(-14, -11, 29), padre, 2.2)
-    etiqueta("XT60 carga", panel(-12, 21, 2), padre, 2.2)
-    etiqueta("JST-XH balanceo", panel(-10, 12, 34), padre, 2.0)
+    etiqueta("LED carga", panel(-10, 16, 27), padre, 2.0)
+
+    # --- Carga inalámbrica: bobina receptora → receptor → cargador CC/CV → BMS 3S → LiPo ---
+    # Las tres placas van pegadas bajo la plataforma, atrás a la derecha (posición tentativa).
+    zb = PLAT_INF - 1
+    caja("Receptor carga", "PCB", padre, 30, -76, zb - 1.6, 38, 28, 1.6)
+    caja("Receptor carga chip", "Negro", padre, 40, -66, zb - 4, 10, 8, 2.4)
+    r.p("rx bobina A", (32, -70, zb - 1.6), (0, 0, -1), None)
+    r.p("rx bobina B", (32, -64, zb - 1.6), (0, 0, -1), None)
+    r.p("rx OUT+", (66, -52, zb - 1.6), (0, 0, -1), "OUT+", (0, 2, -4))
+    r.p("rx OUT-", (66, -56, zb - 1.6), (0, 0, -1), "OUT−", (0, -2, -4))
+    etiqueta("Receptor inalámbrico 24 V", (49, -62, zb - 14), padre, 2.0)
+    caja("Cargador CC/CV", "Buck", padre, 30, -106, zb - 1.6, 48, 26, 1.6)
+    prim("cil", "Cargador CC/CV bobina", "Negro", padre, (50, -93, zb - 6), dim=(12, 12, 8), vertices=24)
+    for n, x, y in (("IN+", 32, -82), ("IN-", 32, -86), ("OUT+", 76, -82), ("OUT-", 76, -86)):
+        r.p(f"cc {n}", (x, y, zb - 1.6), (0, 0, -1), n.replace("-", "−"), (0, 0, -4))
+    etiqueta("Cargador CC/CV 12.6 V · 1.5 A", (54, -93, zb - 18), padre, 2.0)
+    caja("BMS 3S", "PCB", padre, 72, -92, zb - 1.6, 16, 45, 1.6)
+    for k, n in enumerate(("B-", "B1", "B2", "B+", "P-")):
+        r.p(f"bms {n}", (80, -90 + 9.5 * k, zb - 1.6), (0, 0, -1), n.replace("-", "−"), (4, 0, -3))
+    etiqueta("BMS 3S con balance", (80, -70, zb - 16), padre, 2.0)
+    # la bobina: su cable sube por la ranura del portabobina al compartimiento de lastre derecho
+    for k, q in enumerate(("rx bobina A", "rx bobina B")):
+        cable(f"Cable bobina {k + 1}", [(BOBINA_D / 2 - 1, -1 + 2 * k, -(RI - BOBINA_AIRE) + 2), (28, -1 + 2 * k, -(RI - BOBINA_AIRE) + 6),
+                                       (28, -1 + 2 * k, LIPO_INF - 1), (30, -20 + k, LIPO_INF + 10), (34, -55 + k, PLAT_INF - 14),
+                                       Vector(r.pin[q][0]) + Vector((0, 0, -4)), r.pin[q][0]], "naranja", 0.45, padre)
+    etiqueta("Bobina receptora (4 mm de la pared)", (0, 0, -(RI - BOBINA_AIRE) - 8), padre, 2.2)
+    r.c("receptor cargador +", "rx OUT+", "cc IN+", "rojo", R22, via=[(60, -60, zb - 8), (34, -78, zb - 8)])
+    r.c("receptor cargador -", "rx OUT-", "cc IN-", "negro", R22, via=[(58, -62, zb - 9), (35, -80, zb - 9)])
+    r.c("cargador BMS P-", "cc OUT-", "bms P-", "negro", R22, via=[(70, -86, zb - 7), (76, -52, zb - 7)])
 
     # --- LiPo: su XT60 macho sale atrás de la charola; fusible 5 A en línea bajo la plataforma ---
     xt = (-10.0, -82.0, LIPO_INF + 8)
@@ -647,23 +698,29 @@ def cableado_base(padre):
     etiqueta("Fusible 5 A", (f0 + f1) / 2 + Vector((0, -4, -8)), padre, 2.2)
     hole_i, hole_d = Vector((-55, -40, PLAT_SUP)), Vector((55, -40, PLAT_SUP))
 
-    # poder: LiPo + → fusible → XT60 de carga (+) → rocker → 12V;  LiPo − → XT60 de carga (−) → GND
+    # poder: LiPo + → fusible → rocker → 12V;  LiPo − → BMS B−, BMS P− → GND.
+    # Carga: cargador OUT+ al + de la LiPo (empalme en su XT60), OUT− a P−.
     r.c("lipo+ fusible", "xt60 lipo +", "fus in", "rojo", R12, via=[(-14, -92, -112), (-22, -80, -100)])
-    r.c("fusible xt60", "fus out", "xt60 +", "rojo", R12,
-        via=[(-52, -46, -76), hole_i + Vector((1, -1, -3)), hole_i + Vector((1, -1, 9)), (-46, -50, -54)])
-    r.c("lipo- xt60", "xt60 lipo -", "xt60 -", "negro", R12,
-        via=[(4, -92, -112), (-16, -80, -106), (-50, -52, -84), hole_i + Vector((-1, -4, -3)), hole_i + Vector((-1, -4, 9)), (-42, -56, -52)])
-    r.c("xt60 rocker", "xt60 +", "rocker 1", "rojo", R18, via=[(-50, -48, -52)])
-    # 12V y GND a la placa de distribución: por detrás del Uno, sobre la plataforma
+    r.c("fusible rocker", "fus out", "rocker 1", "rojo", R12,
+        via=[(-52, -46, -76), hole_i + Vector((1, -1, -3)), hole_i + Vector((1, -1, 9)), (-50, -48, -52)])
+    r.c("lipo- BMS B-", "xt60 lipo -", "bms B-", "negro", R12, via=[(4, -96, -112), (40, -100, -96), (78, -96, zb - 8)])
+    r.c("cargador OUT+ LiPo+", "cc OUT+", "xt60 lipo +", "rojo", R18, via=[(70, -80, zb - 10), (20, -98, -100), (-8, -96, -108)])
+    r.c("BMS P- GND", "bms P-", "riel GND bat", "negro", R18,
+        via=[(84, -50, zb - 6), (90, -50, PLAT_SUP + 4), (60, -70, PLAT_SUP + 6)])
+    # 12V a la placa de distribución: por detrás del Uno, sobre la plataforma
     r.c("rocker 12V", "rocker 2", "riel 12V rocker", "rojo", R18,
         via=[(-40, -32, -48), (-26, -31, PLAT_SUP + 4), (38, -32, PLAT_SUP + 4), (44, -54, PLAT_SUP + 6)])
-    r.c("xt60- GND", "xt60 -", "riel GND bat", "negro", R18,
-        via=[(-38, -34, -50), (-26, -33, PLAT_SUP + 3), (37, -34, PLAT_SUP + 3), (41, -60, PLAT_SUP + 5)])
-    for k, col in enumerate(("negro", "rojo", "rojo", "rojo")):
+    # balanceo: GND, celda 1, celda 2, + de la LiPo a B−, B1, B2, B+ del BMS
+    for k, (col, q) in enumerate((("negro", "bms B-"), ("rojo", "bms B1"), ("rojo", "bms B2"), ("rojo", "bms B+"))):
         cable(f"Cable balanceo {k + 1}", [Vector((-8 + 1.2 * k, -LIPO[1] / 2, LIPO_INF + 20)), Vector((-12 + 1.2 * k, -LIPO[1] / 2 - 8, LIPO_INF + 20)),
-                                          Vector((-50 + k, -52, -80)), hole_i + Vector((2 + 1.2 * k, 3, -3)), hole_i + Vector((2 + 1.2 * k, 3, 10)),
-                                          Vector(r.pin["jst panel"][0]) + r.pin["jst panel"][1] * 5 + Vector((0, 0, 1.2 * k - 1.8)),
-                                          Vector(r.pin["jst panel"][0]) + Vector((0, 0, 1.2 * k - 1.8))], col, 0.55, padre)
+                                          Vector((20 + k, -90, -100)), Vector((60 + k, -98 + k, zb - 12)),
+                                          Vector(r.pin[q][0]) + Vector((0, 0, -5)), r.pin[q][0]], col, 0.55, padre)
+    etiqueta("Balanceo JST-XH → BMS", (30, -92, -104), padre, 2.0)
+    # LED de carga: OUT+ del receptor → 2.2 kΩ → LED → GND
+    prim("cil", "Resistencia 2k2", "Impreso", padre, (10, -60, PLAT_SUP + 4), (0, math.pi / 2, 0), (1.8, 1.8, 6), vertices=12)
+    etiqueta("2.2 kΩ", (10, -60, PLAT_SUP + 9), padre, 1.8)
+    r.c("LED +", "rx OUT+", "led +", "rosa", R22, via=[(62, -48, zb - 4), (40, -46, PLAT_SUP + 4), (13, -60, PLAT_SUP + 4), (7, -60, PLAT_SUP + 4), (-40, -60, PLAT_SUP + 6)])
+    r.c("LED -", "led -", "riel GND led", "negro", R22, via=[(-40, -64, PLAT_SUP + 8), (30, -66, PLAT_SUP + 8), (40, -76, PLAT_SUP + 6)])
 
     # 12 V y GND a cada carga
     r.c("12V L298N", "riel 12V l298", "l298 +12V", "rojo", R18,
@@ -907,12 +964,17 @@ def cableado(base_, cabeza_):
     for o in list(bpy.data.objects):
         if o.name.startswith(("Cableado", "Cable ", "Etiqueta", "Conector ", "Placa distribucion", "MOSFET", "Resistencia",
                               "Rocker cuerpo", "XT60", "JST", "Fusible", "Condensador", "AS5600", "Grove", "Jack audio",
+                              "LED carga", "Receptor carga", "Cargador CC/CV", "BMS 3S",
                               "Bocina 4", "Termo Grove", "MPU pin")):
             bpy.data.objects.remove(o, do_unlink=True)
     cb = vacio("Cableado base", base_)
     cc = vacio("Cableado cabeza", cabeza_)
     cableado_base(cb)
     cableado_cabeza(cc)
+    c = bpy.data.objects.get("Cuna de carga")
+    if c:
+        etiqueta("Cuna de carga: bobina emisora bajo 1 mm", (0, 0, CUNA_Z_CENTRO - RE + 40), c, 3.0)
+        etiqueta("Eliminador 24 V 2 A", (CUNA_D / 2 + 190, 60, 40), c, 2.6)
     # si el poste o la cabeza están escondidos, sus cables también
     for grupo, ref in ((bpy.data.objects.get("Cableado poste"), "Servo"), (cc, "Casco cabeza")):
         o = bpy.data.objects.get(ref)
@@ -1017,6 +1079,7 @@ def main():
     poste(base_)
     cabeza(cabeza_)
     escenario(raiz)
+    cuna(None)
     cableado(base_, cabeza_)      # después del escenario: las etiquetas miran a la cámara
     animar(raiz, cuerpo, base_, cabeza_)
     render()
