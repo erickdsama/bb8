@@ -131,6 +131,8 @@ consumo real de los motores.
 | Módulo buck CC/CV ajustable (voltaje y corriente), entrada hasta 30 V | 1 | UNIT / Electrozone | ~90 (est.) | Cargador: 12.6 V, límite 1.5 A. Ajustar con un multímetro **antes** de conectar la LiPo |
 | BMS 3S con balance (≥ 10 A) | 1 | UNIT / Mercado Libre | ~80 (est.) | Protege y balancea las celdas mientras carga |
 | LED 5 mm + resistencia 2.2 kΩ | 1 | Steren | ~10 | Prende mientras carga (panel del interruptor) |
+| Hoja de hule antiderrapante (tapete para cajón o alfombrilla), ~35 × 35 cm, + pegamento de contacto | 1 | Ferretería / tienda de hogar | ~80 (est.) | Debajo de todo el plato de carga: no se corre cuando Bebocho llega con vuelo y une las 5 piezas |
+| Plasti Dip en aerosol (o hule líquido), negro o transparente | 1 | Ferretería / Home Depot | ~250 (est.) | Solo en la rampa del plato: agarre aunque haya polvo. El centro queda liso (la piel sobre la bobina es de 1 mm) |
 | Impresión 3D por servicio (gajos de la esfera y cabeza) | 1 | Servicio local | ~2,000–3,000 (est.) | No hay impresora: se manda a imprimir con los STL de `cad/stl` (una carpeta por parte) (~1.6 kg de PLA). La esfera y el casco en ABS; la base (soportes de motor, charola, soportes de RL4, panel del interruptor, plato de carga) en PETG. El poste es varilla roscada |
 | Esfera de acrílico transparente de 5 cm, de las que se abren en dos (manualidades / adornos) + Tamiya TS-71 Smoke en aerosol | 1 | Papelería / tienda de modelismo | ~150 (est.) | Ojo principal: una mitad pintada por dentro en 2–3 capas ligeras; los LED la iluminan. La cámara va en el ojo chico y el sensor de distancia en el círculo de abajo, los dos sin tapa |
 | Primer, pintura blanca/naranja/plata, laca, lijas | 1 | Tlapalería | 300–500 (est.) | |

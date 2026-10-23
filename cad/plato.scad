@@ -37,10 +37,19 @@ module centro() {
     }
 }
 
+function rampa_z(r) = plato_h * (plato_r2 - r) / (plato_r2 - plato_r1 - 3);   // altura de la rampa a radio r
+
+// Sobre la rampa la esfera necesita fricción ≥ tan 7° ≈ 0.12: las líneas de agarre y
+// una capa de Plasti Dip la dan aunque haya polvo. Debajo de todo el plato va una hoja
+// de hule antiderrapante (al llegar con vuelo, Bebocho empujaría un plato de ~0.4 kg).
 module rampa(cable = false) {
     difference() {
         intersection() {
-            rotate_extrude($fn = 240) polygon([[plato_r1 + 0.3, 0], [plato_r1 + 0.3, plato_h], [plato_r1 + 3, plato_h], [plato_r2, 0]]);
+            rotate_extrude($fn = 240) {
+                polygon([[plato_r1 + 0.3, 0], [plato_r1 + 0.3, plato_h], [plato_r1 + 3, plato_h], [plato_r2, 0]]);
+                // líneas de agarre: anillos de 0.4 mm cada 5 mm, de través a la subida
+                for (r = [plato_r1 + 8 : 5 : plato_r2 - 6]) translate([r, rampa_z(r) - 0.2]) square([1.2, 0.6]);
+            }
             translate([0, 0, -1]) cube([plato_r2 + 1, plato_r2 + 1, plato_h + 2]);   // un cuarto
         }
         if (cable) rotate([0, 0, 45]) translate([plato_r1 - 1, -ranura[0] / 2, -1]) cube([plato_r2, ranura[0], ranura[1] + 1]);
