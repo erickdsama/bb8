@@ -158,6 +158,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.Handle("GET /robot", rl.RobotHandler())
+	webui.PublicRoutes(mux) // about, privacy, terms, logo: no sign-in
 	// Sign-ins (Zapier, Home Assistant, Google) come back here without a session;
 	// the robot checks their single-use state.
 	mux.Handle("GET /api/connections/callback", rl)

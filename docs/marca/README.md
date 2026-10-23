@@ -34,8 +34,9 @@ persona entra con la suya, y BB-8 pregunta antes de enviar, crear o borrar algo.
 | App name | BB-8 |
 | User support email | tu correo |
 | App logo | `logo-120.png` (ver nota) |
-| Application home page | https://bb8.zerock.name |
-| Privacy policy | https://erickdsama.github.io/bb8/ |
+| Application home page | https://bb8.zerock.name/acerca |
+| Privacy policy | https://bb8.zerock.name/privacidad |
+| Terms of service | https://bb8.zerock.name/terminos |
 | Authorized domains | `zerock.name`, `erickdsama.github.io` |
 | Developer contact | tu correo |
 
