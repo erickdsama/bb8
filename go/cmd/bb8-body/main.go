@@ -45,6 +45,7 @@ import (
 	"github.com/erickdsama/bb8/go/internal/relay"
 	"github.com/erickdsama/bb8/go/internal/serial"
 	"github.com/erickdsama/bb8/go/internal/tools"
+	"github.com/erickdsama/bb8/go/internal/tts"
 )
 
 func env(keys []string, def string) string {
@@ -112,6 +113,7 @@ func main() {
 	cfg.Register(body.RobotFields()...)
 	cfg.Register(agent.Fields()...)
 	cfg.Register(navigate.Fields()...)
+	cfg.Register(tts.Fields()...)
 
 	svc := motion.New(ser, "", floorplan.New(home(*mapPath), home(*mapState)), motion.Defaults())
 	ser.OnConnect = svc.ArduinoUp
@@ -119,6 +121,7 @@ func main() {
 	// Secure head link.
 	srv := &link.Server{}
 	head := body.NewHead(srv)
+	head.Voice = tts.NewGemini(cfg).Speak
 	svc.SetToFSource(head.ToF)
 	head.HeadDeg = func() float64 { return float64(svc.Status().HeadDeg) }
 	head.OnSound = func(text *string, angle, level, headDeg *float64) {

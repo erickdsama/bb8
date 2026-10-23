@@ -27,6 +27,12 @@ type Backend interface {
 	State() map[string]any
 }
 
+// Voiced is a backend that can play speech the body synthesized (16-bit mono
+// PCM at rate Hz) instead of making its own from the text.
+type Voiced interface {
+	SayPCM(ctx context.Context, text, sound string, pcm []byte, rate int) (seconds float64, err error)
+}
+
 const ToFEvery = 100 * time.Millisecond
 
 // Config is the head's section of the robot config, pushed by the body.
@@ -84,11 +90,21 @@ func (h *Head) handle(ctx context.Context, typ string, body json.RawMessage) (an
 		h.mu.Unlock()
 		return map[string]any{"ok": true}, nil, h.B.Eye(e.RGB, e.Pattern, e.Brightness)
 	case "say":
-		var in struct{ Text, Sound string }
+		var in struct {
+			Text, Sound string
+			PCM         []byte `json:"pcm"` // optional: the body's voice for Text
+			Rate        int    `json:"rate"`
+		}
 		if err := json.Unmarshal(body, &in); err != nil {
 			return nil, nil, err
 		}
-		secs, err := h.B.Say(ctx, in.Text, in.Sound)
+		var secs float64
+		var err error
+		if v, ok := h.B.(Voiced); ok && len(in.PCM) > 0 && in.Rate > 0 {
+			secs, err = v.SayPCM(ctx, in.Text, in.Sound, in.PCM, in.Rate)
+		} else {
+			secs, err = h.B.Say(ctx, in.Text, in.Sound)
+		}
 		return map[string]any{"ok": err == nil, "seconds": secs}, nil, err
 	case "rest":
 		var in struct {

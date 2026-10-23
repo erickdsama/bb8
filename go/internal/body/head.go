@@ -27,6 +27,9 @@ type Head struct {
 	HeadDeg func() float64
 	// Audio fans the head's voiced audio out to local listeners (voz).
 	Audio *AudioHub
+	// Voice, if set, makes the spoken voice here (16-bit mono PCM at rate Hz) and
+	// the head just plays it. nil audio or an error: the head speaks the text itself.
+	Voice func(ctx context.Context, text string) (pcm []byte, rate int, err error)
 
 	mu      sync.Mutex
 	tofMM   int
@@ -220,7 +223,18 @@ func (h *Head) Say(ctx context.Context, text, sound string) map[string]any {
 	if text == "" && sound == "" {
 		return fail(errors.New("send 'text' or 'sound'"))
 	}
-	r, _, err := h.request(ctx, "say", map[string]string{"text": text, "sound": sound}, 30*time.Second)
+	req := map[string]any{"text": text, "sound": sound}
+	wait := 30 * time.Second
+	if text != "" && h.Voice != nil {
+		pcm, rate, err := h.Voice(ctx, text)
+		if err != nil {
+			slog.Warn("voice synthesis failed, the head speaks it", "err", err)
+		} else if len(pcm) > 0 && len(pcm) < 4<<20 { // a link frame is at most 8 MB, base64 included
+			req["pcm"], req["rate"] = pcm, rate
+			wait += time.Duration(len(pcm)/2/rate) * time.Second
+		}
+	}
+	r, _, err := h.request(ctx, "say", req, wait)
 	if err != nil {
 		return fail(err)
 	}

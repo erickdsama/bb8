@@ -395,7 +395,7 @@ The head gets `ca.crt`, `bb8-head.crt` and `bb8-head.key`. Each side only accept
 | --- | --- | --- | --- |
 | body → head | `photo` | `{"width": 640}` | `{"ok":true,"bytes":N}` + JPEG frame. `err: "no camera"` without a camera |
 | body → head | `eye` | `{"rgb":[0,220,255],"pattern":"breathe","brightness":0.3}` | `{"ok":true}` |
-| body → head | `say` | `{"text":"hola","sound":"happy"}` | `{"ok":true,"seconds":1.2}` when done |
+| body → head | `say` | `{"text":"hola","sound":"happy"}`, optionally `"pcm":"<base64>","rate":24000` | `{"ok":true,"seconds":1.2}` when done. With `pcm` (16-bit mono, made on the body by Gemini TTS) the head plays it, scaled by `volume`, instead of making speech from `text` |
 | body → head | `rest` | `{"active": false}` | `{"ok":true}` |
 | body → head | `config` (event) | `{"rev": 8, "values": {"eye_brightness": 0.3, "volume": 0.7}}` | The head applies it and answers with the `config_ack` event. The body sends it on every connect and on every change under `head.*` |
 | head → body | `tof` (event) | `{"mm": 812}` | every 100 ms while there is a sensor |
@@ -410,7 +410,7 @@ The head gets `ca.crt`, `bb8-head.crt` and `bb8-head.key`. Each side only accept
 Head hardware (Pi Zero W, armv6):
 - **Camera:** `rpicam-jpeg` runs on demand.
 - **Eye:** 16-LED WS2812 ring on GPIO12 (PWM0, the HAT's Grove digital port), driven by the `bb8-eye` C helper (rpi_ws281x, PWM + DMA, root). `bb8-head` sends it raw RGB frames (3 bytes per LED) on the unix socket `/run/bb8-eye.sock` (systemd `bb8-eye.socket`).
-- **Sound:** beeps synthesized in Go and played with `aplay`; speech with `espeak-ng`.
+- **Sound:** beeps synthesized in Go and played with `aplay`. Speech: the body's voice when `say` carries `pcm` (setting `voice.tts = gemini`), else Wyoming (`--tts`) or `espeak-ng`.
 - **ToF:** VL53L0X on I2C1.
 - **Microphone:** ReSpeaker 2-Mic HAT v1 (WM8960), ALSA card `wm8960soundcard`, captured with `arecord -c 2 -r 16000`.
   - An energy VAD runs with an adaptive noise floor (+10 dB to start, 600 ms hangover).

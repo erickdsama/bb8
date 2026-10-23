@@ -20,7 +20,7 @@ Details: `wiki/Arquitectura.md`. Wire formats: `wiki/Protocolo.md` (the source o
 | Folder | Content |
 | --- | --- |
 | `go/cmd/bb8-body`, `go/cmd/bb8-head`, `go/cmd/bb8-web` | Robot binaries (`bb8-body pair` creates the link certs) and the web pages server, off the robot |
-| `go/internal/` | `protocol`, `serial`, `motion`, `floorplan`, `tools`, `mcpserver`, `body`, `link`, `head`, `config` (API only), `webui` (the pages, served by bb8-web), `relay` (robot ↔ bb8-web link), `agent`, `connectors/{weather,calendar,websearch,mcpclient}`, `connections` (accounts, sign-in), `mdns`, `people`, `events`, `navigate`, `gamepad`, `persona` |
+| `go/internal/` | `protocol`, `serial`, `motion`, `floorplan`, `tools`, `mcpserver`, `body`, `link`, `head`, `config` (API only), `webui` (the pages, served by bb8-web), `relay` (robot ↔ bb8-web link), `agent`, `connectors/{weather,calendar,websearch,mcpclient}`, `connections` (accounts, sign-in), `tts` (Gemini voice, made on the body), `mdns`, `people`, `events`, `navigate`, `gamepad`, `persona` |
 | `partes/1-protoboard/arduino/` | `pruebas/p1…p5`, `bb8_firmware/bb8_firmware.ino` |
 | `partes/1-protoboard/wokwi/` | Firmware in the Wokwi simulator |
 | `partes/3-base-andando/` | Legacy Python `bb8` (used by `calibrar` and `--python`); `mapas/` (floor plans, English keys) |
