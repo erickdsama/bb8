@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -88,5 +89,32 @@ func TestToPCMFromWAV(t *testing.T) {
 	b, rate, err := toPCM(wav, "audio/wav")
 	if err != nil || rate != 16000 || len(b) != 4 || b[0] != 9 {
 		t.Fatal(b, rate, err)
+	}
+}
+
+func TestGeminiPreview(t *testing.T) {
+	var gotVoice string
+	fake := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		if strings.Contains(string(b), `"voiceName":"Kore"`) {
+			gotVoice = "Kore"
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"candidates": []any{map[string]any{"content": map[string]any{"parts": []any{
+			map[string]any{"inlineData": map[string]string{"mimeType": "audio/L16;codec=pcm;rate=24000", "data": base64.StdEncoding.EncodeToString([]byte{1, 0, 2, 0})}}}}}}})
+	}))
+	defer fake.Close()
+	s := store(t)
+	g := NewGemini(s)
+	g.URL = fake.URL
+	if _, err := g.Preview(context.Background(), "Kore", "hola"); err != ErrNoKey {
+		t.Fatal("no key:", err)
+	}
+	s.Set(map[string]any{"voice.gemini_key": "k"}, config.SourceWeb, nil) // voice.tts stays espeak: preview works anyway
+	wav, err := g.Preview(context.Background(), "Kore", "hola")
+	if err != nil || gotVoice != "Kore" || string(wav[:4]) != "RIFF" || len(wav) != 44+4 {
+		t.Fatal(err, gotVoice, len(wav))
+	}
+	if _, err := g.Preview(context.Background(), "Nadie", "hola"); err == nil {
+		t.Fatal("unknown voice accepted")
 	}
 }

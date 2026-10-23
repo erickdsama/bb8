@@ -123,7 +123,8 @@ func main() {
 	// Secure head link.
 	srv := &link.Server{}
 	head := body.NewHead(srv)
-	head.Voice = tts.NewGemini(cfg).Speak
+	gemini := tts.NewGemini(cfg)
+	head.Voice = gemini.Speak
 	svc.SetToFSource(head.ToF)
 	head.HeadDeg = func() float64 { return float64(svc.Status().HeadDeg) }
 	head.OnSound = func(text *string, angle, level, headDeg *float64) {
@@ -208,6 +209,18 @@ func main() {
 	brain.Routes(web, "/api/agent")
 	folks.Routes(web)
 	web.HandleFunc("GET /api/events", bus.Handler)
+	// The page plays a Gemini voice before you pick it (WAV, in the browser).
+	web.HandleFunc("GET /api/voice/preview", func(w http.ResponseWriter, r *http.Request) {
+		wav, err := gemini.Preview(r.Context(), r.URL.Query().Get("voice"), "¡Hola! Soy Bebocho, tu robot de casa. ¿En qué te ayudo?")
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]any{"error": err.Error()})
+			return
+		}
+		w.Header().Set("Content-Type", "audio/wav")
+		_, _ = w.Write(wav)
+	})
 	signin := connections.NewFlows(accounts, apps.HTTP)
 	signin.Bridge = func() string { return mcpclient.Bridge(cfg) }
 	signin.Client = func(kind string) (string, string) {

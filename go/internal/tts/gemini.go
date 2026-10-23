@@ -8,11 +8,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -62,8 +64,50 @@ func (g *Gemini) Speak(ctx context.Context, text string) (pcm []byte, rate int, 
 	if g.Cfg.Get("voice.tts") != EngineGemini || key == "" || strings.TrimSpace(text) == "" {
 		return nil, 0, nil
 	}
-	model, _ := g.Cfg.Get("voice.gemini_model").(string)
 	voice, _ := g.Cfg.Get("voice.gemini_voice").(string)
+	return g.synth(ctx, key, voice, text)
+}
+
+// ErrNoKey: there is no Gemini key to preview with.
+var ErrNoKey = errors.New("add the Gemini API key first")
+
+// Preview says text with one voice as a WAV file, whatever voice.tts is, so the
+// page can play a voice before choosing it.
+func (g *Gemini) Preview(ctx context.Context, voice, text string) ([]byte, error) {
+	key := g.Cfg.Secret("voice.gemini_key")
+	if key == "" {
+		return nil, ErrNoKey
+	}
+	if !slices.Contains(Voices, voice) {
+		return nil, fmt.Errorf("unknown voice %q", voice)
+	}
+	pcm, rate, err := g.synth(ctx, key, voice, text)
+	if err != nil {
+		return nil, err
+	}
+	return WAV(pcm, rate), nil
+}
+
+// WAV wraps 16-bit mono PCM in a WAV header.
+func WAV(pcm []byte, rate int) []byte {
+	h := make([]byte, 44)
+	copy(h, "RIFF")
+	binary.LittleEndian.PutUint32(h[4:], uint32(36+len(pcm)))
+	copy(h[8:], "WAVEfmt ")
+	binary.LittleEndian.PutUint32(h[16:], 16)
+	binary.LittleEndian.PutUint16(h[20:], 1)
+	binary.LittleEndian.PutUint16(h[22:], 1)
+	binary.LittleEndian.PutUint32(h[24:], uint32(rate))
+	binary.LittleEndian.PutUint32(h[28:], uint32(rate*2))
+	binary.LittleEndian.PutUint16(h[32:], 2)
+	binary.LittleEndian.PutUint16(h[34:], 16)
+	copy(h[36:], "data")
+	binary.LittleEndian.PutUint32(h[40:], uint32(len(pcm)))
+	return append(h, pcm...)
+}
+
+func (g *Gemini) synth(ctx context.Context, key, voice, text string) (pcm []byte, rate int, err error) {
+	model, _ := g.Cfg.Get("voice.gemini_model").(string)
 	if style, _ := g.Cfg.Get("voice.gemini_style").(string); strings.TrimSpace(style) != "" {
 		text = "Dilo con voz " + strings.TrimSpace(style) + ": " + text
 	}

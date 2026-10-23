@@ -345,6 +345,19 @@ function settingRow(f) {
     el("label", { class: "name", htmlFor: i.id, textContent: ui.label || f.label || f.key }),
     el("div", { class: "ctl" }, ctl, saved),
     hint ? el("div", { class: "hint", textContent: hint }) : null);
+  if (f.key === "voice.gemini_voice") { // play the chosen voice here, before saving it
+    const play = el("button", { class: "btn ghost small", type: "button", textContent: "▶ Escuchar" });
+    play.onclick = async () => {
+      play.disabled = true; play.textContent = "…";
+      try {
+        const r = await fetch("/api/voice/preview?voice=" + encodeURIComponent(i.value), { headers: auth });
+        if (!r.ok) { toast((await r.json().catch(() => ({}))).error || "Could not play it"); return; }
+        const a = new Audio(URL.createObjectURL(await r.blob()));
+        await a.play();
+      } finally { play.disabled = false; play.textContent = "▶ Escuchar"; }
+    };
+    row.querySelector(".ctl").insertBefore(play, saved);
+  }
   i.addEventListener("change", async () => {
     let v = f.type === "bool" ? i.checked : f.type === "number" ? (i.value === "" ? null : Number(i.value)) : i.value;
     if (v === null) return;
