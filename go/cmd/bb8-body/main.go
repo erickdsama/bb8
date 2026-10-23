@@ -37,6 +37,7 @@ import (
 	"github.com/erickdsama/bb8/go/internal/events"
 	"github.com/erickdsama/bb8/go/internal/floorplan"
 	"github.com/erickdsama/bb8/go/internal/gamepad"
+	"github.com/erickdsama/bb8/go/internal/homeassist"
 	"github.com/erickdsama/bb8/go/internal/link"
 	"github.com/erickdsama/bb8/go/internal/mcpserver"
 	"github.com/erickdsama/bb8/go/internal/motion"
@@ -231,6 +232,11 @@ func main() {
 		return apps.Live(id)
 	}
 	signin.Routes(web)
+	// "Add devices": the page drives Home Assistant's setup through the robot,
+	// which holds its token; new devices are exposed to Bebocho every few minutes.
+	house := homeassist.New(accounts, apps.HTTP)
+	house.Routes(web)
+	go house.Run(ctx, 5*time.Minute)
 	web.HandleFunc("GET /api/connectors", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(conns.Status())

@@ -119,6 +119,9 @@ func Open(dir string) (*Store, error) {
 		return nil, err
 	}
 	for _, c := range list {
+		if c.Kind == "custom" && IsHomeAssistant(c.URL) { // linked before Home Assistant links were named
+			c.Kind, c.Name = "home", "home"
+		}
 		s.conns[c.ID] = c
 	}
 	return s, nil

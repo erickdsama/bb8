@@ -63,6 +63,15 @@ viene encendido y solo necesita `home.city`.
 - **Home Assistant**: BB-8 lo busca en la red; entras con tu usuario de Home Assistant. Antes,
   agrega allí la integración *Model Context Protocol Server* y expón lo que BB-8 puede controlar.
 - **Alexa**: a través de Home Assistant, con su integración *Alexa Devices*.
+- **Agregar dispositivos sin abrir Home Assistant**: con Home Assistant conectado, la tarjeta
+  *Apps and smart home* muestra *Casa · N dispositivos* y **+ Agregar**. Eliges la marca (Smart
+  Life, Alexa, SmartThings, LG ThinQ, Hue, TP-Link, TV Samsung, Google Cast) o lo que Home
+  Assistant encontró en tu red, y la página te muestra cada paso: un campo, un QR para escanear
+  con la app de la marca o un botón para iniciar sesión. El robot hace la configuración en Home
+  Assistant con su token (la página nunca lo ve) y le da a BB-8 los dispositivos nuevos al
+  terminar y cada 5 minutos (luces, contactos, clima, ventiladores, persianas, TV, aspiradoras;
+  nunca cerraduras ni alarmas). Un link de Home Assistant (`…/api/mcp`) con token queda como
+  *Home Assistant* y sus herramientas se llaman `home_…`.
 - **Google Home**: el [servidor MCP oficial de Google](https://developers.home.google.com/mcp/home)
   (`https://home.googleapis.com/mcp`): luces, enchufes, termostatos y cámaras. Usa el mismo
   cliente de Google que el calendario (activa *Home API* en el proyecto) y es de la casa

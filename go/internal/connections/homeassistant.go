@@ -18,6 +18,11 @@ import (
 // page's own address works and no bridge page is needed. Its MCP server lives
 // at /api/mcp and takes the same access token (30 min, refreshed here).
 
+// IsHomeAssistant says whether an MCP link is a Home Assistant's (…/api/mcp).
+func IsHomeAssistant(u string) bool {
+	return strings.HasSuffix(strings.TrimRight(u, "/"), "/api/mcp")
+}
+
 // Found is a Home Assistant seen on the network.
 type Found struct {
 	URL  string `json:"url"`

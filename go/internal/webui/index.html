@@ -167,6 +167,11 @@ dialog::backdrop { background:rgba(0,0,0,.6); backdrop-filter:blur(3px); }
 .owner { font-weight:500; font-size:12px; color:var(--mute); border:1px solid var(--line); border-radius:99px; padding:1px 8px; margin-left:8px; }
 .opt { display:flex; gap:10px; align-items:center; font-size:14px; }
 .dlg .lead { margin:-8px 0 0; color:var(--mute); font-size:14px; }
+.house { display:flex; align-items:center; gap:12px; margin-top:12px; padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:var(--field); }
+.house b { flex:1; }
+.tile.on .badge { background:rgba(16,185,129,.15); color:#6ee7b7; }
+.dlg .qr { justify-self:center; width:220px; height:220px; border-radius:12px; background:#fff; padding:8px; }
+.dlg h4 { margin:4px 0 -4px; font-size:13px; color:var(--mute); font-weight:600; }
 
 /* activity */
 ul.plain { list-style:none; margin:0; padding:0; }
@@ -488,7 +493,7 @@ const SVC = {
 // The list, the catalog of services and the people come from /api/connections;
 // tokens never reach this page.
 let accts = { connections: [], catalog: {}, people: [], owner: "" };
-async function loadAccounts() { const r = await api("/api/connections"); if (r.ok) { accts = r.body; renderAccounts(); refreshServices(); refreshOverview(); } }
+async function loadAccounts() { const r = await api("/api/connections"); if (r.ok) { accts = r.body; renderAccounts(); refreshServices(); refreshOverview(); loadHouse(); } }
 
 // What to do in the service itself, shown in its dialog.
 const GUIDE = {
@@ -515,7 +520,7 @@ function serviceCards() {
       el("div", { class: "add" }, el("button", { class: "btn small", type: "button", id: "cal-btn", textContent: "Connect Google", onclick: () => googleSignIn() })));
     if (id === "nest") body.append(el("details", { class: "more" }, el("summary", { textContent: "Settings" }), settingRow(schema.find(f => f.key === "connectors.nest.project_id"))),
       el("div", { class: "add" }, el("button", { class: "btn small", type: "button", textContent: "Connect Google", onclick: () => googleSignIn() })));
-    if (id === "mcp") body.append(el("div", { class: "apps", id: "apps" }),
+    if (id === "mcp") body.append(el("div", { id: "house" }), el("div", { class: "apps", id: "apps" }),
       el("div", { class: "add" }, el("button", { class: "btn small", type: "button", textContent: "+ Connect a service", onclick: () => pickDialog() })));
     return el("div", { class: "card svc", id: "svc-" + id },
       el("div", { class: "svc-head" }, el("span", { class: "svc-icon" }, icon(s.icon)),
@@ -749,6 +754,92 @@ async function googleSignIn() {
   try { sessionStorage.setItem("bb8-connecting", JSON.stringify({ kind: "google" })); } catch (e) {}
   location.href = r.body.auth_url;
 }
+// ---------- the house: add devices through Home Assistant ----------
+// The robot drives Home Assistant's own setup (it holds the token); each step
+// comes back as fields, a QR to scan or a sign-in link.
+let house = null;
+async function loadHouse() {
+  const box = $("#house"); if (!box) return;
+  const r = await api("/api/home");
+  house = r.ok ? r.body : null;
+  box.replaceChildren(!house?.connected ? "" : el("div", { class: "house" },
+    el("span", { class: "badge", style: "width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--orange-soft);color:var(--orange-hi)" }, icon("home")),
+    el("b", { textContent: "Casa · " + house.devices + " dispositivo" + (house.devices === 1 ? "" : "s") }),
+    el("button", { class: "btn small", type: "button", textContent: "+ Agregar", onclick: houseDialog })));
+}
+function houseDialog() {
+  const tile = (label, what, on, go) => el("button", { class: "tile" + (on ? " on" : ""), type: "button", onclick: go },
+    el("span", { class: "badge", textContent: on ? "✓" : label[0] }), el("b", { textContent: label }), el("small", { textContent: what }));
+  const found = house?.found || [];
+  openDialog(el("h3", { textContent: "Agregar dispositivos" }),
+    found.length ? el("h4", { textContent: "En tu red" }) : "",
+    found.length ? el("div", { class: "tiles" }, ...found.map(f => tile(f.label, "Toca para agregar", false, () => linkStep({ flow_id: f.flow_id })))) : "",
+    el("h4", { textContent: "Marcas" }),
+    el("div", { class: "tiles" }, ...(house?.brands || []).map(b => tile(b.label, b.what, b.linked, () => linkStep({ handler: b.handler })))),
+    el("div", { class: "actions" }, el("button", { class: "btn ghost", type: "button", textContent: "Cerrar", onclick: () => $("#dlg").close() })));
+}
+// linkStep starts a brand (or a found device) and shows each step until done.
+async function linkStep(start) {
+  const result = resultBox();
+  openDialog(el("h3", { textContent: "Agregar dispositivos" }), result);
+  say(result, "busy", "Un momento…");
+  const r = await api("/api/home/link", { method: "POST", body: JSON.stringify(start) });
+  if (!r.ok) { say(result, "bad", r.body.error || "No funcionó."); return; }
+  showStep(r.body);
+}
+function showStep(s) {
+  const dlg = $("#dlg"), result = resultBox(), inputs = {};
+  const cancel = () => { if (s.flow_id && s.type !== "done" && s.type !== "abort") api("/api/home/link/" + s.flow_id, { method: "DELETE" }); dlg.close(); };
+  const poll = async () => {
+    for (let i = 0; i < 150 && dlg.open; i++) {
+      await sleep(2000);
+      const r = await api("/api/home/link/" + s.flow_id);
+      if (!r.ok) { say(result, "bad", r.body.error || "No funcionó."); return; }
+      if (r.body.type !== s.type || r.body.type === "form") { showStep(r.body); return; }
+    }
+  };
+  const send = async () => {
+    const vals = {};
+    for (const [k, [inp, f]] of Object.entries(inputs)) {
+      if (f.type === "bool") vals[k] = inp.checked;
+      else if (f.type === "number") { if (inp.value !== "") vals[k] = Number(inp.value); }
+      else if (inp.value !== "") vals[k] = inp.value;
+    }
+    go.disabled = true; say(result, "busy", "Un momento…");
+    const r = await api("/api/home/link/" + s.flow_id, { method: "POST", body: JSON.stringify(vals) });
+    go.disabled = false;
+    if (!r.ok) { say(result, "bad", r.body.error || "No funcionó."); return; }
+    showStep(r.body);
+  };
+  const field = (f) => {
+    let inp;
+    if (f.type === "bool") { inp = el("input", { type: "checkbox", checked: !!f.default }); inputs[f.name] = [inp, f];
+      return el("label", { class: "opt" }, el("span", { class: "switch" }, inp, el("span")), f.label); }
+    if (f.type === "select") inp = el("select", { class: "txt" }, ...f.options.map(o => el("option", { value: o.value, textContent: o.label })));
+    else inp = el("input", { class: "txt", type: f.type === "password" ? "password" : f.type === "number" ? "number" : "text", autocomplete: "off" });
+    if (f.default !== undefined && f.default !== null && f.type !== "password") inp.value = f.default;
+    inputs[f.name] = [inp, f];
+    return el("div", { class: "field" }, el("label", { textContent: f.label }), inp);
+  };
+  const go = el("button", { class: "btn", type: "button", textContent: s.qr && !(s.fields || []).length ? "Ya lo escaneé" : "Continuar", onclick: send });
+  const done = el("button", { class: "btn", type: "button", textContent: "Listo", onclick: () => { dlg.close(); loadAccounts(); } });
+  const back = el("button", { class: "btn ghost", type: "button", textContent: s.type === "abort" ? "Atrás" : "Cancelar", onclick: s.type === "abort" ? houseDialog : cancel });
+  const body = [el("h3", { textContent: s.type === "done" ? "¡Listo!" : (s.title || "Agregar dispositivos") })];
+  if (s.text && s.type !== "done") body.push(el("p", { class: "lead", textContent: s.text }));
+  if (s.qr) body.push(el("img", { class: "qr", src: s.qr, alt: "Código QR" }));
+  if (s.type === "form") body.push(...(s.fields || []).map(field));
+  if (s.type === "external") body.push(el("a", { class: "btn", href: s.url, target: "_blank", rel: "noopener", textContent: "Iniciar sesión ↗", onclick: () => { say(result, "busy", "Esperando a que inicies sesión…"); poll(); } }));
+  body.push(result);
+  const acts = s.type === "done" ? [done] : s.type === "form" ? [back, go] : [back];
+  body.push(el("div", { class: "actions" }, ...acts));
+  openDialog(...body);
+  dlg.oncancel = cancel;
+  $("#dlg-body").onsubmit = (e) => { e.preventDefault(); if (s.type === "form") send(); };
+  if (s.error) say(result, s.type === "abort" ? "bad" : "bad", s.error);
+  if (s.type === "done") say(result, "ok", (s.title ? s.title + ": " : "") + s.devices + " dispositivo" + (s.devices === 1 ? "" : "s") + " para Bebocho.");
+  if (s.type === "progress") { say(result, "busy", "Un momento…"); poll(); }
+}
+
 function calendarDialog() {
   const id = el("input", { class: "txt", placeholder: "…apps.googleusercontent.com", value: values["connectors.calendar.google_client_id"] || "" });
   const secret = el("input", { class: "txt", type: "password", placeholder: values["connectors.calendar.google_client_secret"] ? "Saved · leave empty to keep" : "Client secret" });

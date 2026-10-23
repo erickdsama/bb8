@@ -236,6 +236,9 @@ func (f *Flows) start(w http.ResponseWriter, r *http.Request) {
 		}
 		draft.URL = u.String()
 		draft.Name = strings.Split(strings.TrimPrefix(strings.TrimPrefix(u.Hostname(), "www."), "mcp."), ".")[0]
+		if IsHomeAssistant(draft.URL) { // a Home Assistant link with a token: the house, named "home"
+			draft.Kind, draft.Name, draft.Owner = "home", "home", ""
+		}
 	}
 	if tok := strings.TrimSpace(in.Token); tok != "" {
 		draft.Auth = Auth{Type: "bearer", Token: tok}
