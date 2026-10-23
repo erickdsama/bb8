@@ -270,6 +270,16 @@ func TestGoogleSignIn(t *testing.T) {
 		t.Fatal("accounts after signing in twice:", n)
 	}
 
+	// With a Nest project, the Google sign-in goes through Nest's partner page and asks for SDM too.
+	fl.NestProject = func() string { return "proj-1" }
+	_, out = start()
+	nu, _ := url.Parse(out["auth_url"].(string))
+	if !strings.HasPrefix(nu.String(), NestAuth+"proj-1/auth?") || !strings.Contains(nu.Query().Get("scope"), "sdm.service") ||
+		!strings.Contains(nu.Query().Get("scope"), "calendar.events") {
+		t.Fatal(nu)
+	}
+	fl.NestProject = nil
+
 	// Google Home: the same client, the Home scope and Google's MCP server.
 	body, _ := json.Marshal(map[string]any{"kind": KindGoogleHome, "origin": "http://debian.local:8780"})
 	r, _ := http.Post(api.URL+"/api/connections/start", "application/json", bytes.NewReader(body))

@@ -83,6 +83,12 @@ viene encendido y solo necesita `home.city`.
   cuentas con dueño; de 22:00 a 8:00 se guarda los avisos y los dice al terminar. Con `connectors.calendar.push_url` (la dirección pública de
   bb8-web, p. ej. `https://bb8.zerock.name`) Google avisa al instante a `/hooks/google` y bb8-web
   se lo pasa al robot por su enlace; sin ella, el robot revisa cada 2 minutos.
+- **Termostato Nest** (tarjeta *Nest thermostat*): por la API de Google
+  [Device Access](https://console.nest.google.com/device-access) (pago único de US$5). Ahí creas un
+  proyecto con el mismo Client ID de Google y pegas su *Project ID* en *Settings*; luego
+  *Connect Google* te lleva a la página de Nest para elegir el termostato. "¿A cuánto está la
+  casa?", "pon el clima en 23". Cualquier voz conocida lo cambia (9–32 °C, quita el eco); una
+  desconocida solo pregunta.
 
 Cada cuenta tiene dueño: cuando Ana habla, BB-8 usa la cuenta de Ana; cuando hablas tú, la
 tuya; las compartidas (la casa) las usa cualquiera conocido. Antes de mandar, crear o borrar

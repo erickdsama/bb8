@@ -33,13 +33,16 @@ import (
 type Flows struct {
 	Store  *Store
 	HTTP   *http.Client
-	Bridge func() string            // public bridge URL
+	Bridge func() string // public bridge URL
 	// Client is the OAuth client the owner registered for a service that has no
 	// automatic registration (Google); empty id: not set up yet.
 	Client func(kind string) (id, secret string)
-	Owner  func() string            // home.owner: the default owner
-	People func() []string          // names for the owner picker
-	Status func(id string) LiveInfo // from mcpclient
+	// NestProject is the Nest Device Access project ID, if any: Google
+	// sign-ins (calendar accounts) then also share the Nest thermostat.
+	NestProject func() string
+	Owner       func() string            // home.owner: the default owner
+	People      func() []string          // names for the owner picker
+	Status      func(id string) LiveInfo // from mcpclient
 
 	mu      sync.Mutex
 	pending map[string]*flow
@@ -221,7 +224,7 @@ func (f *Flows) start(w http.ResponseWriter, r *http.Request) {
 		verifier, challenge := PKCE()
 		state := newState(callback)
 		f.park(state, &flow{draft: draft, verifier: verifier, redirect: bridge, userinfo: GoogleMeta.UserinfoEndpoint})
-		writeJSON(w, 200, map[string]any{"auth_url": googleAuthURL(draft.Auth, bridge, state, challenge, scope)})
+		writeJSON(w, 200, map[string]any{"auth_url": googleAuthURL(draft.Auth, bridge, state, challenge, scope, f.nestProject(in.Kind))})
 		return
 	}
 
@@ -413,4 +416,11 @@ func (f *Flows) bridge(origin string) string {
 		}
 	}
 	return strings.TrimRight(origin, "/") + "/oauth/"
+}
+
+func (f *Flows) nestProject(kind string) string {
+	if kind != KindGoogle || f.NestProject == nil {
+		return ""
+	}
+	return strings.TrimSpace(f.NestProject())
 }

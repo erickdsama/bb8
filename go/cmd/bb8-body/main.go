@@ -31,6 +31,7 @@ import (
 	"github.com/erickdsama/bb8/go/internal/connectors"
 	"github.com/erickdsama/bb8/go/internal/connectors/calendar"
 	"github.com/erickdsama/bb8/go/internal/connectors/mcpclient"
+	"github.com/erickdsama/bb8/go/internal/connectors/nest"
 	"github.com/erickdsama/bb8/go/internal/connectors/weather"
 	"github.com/erickdsama/bb8/go/internal/connectors/websearch"
 	"github.com/erickdsama/bb8/go/internal/events"
@@ -169,10 +170,11 @@ func main() {
 	apps := mcpclient.New(accounts)
 	apps.Owner = func() string { return cfg.String("home.owner") }
 	reg := tools.NewRegistry()
-	conns := connectors.NewManager(cfg, reg, weather.New(), calendar.New(accounts, apps.Owner), websearch.New(), apps)
+	conns := connectors.NewManager(cfg, reg, weather.New(), calendar.New(accounts, apps.Owner), nest.New(accounts), websearch.New(), apps)
 	accounts.Subscribe(func() {
 		conns.Refresh("mcp")
 		conns.Refresh("calendar") // Google accounts live in the same store
+		conns.Refresh("nest")
 		bus.Publish("connections", map[string]any{"count": len(accounts.List())})
 	})
 	reg.Set("robot", body.RobotTools(svc, head))
@@ -213,6 +215,7 @@ func main() {
 		}
 		return "", ""
 	}
+	signin.NestProject = func() string { return cfg.String("connectors.nest.project_id") }
 	signin.Owner = apps.Owner
 	signin.People = func() []string {
 		var names []string

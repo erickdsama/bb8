@@ -1,6 +1,9 @@
 package connections
 
-import "strings"
+import (
+	"net/url"
+	"strings"
+)
 
 // Google accounts (for the calendar connector). Google is not an MCP server and
 // does not let apps register by themselves: the owner creates one OAuth client
@@ -20,12 +23,22 @@ var (
 	}
 	GoogleScope     = "openid email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendarlist.readonly"
 	GoogleHomeScope = "openid email https://www.googleapis.com/auth/home.platform.v2"
+	// NestScope is added to a Google sign-in when a Nest Device Access project is
+	// set; the sign-in then goes through Nest's partner-connection page, where the
+	// person picks which Nest devices to share.
+	NestScope = "https://www.googleapis.com/auth/sdm.service"
+	NestAuth  = "https://nestservices.google.com/partnerconnections/"
 )
 
 // googleAuthURL asks for a refresh token too: offline access, and the consent
 // screen every time (Google only sends a refresh token on consent).
-func googleAuthURL(a Auth, redirect, state, challenge, scope string) string {
-	u := AuthURL(GoogleMeta, a, redirect, state, challenge, scope)
+func googleAuthURL(a Auth, redirect, state, challenge, scope, nestProject string) string {
+	meta := GoogleMeta
+	if nestProject != "" {
+		scope += " " + NestScope
+		meta.AuthorizationEndpoint = NestAuth + url.PathEscape(nestProject) + "/auth"
+	}
+	u := AuthURL(meta, a, redirect, state, challenge, scope)
 	sep := "&"
 	if !strings.Contains(u, "?") {
 		sep = "?"
