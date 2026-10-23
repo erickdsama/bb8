@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Bebocho</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="70%"><stop offset="0" stop-color="#3a1305"/><stop offset="1" stop-color="#0d0706"/></radialGradient>
+    <radialGradient id="shell" cx="38%" cy="30%" r="80%"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e6ddd5"/></radialGradient>
+    <clipPath id="ball"><circle cx="256" cy="318" r="122"/></clipPath>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <circle cx="256" cy="318" r="122" fill="url(#shell)"/>
+  <g clip-path="url(#ball)" fill="none" stroke="#ff5a00" transform="rotate(-18 256 318)">
+    <circle cx="256" cy="318" r="50" stroke-width="17"/>
+    <circle cx="256" cy="318" r="21" fill="#ff5a00" stroke="none"/>
+    <circle cx="139" cy="303" r="56" stroke-width="15"/>
+    <circle cx="373" cy="303" r="56" stroke-width="15"/>
+    <circle cx="256" cy="455" r="60" stroke-width="15"/>
+  </g>
+  <g transform="rotate(-12 252 192)">
+    <path d="M181 196 A71 71 0 0 1 323 196 Z" fill="url(#shell)"/>
+    <rect x="178" y="189" width="148" height="12" rx="6" fill="#ff5a00"/>
+    <circle cx="252" cy="158" r="22" fill="#140c0a"/>
+    <circle cx="245" cy="151" r="7.5" fill="#ff8533"/>
+    <circle cx="257" cy="165" r="3" fill="#fff" opacity=".8"/>
+    <circle cx="290" cy="177" r="7.5" fill="#140c0a"/>
+    <line x1="288" y1="134" x2="288" y2="106" stroke="#d9d0c8" stroke-width="4.5" stroke-linecap="round"/>
+    <line x1="275" y1="129" x2="275" y2="115" stroke="#d9d0c8" stroke-width="3.5" stroke-linecap="round"/>
+  </g>
+</svg>
