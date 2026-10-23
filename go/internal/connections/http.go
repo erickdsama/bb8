@@ -27,9 +27,9 @@ import (
 //	DELETE /api/connections/{id}
 //	GET    /api/connections/callback   where sign-ins come back (no page token: the state proves it)
 //
-// OAuth services only accept fixed https redirects, so they return through a
-// public bridge page that forwards the code to this robot's own address; Home
-// Assistant comes back directly.
+// OAuth services only accept fixed https redirects, so they return to bb8-web's
+// public /oauth/ (connectors.mcp.oauth_bridge), which forwards to the callback
+// down the robot's link; Home Assistant comes back directly.
 type Flows struct {
 	Store  *Store
 	HTTP   *http.Client
@@ -208,11 +208,7 @@ func (f *Flows) start(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, 400, map[string]any{"error": "set up the Google client first (its ID and secret)"})
 			return
 		}
-		bridge := f.Bridge()
-		if bridge == "" {
-			writeJSON(w, 500, map[string]any{"error": "no sign-in bridge page is set (connectors.mcp.oauth_bridge)"})
-			return
-		}
+		bridge := f.bridge(origin)
 		draft.Name, draft.URL = "google", kind.URL
 		if in.Kind == KindGoogleHome {
 			draft.Name = "google_home"
@@ -253,11 +249,7 @@ func (f *Flows) start(w http.ResponseWriter, r *http.Request) {
 		f.save(w, draft)
 		return
 	}
-	bridge := f.Bridge()
-	if bridge == "" {
-		writeJSON(w, 500, map[string]any{"error": "no sign-in bridge page is set (connectors.mcp.oauth_bridge)"})
-		return
-	}
+	bridge := f.bridge(origin)
 	a, err := Register(ctx, f.HTTP, d.Meta, bridge)
 	if err != nil {
 		writeJSON(w, 502, map[string]any{"error": short(err)})
@@ -402,4 +394,15 @@ func (f *Flows) Callback(w http.ResponseWriter, r *http.Request) {
 	}
 	slog.Info("connection signed in", "kind", c.Kind, "owner", c.Owner, "account", c.Account)
 	reply(map[string]any{"connected": c.View()})
+}
+
+// bridge is where services send sign-ins back: the setting, else bb8-web's own
+// /oauth/ next to the page (it forwards to the callback through the robot's link).
+func (f *Flows) bridge(origin string) string {
+	if f.Bridge != nil {
+		if b := strings.TrimSpace(f.Bridge()); b != "" {
+			return b
+		}
+	}
+	return strings.TrimRight(origin, "/") + "/oauth/"
 }

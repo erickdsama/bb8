@@ -748,7 +748,7 @@ async function googleSignIn() {
 function calendarDialog() {
   const id = el("input", { class: "txt", placeholder: "…apps.googleusercontent.com", value: values["connectors.calendar.google_client_id"] || "" });
   const secret = el("input", { class: "txt", type: "password", placeholder: values["connectors.calendar.google_client_secret"] ? "Saved · leave empty to keep" : "Client secret" });
-  const redirect = values["connectors.mcp.oauth_bridge"] || "";
+  const redirect = values["connectors.mcp.oauth_bridge"] || location.origin + "/oauth/";
   const result = resultBox();
   const go = el("button", { class: "btn", type: "button", textContent: "Save and sign in" });
   openDialog(

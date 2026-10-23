@@ -335,7 +335,7 @@ Sign-in:
   1. BB-8 probes the endpoint, gets 401, and reads its protected-resource metadata (RFC 9728), or the origin's authorization-server metadata (RFC 8414) when there is none, as with Zapier.
   2. It registers as client "BB-8" (RFC 7591) with redirect `connectors.mcp.oauth_bridge`.
   3. It sends the browser to sign in with PKCE S256, `resource`, and a scope from `WWW-Authenticate`, or `openid email` when the server offers it, to show the account.
-  4. The service returns to the **bridge page** ([`docs/oauth/index.html`](https://github.com/erickdsama/bb8/blob/main/docs/oauth/index.html), GitHub Pages). It reads the robot's callback from `state` (base64url JSON `{"r": "http://bb8.local:8765/api/connections/callback", "n": nonce}`), only allows local addresses, and forwards `code` and `state`.
+  4. The service returns to **bb8-web's `/oauth/`** (public, no session), which redirects to `/api/connections/callback` with the same query; that goes down the robot's link.
   5. BB-8 exchanges the code, reads `userinfo` if there is one, and stores the tokens. They are refreshed a minute before they expire and once more on a 401.
 - **Home Assistant**: found over mDNS (`_home-assistant._tcp`, `internal_url` in TXT). Its IndieAuth flow takes `client_id` = the page's origin + `/` and a redirect on the same host, so it comes back directly, with no bridge. The access token lasts 30 min and is refreshed. Endpoint `<base>/api/mcp`. It needs the *Model Context Protocol Server* integration; Alexa comes through its *Alexa Devices* integration.
 - **Token**: `custom` with a pasted token is sent as `Authorization: Bearer`.

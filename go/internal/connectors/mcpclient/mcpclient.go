@@ -31,9 +31,8 @@ import (
 
 const keyBridge = "connectors.mcp.oauth_bridge"
 
-// DefaultBridge is the public page that sends sign-ins back to the robot
-// (docs/oauth/index.html, published with GitHub Pages).
-const DefaultBridge = "https://erickdsama.github.io/bb8/oauth/"
+// DefaultBridge is empty: sign-ins come back to bb8-web's /oauth/, next to the page.
+const DefaultBridge = ""
 
 type live struct {
 	conn  connections.Connection
@@ -70,7 +69,7 @@ func (c *Client) DefaultOn() bool { return true }
 
 func (c *Client) Fields() []config.Field {
 	return []config.Field{{Key: keyBridge, Label: "Sign-in bridge page", Type: config.String, Default: DefaultBridge, Advanced: true,
-		Help: "Public page that sends sign-ins back to the robot (services only accept https addresses)."}}
+		Help: "Where services send sign-ins back, e.g. https://bb8.zerock.name/oauth/ (https only). Empty = the page's own address + /oauth/."}}
 }
 
 // Bridge is the configured bridge URL.

@@ -30,7 +30,6 @@ Details: `wiki/Arquitectura.md`. Wire formats: `wiki/Protocolo.md` (the source o
 | `cad/` | Parametric OpenSCAD. `exportar.sh` writes `stl/`, `png/`, `plantillas/` |
 | `simulador/` | `dummy` (simulated Arduino + head, `probar.py`), `lanzar_dummy.py` |
 | `sistema/` | systemd units (`bb8-body`, `bb8-head`, `bb8-voz`, `bb8-energia`), `instalar_pi.sh`, `instalar_zero.sh` |
-| `docs/oauth/` | Sign-in bridge page (GitHub Pages): services return there and it forwards to the robot |
 | `wiki/` | Documentation |
 
 Python packages are mapped in `pyproject.toml`. **If you add a Python package, add it to `packages` and `package-dir`** or it will not import.

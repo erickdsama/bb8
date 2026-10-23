@@ -52,7 +52,7 @@ persona entra con la suya, y BB-8 pregunta antes de enviar, crear o borrar algo.
 | Application home page | https://bb8.zerock.name/acerca |
 | Privacy policy | https://bb8.zerock.name/privacidad |
 | Terms of service | https://bb8.zerock.name/terminos |
-| Authorized domains | `zerock.name`, `erickdsama.github.io` |
+| Authorized domains | `zerock.name` |
 | Developer contact | tu correo |
 
 **Nota:** subir un logo hace que Google pida *verificar la marca* (revisión de días o

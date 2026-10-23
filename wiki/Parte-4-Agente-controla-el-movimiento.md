@@ -70,7 +70,7 @@ viene encendido y solo necesita `home.city`.
 - **Other**: cualquier servicio que dé un link para asistentes de IA (con token si lo pide).
 - **Google Calendar** (en la tarjeta *Calendar*): Google no deja que las apps se registren
   solas: se crea una vez un proyecto gratis en Google Cloud (API de Calendar, *Publish app* para
-  que no caduque a los 7 días, cliente *Web application* con la página puente como dirección de
+  que no caduque a los 7 días, cliente *Web application* con `https://bb8.zerock.name/oauth/` como dirección de
   regreso). Su Client ID y secret van en `google_client.env` (ignorado por git; ver
   `google_client.env.example`) y `make` los mete en `bb8-body`. Después cada persona presiona
   *Connect Google* y entra con su cuenta.
@@ -86,10 +86,9 @@ tuya; las compartidas (la casa) las usa cualquiera conocido. Antes de mandar, cr
 algo, BB-8 pregunta "¿lo hago?" y solo lo hace si dices que sí en tu siguiente frase. Una voz
 desconocida no usa cuentas personales.
 
-Para el login, Zapier, Notion, Linear y Google regresan por una página puente pública
-([`docs/oauth`](https://github.com/erickdsama/bb8/blob/main/docs/oauth/index.html)) que te
-devuelve a la página de BB-8 (`debian.local`). Se publica una vez con GitHub Pages: *Settings → Pages → Deploy from
-a branch → main, /docs*.
+Para el login, Zapier, Notion, Linear y Google regresan a `https://bb8.zerock.name/oauth/`
+(bb8-web), que se lo pasa al robot por su enlace. Es la dirección de regreso que se registra en
+Google (`connectors.mcp.oauth_bridge`; vacío = la dirección de la página + `/oauth/`).
 
 **Personas.** En `/people` asignas el rol de cada quien: `owner`, `family` (lo puede mover)
 o `guest` (solo platica). Una voz registrada entra como `family` la primera vez que se oye.
