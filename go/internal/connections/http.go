@@ -76,7 +76,8 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-// newState encodes where the browser must come back to, for the bridge page.
+// newState is a sign-in's single-use key. It also carries the callback address
+// (r), which the old public bridge page read; bb8-web's /oauth/ just forwards it.
 func newState(ret string) string {
 	b := make([]byte, 24)
 	_, _ = rand.Read(b)

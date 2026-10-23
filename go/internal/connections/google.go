@@ -46,40 +46,12 @@ func googleAuthURL(a Auth, redirect, state, challenge, scope, nestProject string
 	return u + sep + "access_type=offline&prompt=consent"
 }
 
-// Pick chooses whose account serves a request: the person's own, else a shared
-// one. known=false is a voice BB-8 doesn't recognize: it only gets shared
-// accounts that allow strangers, and only to look things up (write=false).
-// person "" with known=true is the page, an MCP client or a robot without voice
-// ID; pass home.owner then. admin (an MCP client) may use any account while no
-// owner is set.
-func Pick(list []Connection, known bool, person string, admin, write bool) (Connection, bool) {
-	if !known {
-		for _, c := range list {
-			if c.Owner == "" && c.Strangers && !write {
-				return c, true
-			}
-		}
-		return Connection{}, false
-	}
-	for _, c := range list {
-		if c.Owns(person) {
-			return c, true
-		}
-	}
-	for _, c := range list {
-		if c.Owner == "" {
-			return c, true
-		}
-	}
-	if person == "" && admin && len(list) > 0 {
-		return list[0], true
-	}
-	return Connection{}, false
-}
-
-// PickAll is Pick for reading: every account that serves the request, oldest
-// first. A person reads all of their own accounts; with none of their own,
-// the shared ones.
+// PickAll lists the accounts that serve a request, oldest first. A person
+// reads all of their own accounts; with none of their own, the shared ones.
+// known=false is a voice BB-8 doesn't recognize: only shared accounts that
+// allow strangers. person "" with known=true is the page, an MCP client or a
+// robot without voice ID (pass home.owner); admin (an MCP client) may use any
+// account while no owner is set.
 func PickAll(list []Connection, known bool, person string, admin bool) []Connection {
 	if !known {
 		var out []Connection

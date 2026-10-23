@@ -244,9 +244,8 @@ func Object(props map[string]any, required ...string) map[string]any {
 	return s
 }
 
-func Num(desc string) map[string]any  { return map[string]any{"type": "number", "description": desc} }
-func Str(desc string) map[string]any  { return map[string]any{"type": "string", "description": desc} }
-func Bool(desc string) map[string]any { return map[string]any{"type": "boolean", "description": desc} }
+func Num(desc string) map[string]any { return map[string]any{"type": "number", "description": desc} }
+func Str(desc string) map[string]any { return map[string]any{"type": "string", "description": desc} }
 func Enum(desc string, vals ...string) map[string]any {
 	return map[string]any{"type": "string", "description": desc, "enum": vals}
 }

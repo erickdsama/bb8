@@ -55,7 +55,7 @@ var ActionHelp = map[string]string{
 func Fields() []config.Field {
 	return []config.Field{
 		{Key: "navigation.planner", Label: "Planner", Type: config.Enum, Options: []string{"auto", "jev", "local"}, Default: "auto",
-			Help: "auto: JEV when its key is set, else the local rules. jev: JEV, with the local rules when it is unsure or fails."},
+			Help: "auto: JEV if its key is set, else local rules."},
 		{Key: "navigation.jev_api_key", Label: "TypeSafe API key (JEV)", Type: config.Secret},
 		{Key: "navigation.jev_model", Label: "JEV model", Type: config.String, Default: "jev-latest"},
 		{Key: "navigation.min_confidence", Label: "Min JEV confidence", Type: config.Number, Default: 0.6, Min: config.F(0), Max: config.F(1),

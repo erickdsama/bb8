@@ -108,7 +108,7 @@ func TestOAuthSignIn(t *testing.T) {
 		t.Fatal(out)
 	}
 	fake.challenge = q.Get("code_challenge")
-	// The state tells the bridge page where to send the browser back.
+	// The state carries the callback address.
 	raw, _ := base64.RawURLEncoding.DecodeString(q.Get("state"))
 	var st8 map[string]string
 	json.Unmarshal(raw, &st8)
@@ -116,7 +116,7 @@ func TestOAuthSignIn(t *testing.T) {
 		t.Fatal(st8)
 	}
 
-	// The browser comes back with the code (through the bridge).
+	// The browser comes back with the code (through bb8-web's /oauth/).
 	res, err := http.Get(api.URL + CallbackPath + "?code=the-code&state=" + url.QueryEscape(q.Get("state")))
 	if err != nil {
 		t.Fatal(err)

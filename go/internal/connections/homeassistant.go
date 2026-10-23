@@ -15,7 +15,7 @@ import (
 
 // Home Assistant signs apps in with its own OAuth flavor (IndieAuth): the
 // client_id is the app's URL and the redirect must be on the same host, so the
-// page's own address works and no bridge page is needed. Its MCP server lives
+// page's own address works and it needs no /oauth/ return. Its MCP server lives
 // at /api/mcp and takes the same access token (30 min, refreshed here).
 
 // IsHomeAssistant says whether an MCP link is a Home Assistant's (…/api/mcp).

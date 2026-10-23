@@ -32,7 +32,7 @@ func Fields() []config.Field {
 		{Key: "agent.max_steps", Label: "Max tool steps per request", Type: config.Number, Default: 8.0, Min: config.F(1), Max: config.F(20)},
 		{Key: "agent.max_tokens", Label: "Max tokens per reply", Type: config.Number, Default: 1024.0,
 			Min: config.F(64), Max: config.F(8192),
-			Help: "Spoken answers are short. Without a cap OpenRouter reserves the model's maximum and a small credit limit rejects the request."},
+			Help: "Keeps answers short and OpenRouter from reserving the model maximum."},
 		{Key: "agent.history_messages", Label: "Messages kept in the conversation", Type: config.Number, Default: 12.0,
 			Min: config.F(2), Max: config.F(60), Help: "Older ones are dropped. Fewer = cheaper and less confusion from old turns."},
 		{Key: "agent.reset_after_s", Label: "Forget the conversation after (s)", Type: config.Number, Default: 120.0,

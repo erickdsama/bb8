@@ -13,7 +13,10 @@ type sayRec struct {
 	rate         int
 }
 
-func (s *sayRec) Say(_ context.Context, text, _ string) (float64, error) { s.said = text; return 1, nil }
+func (s *sayRec) Say(_ context.Context, text, _ string) (float64, error) {
+	s.said = text
+	return 1, nil
+}
 
 func (s *sayRec) SayPCM(_ context.Context, text, _ string, pcm []byte, rate int) (float64, error) {
 	s.voiced, s.pcm, s.rate = text, pcm, rate

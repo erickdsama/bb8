@@ -68,11 +68,11 @@ func (c *Client) Description() string {
 func (c *Client) DefaultOn() bool { return true }
 
 func (c *Client) Fields() []config.Field {
-	return []config.Field{{Key: keyBridge, Label: "Sign-in bridge page", Type: config.String, Default: DefaultBridge, Advanced: true,
-		Help: "Where services send sign-ins back, e.g. https://bb8.zerock.name/oauth/ (https only). Empty = the page's own address + /oauth/."}}
+	return []config.Field{{Key: keyBridge, Label: "Sign-in return address", Type: config.String, Default: DefaultBridge, Advanced: true,
+		Help: "https only. Empty = this page + /oauth/."}}
 }
 
-// Bridge is the configured bridge URL.
+// Bridge is the configured sign-in return address (empty: the page's /oauth/).
 func Bridge(s *config.Store) string { return strings.TrimSpace(s.String(keyBridge)) }
 
 // Live reports one connection for the page.
