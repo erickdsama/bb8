@@ -65,7 +65,7 @@ func TestGeminiSpeak(t *testing.T) {
 		t.Fatal(b, rate, err)
 	}
 	if gotPath != "/models/gemini-3.8-flash-tts:generateContent" || gotKey != "k1" || gotVoice != "Kore" ||
-		!strings.HasSuffix(gotText, ": hola") || !strings.Contains(gotText, "alegre") {
+		gotText != "### DIRECTOR NOTES\nStyle: alegre\n### TRANSCRIPT\nhola" {
 		t.Fatal(gotPath, gotKey, gotVoice, gotText)
 	}
 }
