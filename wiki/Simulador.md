@@ -53,13 +53,14 @@ procesos:
 | Proceso | Dirección | Hace de |
 | --- | --- | --- |
 | `dummy.run_dummy` | serial `socket://127.0.0.1:5555`, cabeza simulada `http://127.0.0.1:8080` | Hardware del Arduino y de la Pi Zero |
-| `bin/bb8-body` | MCP y configuración `http://127.0.0.1:8765` (`/mcp`, `/`), API local `127.0.0.1:8770`, enlace `127.0.0.1:8772` | El cuerpo, igual que en la Pi 3 |
+| `bin/bb8-body` | MCP y API de configuración `http://127.0.0.1:8765` (`/mcp`, `/api/*`), API local `127.0.0.1:8770`, enlace `127.0.0.1:8772` | El cuerpo, igual que en la Pi 3 |
+| `bin/bb8-web --no-login` | páginas en `http://127.0.0.1:8780` | Las páginas, igual que en la PC de casa |
 | `bin/bb8-head --sim` | se conecta al `:8772` por TLS mutuo | La cabeza, igual que en la Zero |
 
 Los certificados del enlace son de prueba y se crean en una carpeta temporal en cada
 arranque; la configuración (`config.json`, `secrets.json`) también va a una carpeta
 temporal, así no toca la de tu robot. La página de configuración del dummy está en
-<http://127.0.0.1:8765/> (en localhost no pide token): cámbiale algo y mira cómo
+<http://127.0.0.1:8780/> (sin contraseña en el dummy): cámbiale algo y mira cómo
 aparece al momento en otra pestaña, o pídele a BB-8 que "hable más bajo" y verás el
 cambio llegar desde el agente.
 

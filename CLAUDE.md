@@ -20,14 +20,15 @@ Details: `wiki/Arquitectura.md`. Wire formats: `wiki/Protocolo.md` (the source o
 | Folder | Content |
 | --- | --- |
 | `go/cmd/bb8-body`, `go/cmd/bb8-head`, `go/cmd/bb8-web` | Robot binaries (`bb8-body pair` creates the link certs) and the web pages server, off the robot |
-| `go/internal/` | `protocol`, `serial`, `motion`, `floorplan`, `tools`, `mcpserver`, `body`, `link`, `head`, `config` (API only), `webui` (the pages, served by bb8-web), `relay` (robot ↔ bb8-web link), `agent`, `connectors/{weather,calendar,websearch,mcpclient}`, `connections` (accounts, sign-in), `tts` (Gemini voice, made on the body), `mdns`, `people`, `events`, `navigate`, `gamepad`, `persona` |
+| `go/internal/` | `protocol`, `serial`, `motion`, `floorplan`, `tools`, `mcpserver`, `body`, `link`, `head`, `config` (API only), `webui` (the pages, served by bb8-web), `relay` (robot ↔ bb8-web link), `agent`, `connectors/{weather,calendar,websearch,nest,mcpclient}`, `connections` (accounts, sign-in), `homeassist` (links devices through Home Assistant), `tts` (Gemini voice, made on the body), `mdns`, `people`, `events`, `navigate`, `gamepad`, `persona` |
 | `partes/1-protoboard/arduino/` | `pruebas/p1…p5`, `bb8_firmware/bb8_firmware.ino` |
 | `partes/1-protoboard/wokwi/` | Firmware in the Wokwi simulator |
 | `partes/3-base-andando/` | Legacy Python `bb8` (used by `calibrar` and `--python`); `mapas/` (floor plans, English keys) |
 | `partes/4-agente-movimiento/` | `voz`: Python voice front end (wake word, STT, speaker id → `POST /agent/ask`); `wakeword/`; legacy `bb8_mcp` |
 | `partes/5-cabeza/` | Legacy Python `head`. `head.sounds` and `head.personalidad` are still used by `voz` and the sim |
 | `partes/6-esfera-baterias/` | `energia` (Python power manager, uses the local API) |
-| `cad/` | Parametric OpenSCAD. `exportar.sh` writes `stl/`, `png/`, `plantillas/` |
+| `cad/` | Parametric OpenSCAD (`plato.scad`: the wireless charging plate). `exportar.sh` writes `stl/`, `png/`, `plantillas/` |
+| `docs/marca/` | Logo and brand texts (Bebocho) |
 | `simulador/` | `dummy` (simulated Arduino + head, `probar.py`), `lanzar_dummy.py` |
 | `sistema/` | systemd units (`bb8-body`, `bb8-head`, `bb8-voz`, `bb8-energia`), `instalar_pi.sh`, `instalar_zero.sh` |
 | `wiki/` | Documentation |

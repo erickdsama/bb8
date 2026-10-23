@@ -45,7 +45,7 @@ python -m calibrar consola      # órdenes a mano: M 80 80, ?, S, H 30…
 
 `--serial` cambia el puerto (por defecto `BB8_SERIAL` o `/dev/ttyACM0`).
 
-Escribe los números en la página de configuración (`http://bb8.local:8765/`, sección
+Escribe los números en la página de configuración (`bb8-web`, sección
 `motion`): se aplican al momento, sin reiniciar. `PULSOS_MAX_CICLO` va al firmware:
 
 | Ajuste | Cómo medirlo |

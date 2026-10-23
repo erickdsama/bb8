@@ -16,7 +16,8 @@ This page is the single source of truth. If something changes here, it also chan
 ```mermaid
 flowchart LR
   CL[Claude<br/>Desktop or Code] -->|MCP streamable-http :8765/mcp<br/>bearer token from the LAN| B
-  WEB[Browser<br/>config page] -->|HTTP :8765 / + SSE<br/>bearer token| B
+  WEB[Browser<br/>pages] -->|HTTPS, owner login| BW[bb8-web<br/>off the robot]
+  B -->|dials out: WebSocket /robot<br/>device token| BW
   VOZ[Voice front end<br/>Python, wake word + STT] -->|HTTP 127.0.0.1:8770<br/>/agent/ask, /tools| B
   B[bb8-body<br/>Pi 3 B+] -->|serial USB 115200<br/>ASCII lines| AR[Arduino]
   H[bb8-head<br/>Pi Zero W] -->|mutual TLS 1.3 :8772<br/>head dials, one connection| B
@@ -26,7 +27,7 @@ flowchart LR
 | Link | Transport | Who starts it |
 | --- | --- | --- |
 | Claude → body | MCP streamable-http on `/mcp`, port 8765. Clients from the LAN need `Authorization: Bearer <token>` | Claude |
-| Browser → body | HTTP on port 8765 (`/`, `/api/*`) with the same token, and SSE for live changes | Browser |
+| Browser → bb8-web → body | The pages are on `bb8-web`; their `/api/*` requests (and SSE) go down the link the robot opened (§ web relay) | The robot dials bb8-web |
 | Voice, power manager → body | HTTP JSON on `127.0.0.1:8770`, loopback only | Client |
 | Body → Arduino | Serial USB 115200 8N1, one line per command | Always the Pi |
 | Head ↔ body | Mutual TLS 1.3 on port 8772, one persistent connection, framed JSON | The head |

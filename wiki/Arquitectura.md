@@ -10,7 +10,8 @@ flowchart TD
   VZ[Voice front end<br/>Python: wake word, STT, speaker id] -->|POST /agent/ask| B
   B -->|GET /audio/stream| VZ
   CL[Claude Desktop / Code] -->|MCP :8765/mcp + token| B
-  WEB[Config page<br/>browser] -->|HTTP + SSE :8765| B
+  WEB[Pages<br/>browser] -->|HTTPS| BW[bb8-web<br/>off the robot]
+  B -->|dials out, WebSocket| BW
   J[Bluetooth gamepad<br/>wins over the LLM] -->|evdev| B
   B[bb8-body · Pi 3 B+<br/>motion · map · MCP · agent · connectors · config]
   B -->|USB serial 115200| AR[Arduino<br/>own firmware]
