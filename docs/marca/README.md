@@ -1,4 +1,18 @@
-# Marca de BB-8
+# Marca de BB-8 (Bebocho)
+
+![Bebocho](bebocho-horizontal.png)
+
+**Bebocho**, como le dicen a BB-8 en México: el nombre que ve y escucha la gente.
+
+| Archivo | Para qué |
+| --- | --- |
+| [`bebocho-icono.svg`](bebocho-icono.svg) · [`bebocho-120.png`](bebocho-120.png) · [`bebocho-512.png`](bebocho-512.png) | Ícono: rodando, con la cabeza ladeada |
+| [`bebocho-horizontal.svg`](bebocho-horizontal.svg) / [`.png`](bebocho-horizontal.png) | Logo con nombre, fondo claro (transparente) |
+| [`bebocho-horizontal-oscuro.svg`](bebocho-horizontal-oscuro.svg) / [`.png`](bebocho-horizontal-oscuro.png) | Logo con nombre, fondo oscuro |
+
+Letra: Quicksand Bold (ya convertida a trazos en los SVG). Las «o» van en naranja.
+
+## Logo anterior (BB-8)
 
 ![Logo](logo-512.png)
 
