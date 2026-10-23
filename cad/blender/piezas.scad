@@ -19,8 +19,7 @@ EJES = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [-1, 0, 0], [0, -1, 0], [0, 0, -1]];
 module esfera_mundo() rotate(a = ALFA, v = [1, -1, 0]) children();
 
 if (pieza == "esfera_blanca") esfera_mundo() { mitad_A(); mitad_B(); }
-else if (pieza == "esfera_naranja") esfera_mundo() for (e = EJES) apuntar(e)
-    if (e == [0, 0, -1]) tapa_carga(); else circulo();
+else if (pieza == "esfera_naranja") esfera_mundo() for (e = EJES) apuntar(e) circulo();
 else if (pieza == "cabeza") casco();
 else if (pieza == "antenas") antenas();
 else if (pieza == "ojo_domo") ojo_domo();
