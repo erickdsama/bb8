@@ -747,15 +747,14 @@ function calendarDialog() {
   const go = el("button", { class: "btn", type: "button", textContent: "Save and sign in" });
   openDialog(
     el("h3", { textContent: "Set up Google" }),
-    el("p", { class: "lead", textContent: "Once, about 5 minutes." }),
-    stepsList([["", ["Google Cloud", "https://console.cloud.google.com/apis/library/calendar-json.googleapis.com"], ": new project, enable ", "Calendar API", "."],
+    el("div", { class: "field" }, el("label", { textContent: "Client ID" }), id),
+    el("div", { class: "field" }, el("label", { textContent: "Client secret" }), secret),
+    el("details", { class: "more" }, el("summary", { textContent: "How to get them" }), stepsList([["", ["Google Cloud", "https://console.cloud.google.com/apis/library/calendar-json.googleapis.com"], ": new project, enable ", "Calendar API", "."],
       ["", ["Branding", "https://console.cloud.google.com/auth/branding"], ": name ", "BB-8", " and your e-mail."],
       ["", ["Audience", "https://console.cloud.google.com/auth/audience"], ": External → ", "Publish app", "."],
       ["", ["Clients", "https://console.cloud.google.com/auth/clients"], ": new ", "Web application", " with this redirect:"]]),
     el("div", { class: "copy" }, el("code", { textContent: redirect }), el("button", { class: "btn ghost small", type: "button", textContent: "Copy", onclick: () => { navigator.clipboard?.writeText(redirect); toast("Copied"); } })),
-    el("div", { class: "field" }, el("label", { textContent: "Client ID" }), id),
-    el("div", { class: "field" }, el("label", { textContent: "Client secret" }), secret),
-    el("small", { textContent: "If Google says “unverified app”: Advanced → Go to BB-8." }),
+      el("small", { textContent: "“Unverified app”: Advanced → Go to BB-8." })),
     result, el("div", { class: "actions" }, el("button", { class: "btn ghost", type: "button", textContent: "Cancel", onclick: () => $("#dlg").close() }), go));
   go.onclick = async () => {
     if (!id.value.trim() || (!secret.value.trim() && !values["connectors.calendar.google_client_secret"])) { say(result, "bad", "Paste the client ID and secret."); return; }
