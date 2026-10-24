@@ -30,7 +30,7 @@ module pie_poste() {
         }
         translate([0, 0, 2]) cylinder(d = tubo_d + 2 * holg, h = pie_socket);
         translate([0, 0, -1]) cylinder(d = tubo_d - 6, h = 5);               // cables hacia abajo
-        rotate([0, 0, 45]) translate([0, -5, 2]) cube([30, 10, 12]);            // salida lateral del cable del servo
+        rotate([0, 0, 22.5]) translate([0, -5, 2]) cube([30, 10, 12]);          // salida del cable del servo, entre un tornillo y una costilla
         for (k = [0 : 3]) rotate([0, 0, 45 + 90 * k]) translate([22, 0, -1]) {
             cylinder(d = 3.4, h = 10, $fn = 16);
             translate([0, 0, 4]) cylinder(d = 6.5, h = 10, $fn = 24);

@@ -18,8 +18,8 @@ imanes). Boquilla 0.4, capa 0.2 mm. Todas caben en una cama de 220 × 220 mm.
 | `poste_portaimanes` | 1 | **50 %** | Los 4 imanes N42 que jalan la cabeza; flojo se rompe | 41 g |
 
 **No se imprime:** la plataforma (MDF de 5.5 mm, ya cortada con
-[`cad/plantillas/plataforma.dxf`](../../plantillas)) y el poste: tubo PVC conduit de 25 mm,
-cortado a ~160 mm. Tornillería M3/M4 y separadores en [Materiales](../../../wiki/Materiales.md).
+[`cad/plantillas/plataforma.dxf`](../../plantillas)) y el poste: tubo PVC conduit de 1″ (29.6 mm por fuera),
+cortado a ~160 mm, con una muesca de 10 × 10 mm abajo para el cable del servo. Tornillería M3/M4 y separadores en [Materiales](../../../wiki/Materiales.md).
 
 ## Mide antes de mandar
 
@@ -31,7 +31,6 @@ el número en `cad/parametros.scad` (o `base.scad`) y regenera con `bash cad/exp
 | Interruptor SH12RO: largo × alto del cuerpo (lo que entra en el hueco, sin la ceja) | 19 × 13 mm (`rocker_corte`) | `base_panel_interruptor` |
 | MG996R: de la base a la cara de abajo de las orejas, y entre agujeros de las orejas | 26.5 mm; 49.5 × 10 mm | `poste_soporte_servo` |
 | Cuerno redondo del servo: Ø y distancia del centro a sus agujeros | Ø25 mm; 8 mm | `poste_portaimanes` |
-| Tubo PVC: diámetro exterior | 25 mm (`tubo_d`) | `poste_pie_poste`, `poste_soporte_servo` |
 | Llanta montada con su cople: de la cara de la caja de engranes al centro de la llanta | 20 mm (`rueda_offset`) | Entre la llanta y el soporte quedan 3.5 mm: si tu cople es más corto, rozan |
 
 ## Holguras revisadas (24 oct)

@@ -88,7 +88,7 @@ bt_c_z = -sqrt(bt_c_r * bt_c_r - bt_y * bt_y);
 bt_inclinacion = asin(bt_y / bt_c_r);    // el ball transfer apunta al centro de la esfera
 
 // ───────────────────────── Poste e imanes ─────────────────────────
-tubo_d      = 25;       // tubo PVC conduit 25 mm (el hidráulico de 1/2″ mide 21.3: cámbialo)
+tubo_d      = 29.6;     // tubo PVC conduit 1″ (nominal 25 mm): exterior 29.4–29.6 según la ficha
 iman_d      = 20;       // N42 20 × 5 avellanado M4
 iman_e      = 5;
 iman_r      = 27;       // radio del círculo de los 4 imanes (poste y cabeza)
