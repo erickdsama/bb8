@@ -47,6 +47,7 @@ type Real struct {
 
 	sayMu  sync.Mutex
 	volume atomic.Value // float64
+	mixer  atomic.Bool  // the codec's own volume works: play at full scale
 	paused atomic.Bool
 }
 
@@ -72,7 +73,7 @@ func NewReal(ctx context.Context, c RealConfig) *Real {
 		r.sound, r.mic = m, m
 		go m.Run(ctx)
 	}
-	r.volume.Store(0.7)
+	r.SetVolume(0.7)
 	r.tofMM.Store(-1)
 	for _, c := range []string{"rpicam-jpeg", "libcamera-jpeg"} {
 		if _, err := exec.LookPath(c); err == nil {
@@ -148,6 +149,12 @@ func play(ctx context.Context, wav []byte) error {
 }
 
 func (r *Real) Say(ctx context.Context, text, sound string) (float64, error) {
+	return r.SayPCM(ctx, text, sound, nil, 0)
+}
+
+// SayPCM plays the beep, then pcm (the body's voice for text) if given, else
+// speaks text with the Wyoming server or espeak-ng.
+func (r *Real) SayPCM(ctx context.Context, text, sound string, pcm []byte, rate int) (float64, error) {
 	r.sayMu.Lock()
 	defer r.sayMu.Unlock()
 	t0 := time.Now()
@@ -161,6 +168,9 @@ func (r *Real) Say(ctx context.Context, text, sound string) (float64, error) {
 		defer r.mic.Mute(tail)
 	}
 	vol := r.volume.Load().(float64)
+	if r.mixer.Load() { // the codec turns it down; keep full resolution here
+		vol = 1
+	}
 	key := sound
 	if key == "" {
 		key = text
@@ -168,6 +178,12 @@ func (r *Real) Say(ctx context.Context, text, sound string) (float64, error) {
 	wav, _ := BeepWAV(key, 0.6*vol, int(time.Now().UnixNano()%4))
 	if err := play(ctx, wav); err != nil {
 		return 0, fmt.Errorf("aplay: %w", err)
+	}
+	if len(pcm) > 0 && rate > 0 {
+		if err := play(ctx, wavFrom(scale(pcm, vol), rate, 1)); err != nil {
+			return 0, fmt.Errorf("aplay: %w", err)
+		}
+		return math.Round(time.Since(t0).Seconds()*100) / 100, nil
 	}
 	if text != "" && r.tts != "" {
 		wav, err := wyomingTTS(ctx, r.tts, text, vol)
@@ -214,8 +230,33 @@ func (r *Real) ToF() (int, bool) {
 	return int(v), v >= 0
 }
 
-// SetVolume is applied from the head config section.
-func (r *Real) SetVolume(v float64) { r.volume.Store(max(0, min(1, v))) }
+// SetVolume is applied from the head config section. It sets the ReSpeaker's
+// codec (both the speaker and the jack, wherever the speaker hangs) on a dB scale,
+// which is how loudness is heard: 0 mutes, 0.05 is -43 dB, 0.5 about -22 dB, 1 is
+// 0 dB. Scaling the samples alone only went from -3 dB to 0 dB between 70 % and
+// 100 %, and the jack sat at -20 dB. Without the codec (no amixer, another card)
+// it falls back to scaling the samples.
+func (r *Real) SetVolume(v float64) {
+	v = max(0, min(1, v))
+	r.volume.Store(v)
+	raw := 0
+	if v > 0 {
+		raw = 76 + int(math.Round(45*v)) // 1 dB per step, 121 = 0 dB
+	}
+	ok := true
+	for _, ctl := range []string{"Speaker", "Headphone"} {
+		if err := exec.Command("amixer", "-q", "-c", codecCard, "sset", ctl, fmt.Sprint(raw)).Run(); err != nil {
+			ok = false
+		}
+	}
+	if ok && !r.mixer.Load() {
+		_ = exec.Command("amixer", "-q", "-c", codecCard, "sset", "Playback", "255").Run() // DAC at 0 dB
+	}
+	r.mixer.Store(ok)
+}
+
+// codecCard is the ReSpeaker 2-Mic HAT v1's ALSA card (WM8960).
+const codecCard = "wm8960soundcard"
 
 func (r *Real) Sound() SoundDir { return r.sound }
 

@@ -125,8 +125,21 @@ consumo real de los motores.
 | Cable micro-USB corto y grueso (o pigtail micro-USB macho) | 1 | Steren | ~50 (est.) | Del buck a la Pi 3. Un cable delgado provoca avisos de bajo voltaje; no alimentar por los pines GPIO |
 | P-MOSFET AO3401 (SOT-23) | 2 | Mercado Libre | ~80 | Reposo profundo de la Pi; el IRF520 no sirve. Necesita placa adaptadora SOT-23 o soldar fino |
 | ~~Resistencias 100 kΩ, 10 kΩ y 4.7 kΩ~~ | — | UNIT / Steren | ~30 (est.) | Pull-up del MOSFET y divisor de batería en A0. **Comprado: 330 Ω ×5, 4.7 kΩ ×2, 10 kΩ ×2, 100 kΩ ×2 en Electrozone (16 oct)** |
-| XT60 hembra de panel + extensión JST-XH 4 pines | 1 | Amazon / UNIT | ~140 (est.) | Puerto de carga en la tapa del casco |
-| Impresión 3D por servicio (gajos de la esfera y cabeza) | 1 | Servicio local | ~2,000–3,000 (est.) | No hay impresora: se manda a imprimir con los STL de `cad/stl` (una carpeta por parte) (~1.6 kg de PLA). La esfera y el casco en ABS; la base (soportes de motor, charola, soportes de RL4, panel de carga) en PETG. El poste es varilla roscada |
+| ~~XT60 hembra de panel~~ | — | — | — | Ya no: la carga es inalámbrica (plato) |
+| Kit de carga inalámbrica emisor + receptor, **24 V, ≥ 1.5 A (≥ 30 W), bobinas de ~50 mm, distancia ≥ 10 mm** | 1 | Mercado Libre / AliExpress | ~300–500 (est.) | Revisar en la ficha la distancia real (≥ 10 mm): de bobina a bobina hay 9–10 mm. Medir las bobinas y ajustar `bobina_d` y `bobina_e` en `cad/parametros.scad` |
+| Eliminador 24 V 2 A, plug 5.5 × 2.1 + jack de panel | 1 | Steren / UNIT | ~200 (est.) | Alimenta el plato de carga |
+| Módulo buck CC/CV ajustable (voltaje y corriente), entrada hasta 30 V | 1 | UNIT / Electrozone | ~90 (est.) | Cargador: 12.6 V, límite 1.5 A. Ajustar con un multímetro **antes** de conectar la LiPo |
+| BMS 3S con balance (≥ 10 A) | 1 | UNIT / Mercado Libre | ~80 (est.) | Protege y balancea las celdas mientras carga |
+| LED 5 mm + resistencia 2.2 kΩ | 1 | Steren | ~10 | Prende mientras carga (panel del interruptor) |
+| Cable de silicón 14 AWG rojo y negro, 50 cm c/u | 1 | Mercado Libre / tienda RC | ~80 (est.) | LiPo → fusible → rocker y LiPo − → BMS B−: pasa toda la corriente. Los rabitos XT60 de 15 cm no alcanzan |
+| Cable de silicón 18 AWG rojo y negro, 2 m c/u | 1 | Mercado Libre / Electrozone | ~100 (est.) | Rieles de 12 V y GND, L298N, entradas de los bucks, BMS P− → GND y cargador → LiPo (~1.1 m en el modelo, más holgura) |
+| Cable 22 AWG, kit de 6 colores × 2 m (o 2 m más de rojo y negro) | 1 | Mercado Libre / UNIT | ~120 (est.) | En el modelo van ~4.7 m de 22 AWG (motores, encoders, carga, Pi, servo); los 2 + 2 m comprados no alcanzan. Los colores ayudan con encoders e I2C |
+| Rabito JST-XH 4 pines hembra, 15 cm | 1 | Mercado Libre / tienda RC | ~30 (est.) | El balanceo de la LiPo se enchufa al BMS, y se puede desenchufar para cargar en Balance con el iMAX |
+| Placa perforada (fenólica) 5 × 7 cm | 1 | Electrozone / Steren | ~25 | Placa de distribución: rieles de GND, 12 V, 5 V, divisor de A0 y empalme del LED |
+| Bases adhesivas para cinchos, 20 × 20 mm | 20 | Ferretería / Steren | ~40 | Fijan los mazos de cables a la plataforma y bajo la charola |
+| Hoja de hule antiderrapante (tapete para cajón o alfombrilla), ~35 × 35 cm, + pegamento de contacto | 1 | Ferretería / tienda de hogar | ~80 (est.) | Debajo de todo el plato de carga: no se corre cuando Bebocho llega con vuelo y une las 5 piezas |
+| Plasti Dip en aerosol (o hule líquido), negro o transparente | 1 | Ferretería / Home Depot | ~250 (est.) | Solo en la rampa del plato: agarre aunque haya polvo. El centro queda liso (la piel sobre la bobina es de 1 mm) |
+| Impresión 3D por servicio (gajos de la esfera y cabeza) | 1 | Servicio local | ~2,000–3,000 (est.) | No hay impresora: se manda a imprimir con los STL de `cad/stl` (una carpeta por parte) (~1.6 kg de PLA). La esfera y el casco en ABS; la base (soportes de motor, charola, soportes de RL4, panel del interruptor, plato de carga) en PETG. El poste es varilla roscada |
 | Esfera de acrílico transparente de 5 cm, de las que se abren en dos (manualidades / adornos) + Tamiya TS-71 Smoke en aerosol | 1 | Papelería / tienda de modelismo | ~150 (est.) | Ojo principal: una mitad pintada por dentro en 2–3 capas ligeras; los LED la iluminan. La cámara va en el ojo chico y el sensor de distancia en el círculo de abajo, los dos sin tapa |
 | Primer, pintura blanca/naranja/plata, laca, lijas | 1 | Tlapalería | 300–500 (est.) | |
 | Lastre (pesas o plomo) | 200–400 g | Mercado Libre | ~50 (est.) | |

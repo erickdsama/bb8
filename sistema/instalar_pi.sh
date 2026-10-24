@@ -74,7 +74,7 @@ systemctl enable --now bb8-body
 [ $VOZ = 1 ] && systemctl enable bb8-energia
 cat <<MSG
 Done. bb8-body is running.
-  Config page:  http://$(hostname).local:8765/?token=$(cat /etc/bb8/token)
+  Config page:  bb8-web (off the robot): set BB8_WEB in /etc/bb8.env
                 (set agent.api_key for OpenRouter, home.city…)
   Head certs:   scp /etc/bb8/pki/{ca.crt,bb8-head.crt,bb8-head.key} bb8-head.local:/tmp/  then run instalar_zero.sh there
   Voice:        sudo systemctl enable --now bb8-voz bb8-energia

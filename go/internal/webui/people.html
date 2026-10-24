@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BB-8 People</title>
+<style>
+:root { --bg:#f6f5f2; --card:#fff; --ink:#1d1d1b; --mute:#6b6a65; --line:#e3e1db; --accent:#e8742a; --ok:#2f8a4c; --bad:#c23b2b; --flash:#fff1d6; }
+@media (prefers-color-scheme: dark) { :root { --bg:#151514; --card:#1f1f1d; --ink:#ecebe6; --mute:#9a9891; --line:#33322f; --flash:#3a2f1a; } }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 system-ui, sans-serif; }
+header { display:flex; align-items:center; gap:12px; padding:16px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+h1 { font-size:18px; margin:0; }
+header a { font-size:13px; }
+main { max-width:860px; margin:0 auto; padding:16px; display:grid; gap:16px; }
+section { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; transition: background .6s; }
+section.flash { background:var(--flash); }
+h2 { font-size:16px; margin:0; }
+.top { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.pill { font-size:12px; color:var(--mute); }
+input, select, button { font:inherit; color:inherit; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:6px 8px; }
+button { background:var(--accent); color:#fff; border:0; cursor:pointer; padding:7px 12px; }
+button.ghost { background:transparent; color:var(--bad); border:1px solid var(--line); }
+ul { margin:8px 0 0; padding:0; list-style:none; }
+li { display:flex; gap:8px; align-items:baseline; justify-content:space-between; padding:6px 0; border-top:1px solid var(--line); }
+li button { padding:2px 8px; font-size:12px; }
+form { display:flex; gap:8px; margin-top:8px; }
+form input { flex:1; min-width:0; }
+.help { font-size:13px; color:var(--mute); margin:0; }
+#toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:8px 14px; border-radius:8px; opacity:0; transition:opacity .3s; pointer-events:none; }
+#toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>BB-8 · People</h1>
+  <a id="home" href="/">Config</a>
+  <a id="control" href="/control">Control</a>
+</header>
+<main>
+  <section>
+    <p class="help"><b>owner</b>: everything. <b>family</b>: may move BB-8 and use external tools (the default for a registered voice). <b>guest</b>: chat only.
+      BB-8 adds people as guests when you tell it about someone; only this page changes roles.</p>
+    <form id="add"><input id="add-name" placeholder="Name" maxlength="40" required>
+      <select id="add-role"><option>family</option><option>guest</option><option>owner</option></select><button>Add</button></form>
+  </section>
+  <div id="list" style="display:grid;gap:16px"></div>
+</main>
+<div id="toast"></div>
+<script>
+const q = new URLSearchParams(location.search);
+let token = q.get("token") || "";
+try { if (token) localStorage.setItem("bb8-token", token); else token = localStorage.getItem("bb8-token") || ""; } catch (e) {}
+const qs = token ? "?token=" + encodeURIComponent(token) : "";
+document.getElementById("home").href = "/" + qs;
+document.getElementById("control").href = "/control" + qs;
+const auth = token ? { Authorization: "Bearer " + token } : {};
+const el = (t, a = {}, ...kids) => { const e = document.createElement(t); Object.assign(e, a); e.append(...kids); return e; };
+const toast = (m) => { const t = document.getElementById("toast"); t.textContent = m; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 2500); };
+const P = (n) => "/api/people/" + encodeURIComponent(n);
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", ...auth } });
+  const body = r.status === 204 ? {} : await r.json().catch(() => ({}));
+  if (!r.ok) toast(body.error || ("HTTP " + r.status));
+  return { ok: r.ok, body };
+}
+
+function card(p) {
+  const role = el("select", {}, ...["owner", "family", "guest"].map(r => el("option", { value: r, textContent: r, selected: r === p.role })));
+  role.onchange = () => api(P(p.name), { method: "PUT", body: JSON.stringify({ role: role.value }) });
+  const del = el("button", { className: "ghost", textContent: "Remove" });
+  del.onclick = async () => { if (confirm("Remove " + p.name + "?")) { await api(P(p.name), { method: "DELETE" }); load(); } };
+  const seen = p.last_seen && !p.last_seen.startsWith("0001") ? "heard " + new Date(p.last_seen).toLocaleString() : "never heard";
+  const notes = el("ul", {}, ...p.notes.map(n => {
+    const x = el("button", { className: "ghost", textContent: "×", title: "Delete" });
+    x.onclick = async () => { await api(P(p.name) + "/notes?text=" + encodeURIComponent(n.text), { method: "DELETE" }); load(); };
+    return el("li", {}, el("span", { textContent: n.text }), x);
+  }));
+  const inp = el("input", { placeholder: "Add a note (likes, birthday…)", maxLength: 200 });
+  const form = el("form", {}, inp, el("button", { textContent: "Add" }));
+  form.onsubmit = async (e) => { e.preventDefault(); if (!inp.value.trim()) return;
+    await api(P(p.name) + "/notes", { method: "POST", body: JSON.stringify({ text: inp.value }) }); load(); };
+  const s = el("section", {}, el("div", { className: "top" }, el("h2", { textContent: p.name }), role,
+    el("span", { className: "pill", textContent: (p.voice ? "voice registered · " : "") + seen }), el("span", { style: "flex:1" }), del), notes, form);
+  s.dataset.name = p.name.toLowerCase();
+  return s;
+}
+
+async function load(flash) {
+  const r = await api("/api/people");
+  if (!r.ok) return;
+  const list = document.getElementById("list");
+  list.replaceChildren(...r.body.map(card));
+  if (!r.body.length) list.append(el("p", { className: "help", textContent: "Nobody yet. Register a voice (python -m voz.hablantes registrar <name>) or add someone above." }));
+  if (flash) { const s = list.querySelector(`[data-name="${CSS.escape(flash.toLowerCase())}"]`); if (s) { s.classList.add("flash"); setTimeout(() => s.classList.remove("flash"), 1200); } }
+}
+
+document.getElementById("add").onsubmit = async (e) => {
+  e.preventDefault();
+  const n = document.getElementById("add-name");
+  const r = await api(P(n.value.trim()), { method: "PUT", body: JSON.stringify({ role: document.getElementById("add-role").value }) });
+  if (r.ok) { n.value = ""; load(); }
+};
+
+// Robot → page: BB-8 learning a note or hearing someone shows up live.
+function events() {
+  const es = new EventSource("/api/events?types=person" + (token ? "&token=" + encodeURIComponent(token) : ""));
+  es.addEventListener("person", (e) => { const d = JSON.parse(e.data).data; load(d.name); if (d.what === "note") toast("BB-8 learned something about " + d.name); });
+  es.onerror = () => { es.close(); setTimeout(events, 3000); };
+}
+load();
+events();
+</script>
+</body>
+</html>

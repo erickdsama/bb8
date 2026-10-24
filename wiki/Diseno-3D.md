@@ -11,7 +11,7 @@ y todo lo demás se calcula a partir de ellas.
 
 ```bash
 sudo apt install openscad xvfb
-bash cad/exportar.sh          # STL en cad/stl (una carpeta por parte), plantilla de la plataforma en cad/plantillas, renders en cad/png
+bash cad/exportar.sh          # STL en cad/stl (una carpeta por fase), plantilla de la plataforma en cad/plantillas, renders en cad/png
 bash cad/exportar.sh png      # solo renders
 openscad cad/ensamble.scad    # el ensamble, con corte (corte=true) o explotado (explotar=1)
 ```
@@ -35,8 +35,8 @@ rueda derecha. Esfera de 330 mm con pared de 4 mm (radio interior 161).
 - **La plataforma va arriba y lo pesado cuelga.** El eje de las ruedas queda a z = −89.5 y la plataforma de melamina de 15 mm entre −68 y −53; a esa altura el casco deja 146 mm de radio libre, así que el disco de 210 mm entra holgado. Los motores cuelgan en soportes impresos con la placa frontal atornillada a la cara de la caja (M3 avellanados: la rueda pasa a 3 mm).
 - **La LiPo va justo debajo de los motores** (z −134 a −109), en una charola colgada de la plataforma con dos paredes en los extremos. A cada lado de la LiPo, bajo los motores, hay un compartimento de lastre de 34 × 84 mm: caben ~0.5 kg de acero o ~0.75 kg de plomo por lado (la esfera recorta las esquinas), que es el lastre de 1–1.5 kg que pide la Parte 6, en el punto más bajo posible.
 - **Ruedas locas RL4 a ±110 mm en y**, fuera de la charola, inclinados 48° para que apunten al centro de la esfera. Sus soportes se nivelan con arandelas entre la brida y el soporte: las 4 patas (2 ruedas y 2 bolas) deben tocar el casco a la vez; si las bolas tocan primero, la esfera no rueda.
-- **Plataforma:** `cad/plantillas/plataforma.svg` y `.dxf` a escala 1:1 con las muescas de las ruedas, todos los agujeros (soportes, charola, ruedas locas, pie del poste, Pi 4, Uno, L298N, panel de carga) y dos pasacables de 22 mm. Imprímela en papel a 100 %, pégala en la melamina y taladra.
-- Acomodo sobre la plataforma: Pi 4 adelante, Uno atrás, L298N a la izquierda, los dos LM2596 a la derecha, MPU6050 adelante a la izquierda con cinta doble cara (chip arriba) y el panel de carga atrás a la izquierda.
+- **Plataforma:** `cad/plantillas/plataforma.svg` y `.dxf` a escala 1:1 con las muescas de las ruedas, todos los agujeros (soportes, charola, ruedas locas, pie del poste, Pi 4, Uno, L298N, panel del interruptor) y dos pasacables de 22 mm. Imprímela en papel a 100 %, pégala en la melamina y taladra.
+- Acomodo sobre la plataforma: Pi 4 adelante, Uno atrás, L298N a la izquierda, los dos LM2596 a la derecha, MPU6050 adelante a la izquierda con cinta doble cara (chip arriba) y el panel del interruptor atrás a la izquierda.
 
 ### Poste e imanes
 
@@ -74,13 +74,13 @@ esfera, como pide la Parte 6.
   - los círculos son tapas de 2 mm pegadas en un asiento de 2 mm (debajo queda un piso de 2 mm);
   - la junta es un traslape a media pared (10 mm) con **bayoneta de 6 lengüetas** de 0.6 mm que viven dentro de la pared: se encajan las mitades y se giran 7° para cerrar;
   - los gajos de una misma mitad se pegan a tope con espigas de filamento de 1.75 mm (18 agujeros), y luego se refuerzan por dentro con fibra de vidrio fina, lijada a ras.
-- **Tapa de carga:** el círculo del eje −z del patrón tiene el piso abierto (queda una ceja de 8 mm) y se atornilla con 4 M2 × 4 avellanados. Para cargar, se gira la esfera con la mano (la base siempre cuelga) hasta ver el panel de carga por la tapa.
+- **Carga inalámbrica, sin tapa:** la base gira alrededor del centro de la esfera (ruedas y ball transfers tocan la pared), así que el portabobina bajo la charola queda siempre a `bobina_aire` (4 mm) de la pared. Bebocho rueda al plato de carga (`cad/plato.scad`, Ø340: rampa de ~7° a 8 mm y un hoyo de 2.5 mm que lo centra), que tiene la bobina emisora bajo 1 mm de plástico: 9–10 mm de bobina a bobina. Los 6 círculos son iguales y el casco no tiene huecos.
 
 ## Cambios respecto al documento técnico
 
 | Documento técnico | Diseño 3D | Por qué |
 | --- | --- | --- |
-| XT60, JST-XH y rocker en un soporte detrás de la tapa (en el casco), con extensiones a la LiPo | Panel de carga en la **base** | La esfera gira alrededor de la base: un cable de la base al casco se enreda en la primera vuelta |
+| XT60 y balanceo en un panel de la base, alcanzado por una tapa atornillada del casco | **Carga inalámbrica** en un plato al ras del piso | Había que girar la esfera a mano contra los motores hasta alinear la tapa, quitar 4 tornillos y conectar el XT60 a 66 mm de profundidad |
 | Cabeza con 3 ruedecitas | 3 bolas de acero de 1/2″ en copas | Una rueda solo rueda en un sentido; la esfera pasa en todos |
 | Cúpula de 12–14 cm | Cabeza de 198 mm (paramétrica) | El power bank mide 97 mm de largo y la proporción del BB-8 es ~0.6 del cuerpo. Cambia `cabeza_d` si prefieres otra |
 | VL53L0X por I2C del Arduino | VL53L0X en la cabeza (ojo chico) | Dentro de la esfera solo vería el casco; en la cabeza lo lee la Zero (`/tof`) y el firmware va con `USAR_TOF_LOCAL 0` |
@@ -89,9 +89,9 @@ esfera, como pide la Parte 6.
 
 ## Piezas a imprimir
 
-Los STL están en [`cad/stl`](https://github.com/erickdsama/bb8/tree/main/cad/stl), una carpeta por parte:
-`parte2-base`, `parte5-poste`, `parte5-cabeza` y `parte6-esfera`. Cada carpeta se manda
-completa al servicio de impresión.
+Los STL están en [`cad/stl`](https://github.com/erickdsama/bb8/tree/main/cad/stl), una carpeta por fase de impresión:
+`fase1-base-y-poste`, `fase2-esfera-y-cabeza` y `fase3-base-de-carga`. Cada carpeta se manda
+completa al servicio de impresión y trae su README con piezas, copias y material.
 
 PLA, boquilla 0.4. Los STL ya salen orientados. Cama mínima 220 × 220 × 170 mm (cada
 gajo mide hasta 165 mm por lado).
@@ -99,12 +99,14 @@ gajo mide hasta 165 mm por lado).
 | STL | Copias | Cómo |
 | --- | --- | --- |
 | `esfera_gajo_A_ppp` … `esfera_gajo_B_mmm` (14) | 1 de cada | 0.2 mm, 4 perímetros (pared maciza), soportes de árbol solo por dentro. El nombre dice la mitad (A/B) y el octante (p = +, m = −) |
-| `esfera_circulo` | 5 | 0.2 mm, en naranja, cara convexa arriba, sin soportes |
-| `esfera_tapa_carga` | 1 | Igual que los círculos |
+| `esfera_circulo` | 6 | 0.2 mm, en naranja, cara convexa arriba, sin soportes |
+| `plato_centro` | 1 | 30 %, PETG, el hoyo hacia arriba. Bobina emisora pegada en su hueco desde abajo |
+| `plato_rampa` + `plato_rampa_cable` | 3 + 1 | 30 %, PETG. Se pegan alrededor del centro; la de la ranura va atrás, hacia la caja |
+| `plato_caja` | 1 | 20 %. Cubre la placa del emisor y el jack |
 | `base_soporte_motor`, `base_soporte_motor_izq` | 1 y 1 | 30 % de relleno, 4 perímetros |
-| `base_charola` | 1 | 30 %; carga 450 g de LiPo + el lastre |
+| `base_charola` | 1 | 30 %; carga 450 g de LiPo + el lastre. El portabobina cuelga debajo: soportes bajo el piso |
 | `base_soporte_bt` | 2 | 40 %, soportes en el hueco del cuerpo |
-| `base_panel_carga` | 1 | |
+| `base_panel_interruptor` | 1 | Rocker + LED de carga |
 | `poste_pie_poste`, `poste_soporte_servo` | 1 y 1 | 30 % |
 | `poste_portaimanes` | 1 | 50 %; los imanes N42 rompen piezas flojas |
 | `cabeza_casco` | 1 | 0.2 mm, de pie, soportes de árbol por dentro (la tapa plana es un puente) |
@@ -118,7 +120,7 @@ Tamaño y peso (sólido, PLA 1.24 g/cm³; es un tope, con relleno las piezas gru
 | STL | Caja (mm) | cm³ | g |
 | --- | --- | --- | --- |
 | `base_charola.stl` | 132 × 148 × 69 | 208 | 258 |
-| `base_panel_carga.stl` | 53 × 53 × 36 | 8 | 10 |
+| `base_panel_interruptor.stl` | 53 × 53 × 36 | 8 | 10 |
 | `base_soporte_bt.stl` | 57 × 44 × 48 | 35 | 43 |
 | `base_soporte_motor.stl` | 70 × 52 × 45 | 44 | 54 |
 | `base_soporte_motor_izq.stl` | 70 × 52 × 45 | 44 | 54 |
@@ -142,7 +144,6 @@ Tamaño y peso (sólido, PLA 1.24 g/cm³; es un tope, con relleno las piezas gru
 | `esfera_gajo_B_pmm.stl` | 133 × 163 × 145 | 95 | 118 |
 | `esfera_gajo_B_pmp.stl` | 115 × 49 × 115 | 21 | 26 |
 | `esfera_gajo_B_ppm.stl` | 115 × 115 × 31 | 12 | 15 |
-| `esfera_tapa_carga.stl` | 164 × 164 × 24 | 41 | 51 |
 | `poste_pie_poste.stl` | 56 × 56 × 25 | 17 | 21 |
 | `poste_portaimanes.stl` | 74 × 74 × 12 | 33 | 41 |
 | `poste_soporte_servo.stl` | 61 × 33 × 48 | 30 | 37 |
@@ -158,12 +159,11 @@ Además del [pedido UNIT](Materiales.md):
 | --- | --- | --- |
 | Tornillo M3 × 30 + tuerca | 18 | Soportes de motor (8), charola (4), soportes de RL4 (6), a través de la plataforma |
 | Tornillo M3 × 6–8 avellanado | 6–12 | Cara de la caja de cada motor (los que coincidan de los 6) |
-| Tornillo M3 × 25 + tuerca | 6 | Pie del poste (4), panel de carga (2) |
+| Tornillo M3 × 25 + tuerca | 6 | Pie del poste (4), panel del interruptor (2) |
 | Tornillo M4 × 16 + tuerca | 4 | Ruedas locas RL4 a sus soportes |
 | Tornillo M4 × 10 avellanado + tuerca de nylon | 8 | Imanes (ya en la lista de materiales) |
 | Autorroscante M3 × 12 | 4 | Orejas del MG996R |
 | Autorroscante M2 × 6 | 4 | Cuerno del servo al portaimanes |
-| Autorroscante M2 × 4 avellanado | 4 | Tapa de carga |
 | Tornillo M3 × 12 avellanado + tuerca | 3 | Casco de la cabeza al plato |
 | Tornillo M3 × 10 + tuerca | 4 | Soportes del ojo y de la bocina |
 | Separadores M2.5 de latón | 8 | Pi 4 (8 mm) y Pi Zero (5 mm) |
@@ -201,4 +201,4 @@ Luego imprime primero **dos gajos vecinos de mitades distintas** (por ejemplo `A
 4. Mete la base en la mitad B, cierra con la A y gira 7°. Prueba que rueda **antes** de poner lastre e imanes.
 5. Corta el tubo, monta servo y portaimanes, pon el lastre y prueba que no vuelca al frenar.
 6. Cabeza: plato con imanes, bolas y power bank; electrónica; casco con 3 tornillos.
-7. Pinta: pega los círculos naranjas al final (la tapa de carga se atornilla).
+7. Pinta: pega los 6 círculos naranjas al final.

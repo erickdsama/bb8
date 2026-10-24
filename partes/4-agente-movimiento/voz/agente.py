@@ -45,7 +45,9 @@ class Agente:
         # "" = no voices registered (voice ID off): the body lets it move, and the
         # model must not read it as a stranger ("someone" made it refuse).
         quien = "unknown" if hablante is None else (hablante or "voice ID off")
+        # speaker: the registered name, so the body applies that person's profile.
         r = await self._http.post("/agent/ask", json={"text": f"[Speaker: {quien}] {texto}",
+                                                      "speaker": hablante or "",
                                                       "speaker_known": hablante is not None})
         out = r.json()
         if r.status_code != 200:

@@ -4,13 +4,14 @@
 // en soportes impresos, la LiPo en una charola justo bajo los motores y, a los lados de la
 // LiPo, dos compartimentos para 1–1.5 kg de lastre. Las ruedas locas RL4 van adelante y
 // atrás en soportes inclinados que apuntan al centro de la esfera. Todo impreso en PETG.
+// Bajo la charola cuelga la bobina receptora de la carga inalámbrica (ver plato.scad).
 //
 // Las medidas que salen de la geometría (altura del eje, de la plataforma, inclinación de
 // los ball transfers) se calculan en parametros.scad; corre `reportar()` para verlas.
 //
 // Uso: openscad -D 'parte="soporte_motor"' -o soporte_motor.stl base.scad
 //   partes: plataforma (3D)  plataforma_2d (plantilla DXF/SVG 1:1)  soporte_motor
-//           soporte_motor_izq  charola  soporte_bt (imprime 2)  panel_carga  vista
+//           soporte_motor_izq  charola  soporte_bt (imprime 2)  panel_interruptor  vista
 // Las piezas sueltas salen ya orientadas para imprimir.
 
 include <parametros.scad>
@@ -31,7 +32,7 @@ POS_UNO   = [5 - 68.6 / 2, -88.7];
 POS_L298N = [-71.5, -21.5];
 POS_BUCK  = [[28.5, 0.5], [28.5, -21.5]];
 POS_MPU   = [-75, 30];
-PANEL_AZ  = 225;   // panel de carga: atrás a la izquierda, mirando hacia afuera
+PANEL_AZ  = 225;   // panel del interruptor: atrás a la izquierda, mirando hacia afuera
 PANEL_R   = 86;
 alto_separadores = 8;
 
@@ -113,6 +114,8 @@ module charola() {
                 translate([-ancho / 2, -largo / 2, charola_z]) cube([ancho, largo, charola_piso + alto_muro]);
                 sphere(Ri - 3, $fn = 160);
             }
+            // portabobina: baja del piso de la charola hasta bobina_aire de la pared
+            translate([0, 0, -(Ri - bobina_aire)]) cylinder(d = bobina_d + 6, h = charola_z + Ri - bobina_aire + 0.01, $fn = 96);
             for (s = [-1, 1]) {
                 translate([-25, s > 0 ? ly / 2 : -ly / 2 - charola_pared, charola_z]) cube([50, charola_pared, plat_z_inf - charola_z]);
                 translate([-25, s > 0 ? ly / 2 - 10 : -ly / 2, plat_z_inf - 5]) cube([50, 10, 5]);
@@ -128,6 +131,10 @@ module charola() {
         for (p = agujeros_charola()) translate([p[0], p[1], plat_z_inf - 20]) cylinder(d = 3.4, h = 21, $fn = 16);
         // tuercas M3 por debajo de la pestaña
         for (p = agujeros_charola()) translate([p[0], p[1], plat_z_inf - 5 - 3]) rotate([0, 0, 30]) cylinder(d = 6.4, h = 5.6, $fn = 6);
+        // la bobina, pegada en su hueco con la cara hacia la pared, y la ranura de su cable
+        // (sube por fuera del portabobina y entra al compartimiento de lastre)
+        translate([0, 0, -(Ri - bobina_aire) - 1]) cylinder(d = bobina_d + 0.8, h = bobina_e + 1, $fn = 96);
+        translate([bobina_d / 2 - 2, -2.5, -(Ri - bobina_aire) - 1]) cube([10, 5, Ri - bobina_aire + charola_z + charola_piso + 2]);
         // salida del cable de la LiPo
         translate([-8, -ly / 2 - charola_pared - 1, charola_z + charola_piso + 4]) cube([16, charola_pared + 2, 30]);
     }
@@ -162,11 +169,11 @@ module soporte_bt(s = 1) {
     }
 }
 
-// ───────────── Panel de carga ─────────────
-// Rocker 10 A (corte 19 × 13), XT60 hembra pegado y extensión de balanceo JST-XH 4p.
-// Va en la base, no en el casco: la esfera gira alrededor de la base y cualquier cable
-// al casco se enredaría. Se alcanza por la tapa de carga girando la esfera con la mano.
-module panel_carga() {
+// ───────────── Panel del interruptor ─────────────
+// Rocker 10 A (corte 19 × 13) para apagar del todo al abrir la esfera (mantenimiento,
+// guardarlo) y un LED de 5 mm que se enciende mientras carga. La carga es inalámbrica,
+// así que ya no hay XT60 ni balanceo por fuera: la LiPo se conecta adentro.
+module panel_interruptor() {
     rotate([0, 0, PANEL_AZ]) translate([PANEL_R, 0, plat_z_sup]) difference() {
         union() {
             translate([-12, -30, 0]) cube([15, 60, 3]);          // pie
@@ -177,8 +184,7 @@ module panel_carga() {
             }
         }
         translate([-1, -9.5 - 11, 18 - 6.5]) cube([5, 19, 13]);          // rocker
-        translate([-1, 6, 6]) cube([5, 16.2, 8.4]);                      // XT60
-        translate([-1, 6, 22]) cube([5, 12.6, 6]);                       // JST-XH 4p
+        translate([-1, 14, 18]) rotate([0, 90, 0]) cylinder(d = 5.2, h = 5, $fn = 24);   // LED de carga
         for (t = [-18, 18]) translate([-9, t, -1]) cylinder(d = 3.4, h = 5, $fn = 16);
     }
 }
@@ -208,7 +214,8 @@ module base_completa() {
     translate([0, 0, lipo_z_inf]) lipo();
     for (s = [-1, 1]) color("orange") soporte_bt(s);
     for (s = [-1, 1]) mirror([0, s > 0 ? 0 : 1, 0]) translate(bt_cara) apuntar(bt_u) ball_transfer();
-    color("orange") panel_carga();
+    color("orange") panel_interruptor();
+    color("#555") translate([0, 0, -(Ri - bobina_aire)]) cylinder(d = bobina_d, h = bobina_e, $fn = 64);   // bobina receptora
     electronica();
 }
 
@@ -219,4 +226,4 @@ else if (parte == "soporte_motor") rotate([180, 0, 0]) soporte_motor();
 else if (parte == "soporte_motor_izq") rotate([180, 0, 0]) mirror([1, 0, 0]) soporte_motor();
 else if (parte == "charola") charola();
 else if (parte == "soporte_bt") rotate([180, 0, 0]) soporte_bt(1);
-else if (parte == "panel_carga") panel_carga();
+else if (parte == "panel_interruptor") panel_interruptor();

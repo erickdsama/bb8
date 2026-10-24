@@ -4,7 +4,13 @@ go 1.25.0
 
 require (
 	github.com/modelcontextprotocol/go-sdk v1.8.0
+	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	go.bug.st/serial v1.6.4
+	golang.org/x/net v0.47.0
+	golang.org/x/sys v0.41.0
+	periph.io/x/conn/v3 v3.7.3
+	periph.io/x/devices/v3 v3.7.4
+	periph.io/x/host/v3 v3.8.5
 )
 
 require (
@@ -15,9 +21,5 @@ require (
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	golang.org/x/oauth2 v0.35.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
-	periph.io/x/conn/v3 v3.7.3 // indirect
-	periph.io/x/devices/v3 v3.7.4 // indirect
-	periph.io/x/host/v3 v3.8.5 // indirect
 )

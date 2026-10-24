@@ -106,7 +106,15 @@ def main() -> None:
             time.sleep(1.5)
         else:
             b = os.path.join(RAIZ, "bin")
+            # The pages: bb8-web (off the robot), no password on loopback; the body dials out to it.
+            web_port = os.environ.get("BB8_WEB_PORT", "8780")
+            web_data = os.path.join(tempfile.gettempdir(), f"bb8_web_{os.getpid()}")
+            procs.append(subprocess.Popen([os.path.join(b, "bb8-web"), "--addr", f"127.0.0.1:{web_port}",
+                                           "--data", web_data, "--no-login"], cwd=RAIZ, env=ENV))
+            wait_http(f"http://127.0.0.1:{web_port}/login")
             procs.append(subprocess.Popen([os.path.join(b, "bb8-body"), "--serial", ENV["BB8_SERIAL"],
+                                           "--web", f"ws://127.0.0.1:{web_port}/robot",
+                                           "--web-token-file", os.path.join(web_data, "device-token"),
                                            "--map", ENV["BB8_MAPA"], "--map-state", ENV["BB8_MAPA_ESTADO"],
                                            "--pki", pki, "--link", "127.0.0.1:8772",
                                            "--data", os.path.join(tempfile.gettempdir(), f"bb8_data_{os.getpid()}")],
@@ -116,6 +124,7 @@ def main() -> None:
                                            "--pki", pki, "--sim", "http://127.0.0.1:8080"], cwd=RAIZ, env=ENV))
             wait_head()
         print(f"\n✅ BB-8 dummy listo. MCP en http://127.0.0.1:{os.environ.get('BB8_MCP_PORT', '8765')}/mcp\n"
+              f"   Páginas (bb8-web): http://127.0.0.1:{os.environ.get('BB8_WEB_PORT', '8780')}/\n"
               "   Míralo moverse en http://127.0.0.1:8080/sim  (Ctrl+C para salir)\n", flush=True)
         while all(p.poll() is None for p in procs):
             time.sleep(0.5)

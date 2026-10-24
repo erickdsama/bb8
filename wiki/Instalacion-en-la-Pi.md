@@ -41,13 +41,10 @@ El instalador:
 - desactiva y borra los servicios viejos de Python `bb8-motion` y `bb8-mcp`, y arranca
   `bb8-body`.
 
-Al terminar imprime la dirección de la página de configuración con el token:
+Las páginas no viven en el robot: las sirve `bb8-web` en otra computadora y el robot se
+conecta hacia allá (`BB8_WEB` en `/etc/bb8.env`, ver abajo). Entra con tu contraseña.
 
-```
-http://bb8.local:8765/?token=…
-```
-
-Para manejarlo con botones abre **`http://bb8.local:8765/control?token=…`** (o el enlace
+Para manejarlo con botones abre **`/control`** en esa página (o el enlace
 *Control* de esa página): flechas para avanzar y girar, STOP, la cabeza, `say` y el ojo, y
 el estado en vivo. La página es un cliente MCP más: cada botón es una llamada a una
 herramienta (`move`, `turn`, `look_at`…), con los mismos límites que tiene Claude.
@@ -107,7 +104,7 @@ Para la nube:
 
 Logs: `journalctl -fu bb8-body` (o el servicio que sea).
 
-Para ver la voz en vivo abre `http://bb8.local:8765/voice?token=…`:
+Para ver la voz en vivo abre `/voice` en la página:
 - volumen del micrófono y puntaje de «Oye BB-8» frente a su umbral;
 - estado (esperando, escuchando, pensando, hablando);
 - lo que se transcribió y lo que contestó BB-8;
@@ -181,6 +178,8 @@ configuración.
 | `BB8_SERIAL` | `/dev/ttyACM0` | Puerto del Arduino; `socket://127.0.0.1:5555` en el dummy |
 | `BB8_MAP` | — | Plano de la casa para `get_map` |
 | `BB8_GAMEPAD` | `0` | `1` para leer el mando Bluetooth en `bb8-body` |
+| `BB8_WEB` | — | Dónde viven las páginas: `ws://debian.local:8780/robot`. El robot se conecta hacia allá; no sirve páginas |
+| `BB8_WEB_TOKEN_FILE` | `~/.bb8/web-token` | Token del dispositivo: copia de `~/.bb8-web/device-token` de la computadora con `bb8-web` (en la Pi, `/etc/bb8/web-token`, `root:bb8 0640`) |
 | `BB8_BODY_ADDR` | `bb8.local:8772` | En la Zero: a dónde se conecta la cabeza |
 | `BB8_MOTION_URL` | `http://127.0.0.1:8770` | API local de `bb8-body` (la usan `voz` y `energia`) |
 | `BB8_ENERGIA_URL` | `http://127.0.0.1:8771` | Gestor de energía |

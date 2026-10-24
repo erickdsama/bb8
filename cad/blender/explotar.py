@@ -17,7 +17,7 @@ MM = 0.001
 def desplazamiento(nombre):
     """Cuánto se separa cada pieza (mm, en el marco de la base)."""
     lado = 1 if nombre.endswith(("der", "der 1", "der 2")) else -1
-    if nombre.startswith(("Raspberry", "Arduino", "L298N", "Buck", "MPU")):
+    if nombre.startswith(("Raspberry", "Arduino", "L298N", "Buck", "MPU", "Receptor carga", "Cargador CC/CV", "BMS 3S")):
         return (0, 0, 230)
     if nombre.startswith(("Pie del poste", "Soporte servo", "Portaimanes", "Tubo", "Servo", "Cuerno", "Iman poste")):
         return (0, 0, 450)   # el poste sale de cuadro
@@ -41,7 +41,7 @@ def desplazamiento(nombre):
         return (0, 0, 10)
     if nombre.startswith("Lastre"):
         return (lado * 60, 0, -10)
-    if nombre.startswith("Charola"):
+    if nombre.startswith(("Charola", "Bobina receptora")):
         return (0, 0, -40)
     return (0, 0, 0)
 
@@ -72,7 +72,18 @@ def main():
     cabeza.location.z = z0 + 0.9
     cabeza.keyframe_insert("location", frame=F0 + 12)
 
+    # el cableado no se separa: se esconde mientras la base se abre
+    for o in bpy.data.objects:
+        if o.name.startswith("Cableado"):
+            for h in [o] + list(o.children_recursive):
+                for f, oculto in ((F0 - 1, h.hide_render), (F0, True)):
+                    h.hide_viewport = h.hide_render = oculto
+                    h.keyframe_insert("hide_viewport", frame=f)
+                    h.keyframe_insert("hide_render", frame=f)
+
     for o in base.children:
+        if o.name.startswith("Cableado"):
+            continue
         o.keyframe_insert("location", frame=F0)
         o.location = o.location + Vector(desplazamiento(o.name)) * MM
         o.keyframe_insert("location", frame=F1)
