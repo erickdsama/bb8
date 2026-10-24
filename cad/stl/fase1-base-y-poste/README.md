@@ -19,7 +19,7 @@ imanes). Boquilla 0.4, capa 0.2 mm. Todas caben en una cama de 220 × 220 mm.
 
 **No se imprime:** la plataforma (MDF de 5.5 mm, ya cortada con
 [`cad/plantillas/plataforma.dxf`](../../plantillas)) y el poste: tubo PVC conduit de 1″ (29.6 mm por fuera),
-cortado a ~160 mm, con una muesca de 10 × 10 mm abajo para el cable del servo. Tornillería M3/M4 y separadores en [Materiales](../../../wiki/Materiales.md).
+cortado a ~160 mm **del tramo liso** (el casquillo de la punta mide ~32.5 mm por fuera y no entra: córtalo y tíralo), con una muesca de 10 × 10 mm abajo para el cable del servo. Tornillería M3/M4 y separadores en [Materiales](../../../wiki/Materiales.md).
 
 ## Mide antes de mandar
 
