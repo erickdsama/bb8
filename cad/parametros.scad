@@ -8,6 +8,10 @@
 
 $fn = 48;          // exportar.sh lo sube para los STL finales
 holg = 0.3;        // holgura general de impresión (FDM 0.4 mm)
+holg_pared = 5;    // lo que no toca la esfera queda al menos a 5 mm de su pared interior
+                   // (la esfera gira alrededor de la base; costuras, pegamento y resina adentro)
+tuerca_m3 = 6.7;   // Ø entre puntas del hueco de tuerca M3 (la tuerca mide 6.35)
+tuerca_m4 = 8.4;   // Ø entre puntas del hueco de tuerca M4 (la tuerca mide 8.08)
 
 // ───────────────────────── Esfera ─────────────────────────
 esfera_d   = 330;              // 30–35 cm
@@ -51,9 +55,9 @@ x_contacto = a_rueda + rueda_ancho / 2 - chaflan_llanta;
 z_eje = -(sqrt(Ri * Ri - x_contacto * x_contacto) - rueda_d / 2);
 angulo_contacto = asin(x_contacto / Ri);   // inclinación de la pared donde pisa la rueda
 
-// ───────────────────────── Plataforma (MDF 6 mm) ─────────────────────────
+// ───────────────────────── Plataforma (MDF 5.5 mm) ─────────────────────────
 plat_d      = 210;    // 20–22 cm
-plat_e      = 6;      // MDF de 6 mm cortado en láser (FabLab) con plantillas/plataforma.dxf
+plat_e      = 5.5;    // MDF "de 6" (5.5 real) cortado en láser con plantillas/plataforma.dxf
 cuna_techo  = 3;      // material del soporte de motor encima de la caja
 plat_z_inf  = z_eje + caja_d / 2 + cuna_techo;   // cara de abajo de la plataforma
 plat_z_sup  = plat_z_inf + plat_e;               // cara de arriba
@@ -197,7 +201,7 @@ module cono(ang, h) {
 // plato de carga (plato.scad). Bobinas de ~50 mm: MEDIR las que lleguen y ajustar.
 bobina_d     = 50;     // Ø de la bobina (receptora y emisora)
 bobina_e     = 4;      // grosor con su ferrita
-bobina_aire  = 4;      // aire entre la bobina y la pared en el centro (en la orilla ~2 mm)
+bobina_aire  = 7;      // aire entre la bobina y la pared en el centro (en la orilla ~5 mm)
 piel_bobina  = 1;      // plástico del plato entre la bobina emisora y la esfera
 // distancia bobina-bobina: aire + pared + piel del plato (el módulo debe dar ≥ 10 mm)
 bobina_dist  = bobina_aire + pared + piel_bobina;

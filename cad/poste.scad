@@ -75,7 +75,7 @@ module portaimanes() {
             // tuerca de nylon M4 por debajo, donde el eje del imán sale por la cara de abajo
             t = (r_porta * d[2] - porta_z_inf) / d[2];
             p = (r_porta - t) * d;
-            translate([p[0], p[1], porta_z_inf - 1]) rotate([0, 0, 30]) cylinder(d = 8.1, h = 5, $fn = 6);
+            translate([p[0], p[1], porta_z_inf - 1]) rotate([0, 0, 30]) cylinder(d = tuerca_m4, h = 5, $fn = 6);
         }
         // cuerno redondo del servo y acceso al tornillo central
         translate([0, 0, porta_z_inf - 1]) cylinder(d = cuerno_d + 0.6, h = cuerno_e + 1, $fn = 64);

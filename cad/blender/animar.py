@@ -30,7 +30,7 @@ A_RUEDA = 20 + CAJA_L + MOTOR_L + 44 / 2                  # 94: los motores no s
 X_CONTACTO = A_RUEDA + RUEDA_A / 2 - 2
 Z_EJE = -(math.sqrt(RI**2 - X_CONTACTO**2) - RUEDA_D / 2)  # −89.6
 X_CARA = A_RUEDA - 20
-PLAT_D, PLAT_E = 210.0, 6.0   # MDF de 6 mm en láser
+PLAT_D, PLAT_E = 210.0, 5.5   # MDF "de 6" (5.5 real) en láser
 PLAT_INF = Z_EJE + CAJA_D / 2 + 3
 PLAT_SUP = PLAT_INF + PLAT_E
 LIPO = (47.0, 139.0, 25.0)
@@ -47,7 +47,7 @@ TUBO_SUP = SERVO_INF - 6
 IMAN_D, IMAN_E, IMAN_R = 20.0, 5.0, 27.0
 SEPARADOR = 8.0
 # carga inalámbrica (cad/plato.scad): bobina receptora bajo la charola, emisora en el plato
-BOBINA_D, BOBINA_E, BOBINA_AIRE = 50.0, 4.0, 4.0
+BOBINA_D, BOBINA_E, BOBINA_AIRE = 50.0, 4.0, 7.0
 PLATO_R1, PLATO_R2, PIEL_BOBINA = 100.0, 170.0, 1.0
 PLATO_C = PIEL_BOBINA + BOBINA_E + 0.5          # grosor en el centro del hoyo
 PLATO_H = PLATO_C + 2.5                         # orilla del hoyo

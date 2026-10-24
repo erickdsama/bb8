@@ -18,7 +18,7 @@ y buck del servo. La cabeza sigue con su power bank.
 - Divisor 10 kΩ / 4.7 kΩ de la batería a **A0** y `HAY_DIVISOR_BAT 1` en el firmware: así `?` reporta `V=` y el firmware rechaza `M` por debajo de 9.9 V.
 - **Carga inalámbrica en un plato:** Bebocho rueda encima del plato (o lo pones tú) y carga. No importa hacia dónde mire: la bobina receptora va abajo y abajo siempre es abajo.
   - El plato (`cad/plato.scad`) mide Ø34 cm: sube por una rampa de ~7° a una orilla de 8 mm y cae a un hoyo de 2.5 mm (máx. ~3°) que lo deja centrado. Para salir solo sube esos ~3°; Bebocho, que se mueve inclinando su base como péndulo, aguanta 10–15°.
-  - La base siempre queda abajo y gira alrededor del centro de la esfera, así que la bobina receptora, bajo la charola, queda siempre a 4 mm de la pared. La emisora va en el centro del plato bajo 1 mm de plástico: 9–10 mm de bobina a bobina.
+  - La base siempre queda abajo y gira alrededor del centro de la esfera, así que la bobina receptora, bajo la charola, queda siempre a 7 mm de la pared (5 mm en la orilla, para que no roce con costuras ni resina). La emisora va en el centro del plato bajo 1 mm de plástico: 12 mm de bobina a bobina.
   - Eliminador 24 V → emisor (en una cajita atrás del plato) → bobina emisora. Receptor → cargador CC/CV a **12.6 V y 1.5 A** → BMS 3S con balance → LiPo (~4 h de vacía a llena). El LED del panel prende mientras recibe corriente.
   - El receptor y el cargador van pegados con cinta doble cara bajo la plataforma, con los componentes hacia abajo, entre los soportes de motor y la pestaña de atrás de la charola. El BMS va de canto, detrás del cargador. Los dos pasacables quedan libres.
   - El rocker del panel queda adentro: solo para apagar del todo al abrir la esfera. En uso normal se duerme solo.
@@ -63,7 +63,7 @@ círculos, la bayoneta de la junta y el plato de carga, en OpenSCAD paramétrico
 
 1. Imprime los gajos de [`cad/stl/fase2-esfera-y-cabeza`](https://github.com/erickdsama/bb8/tree/main/cad/stl/fase2-esfera-y-cabeza) (6 círculos naranjas + 14 piezas blancas que forman los 8 gajos), con espigas de filamento de 1.75 mm.
 2. Imprime con capa de 0.28 mm y 10–15 % de relleno (~2–3 kg de PLA).
-3. Pega, **refuerza por dentro** (fibra de vidrio o segunda capa de resina), lija, primer, pinta y laca.
+3. Pega, refuerza por dentro con **una sola capa delgada** de resina (≤ 1 mm, lijada lisa: los domos de las ruedas locas pasan a 3 mm de la pared y la charola a 5 mm), lija, primer, pinta y laca.
 4. Prueba que la base rueda dentro de la esfera **antes** de poner imanes y lastre; si las ruedas giran pero la esfera no, las ruedas locas tocan primero.
 5. Recorta el poste para que los imanes queden a 2–3 mm de la pared.
 6. Lastre hasta 1–1.5 kg en total, lo más abajo posible; prueba que la base no vuelque al frenar.
