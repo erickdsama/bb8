@@ -11,7 +11,7 @@ y todo lo demás se calcula a partir de ellas.
 
 ```bash
 sudo apt install openscad xvfb
-bash cad/exportar.sh          # STL en cad/stl (una carpeta por parte), plantilla de la plataforma en cad/plantillas, renders en cad/png
+bash cad/exportar.sh          # STL en cad/stl (una carpeta por fase), plantilla de la plataforma en cad/plantillas, renders en cad/png
 bash cad/exportar.sh png      # solo renders
 openscad cad/ensamble.scad    # el ensamble, con corte (corte=true) o explotado (explotar=1)
 ```
@@ -89,9 +89,9 @@ esfera, como pide la Parte 6.
 
 ## Piezas a imprimir
 
-Los STL están en [`cad/stl`](https://github.com/erickdsama/bb8/tree/main/cad/stl), una carpeta por parte:
-`parte2-base`, `parte5-poste`, `parte5-cabeza` y `parte6-esfera`. Cada carpeta se manda
-completa al servicio de impresión.
+Los STL están en [`cad/stl`](https://github.com/erickdsama/bb8/tree/main/cad/stl), una carpeta por fase de impresión:
+`fase1-base-y-poste`, `fase2-esfera-y-cabeza` y `fase3-base-de-carga`. Cada carpeta se manda
+completa al servicio de impresión y trae su README con piezas, copias y material.
 
 PLA, boquilla 0.4. Los STL ya salen orientados. Cama mínima 220 × 220 × 170 mm (cada
 gajo mide hasta 165 mm por lado).
@@ -100,9 +100,9 @@ gajo mide hasta 165 mm por lado).
 | --- | --- | --- |
 | `esfera_gajo_A_ppp` … `esfera_gajo_B_mmm` (14) | 1 de cada | 0.2 mm, 4 perímetros (pared maciza), soportes de árbol solo por dentro. El nombre dice la mitad (A/B) y el octante (p = +, m = −) |
 | `esfera_circulo` | 6 | 0.2 mm, en naranja, cara convexa arriba, sin soportes |
-| `esfera_plato_centro` | 1 | 30 %, PETG, el hoyo hacia arriba. Bobina emisora pegada en su hueco desde abajo |
-| `esfera_plato_rampa` + `esfera_plato_rampa_cable` | 3 + 1 | 30 %, PETG. Se pegan alrededor del centro; la de la ranura va atrás, hacia la caja |
-| `esfera_plato_caja` | 1 | 20 %. Cubre la placa del emisor y el jack |
+| `plato_centro` | 1 | 30 %, PETG, el hoyo hacia arriba. Bobina emisora pegada en su hueco desde abajo |
+| `plato_rampa` + `plato_rampa_cable` | 3 + 1 | 30 %, PETG. Se pegan alrededor del centro; la de la ranura va atrás, hacia la caja |
+| `plato_caja` | 1 | 20 %. Cubre la placa del emisor y el jack |
 | `base_soporte_motor`, `base_soporte_motor_izq` | 1 y 1 | 30 % de relleno, 4 perímetros |
 | `base_charola` | 1 | 30 %; carga 450 g de LiPo + el lastre. El portabobina cuelga debajo: soportes bajo el piso |
 | `base_soporte_bt` | 2 | 40 %, soportes en el hueco del cuerpo |

@@ -1,20 +1,14 @@
-# STL por parte
+# STL por fase
 
-Una carpeta por parte del proyecto, en el orden en que se arma. Cada carpeta se puede
-mandar completa al servicio de impresión. Cómo imprimir cada pieza (relleno,
-perímetros, soportes) y cuánto pesa está en la wiki: [Diseño 3D](../../wiki/Diseno-3D.md#piezas-a-imprimir).
+Tres fases de impresión, en el orden en que se arma Bebocho. Cada carpeta se manda
+completa al servicio de impresión y trae su README con piezas, copias, material y peso.
+Detalle de cada pieza en la wiki: [Diseño 3D](../../wiki/Diseno-3D.md#piezas-a-imprimir).
 
-| Carpeta | Parte | Piezas | Copias |
-| --- | --- | --- | --- |
-| [`parte2-base`](parte2-base) | 2 · Base de melamina | `base_charola`, `base_soporte_bt`, `base_panel_interruptor`, `base_soporte_motor`, `base_soporte_motor_izq` | 1, 2, 1, 1, 1 |
-| [`parte5-poste`](parte5-poste) | 5 · Cabeza (poste con imanes) | `poste_pie_poste`, `poste_soporte_servo`, `poste_portaimanes` | 1 de cada |
-| [`parte5-cabeza`](parte5-cabeza) | 5 · Cabeza | `cabeza_casco`, `cabeza_plato`, `cabeza_soporte_ojo`, `cabeza_soporte_bocina`, `cabeza_tapon`, `cabeza_antena_corta`, `cabeza_antena_larga` | 1, 1, 1, 1, 3, 1, 1 |
-| [`parte6-esfera`](parte6-esfera) | 6 · Esfera y plato de carga | 14 gajos (`esfera_gajo_A_*`, `esfera_gajo_B_*`), `esfera_circulo`, `esfera_plato_centro`, `esfera_plato_rampa`, `esfera_plato_rampa_cable`, `esfera_plato_caja` | 1 de cada gajo, 6 círculos; plato: 1, 3, 1, 1 |
+| Fase | Carpeta | Qué es | Piezas a imprimir | Peso máx. |
+| --- | --- | --- | --- | --- |
+| 1 | [`fase1-base-y-poste`](fase1-base-y-poste) | La base que rueda (soportes de motor, charola, ruedas locas, panel) y el poste con el servo y los imanes | 9 | ~0.6 kg |
+| 2 | [`fase2-esfera-y-cabeza`](fase2-esfera-y-cabeza) | La esfera (14 gajos + 6 círculos) y la cabeza | 32 | ~2.1 kg |
+| 3 | [`fase3-base-de-carga`](fase3-base-de-carga) | El plato de carga inalámbrica | 6 | ~0.55 kg |
 
-- Toda la base (`parte2-base`) va en **PETG**: soportes de motor, charola con lastre, 2
-  soportes de rueda loca RL4 (`base_soporte_bt`, imprime 2; el de atrás es el mismo) y el
-  panel del interruptor; también el plato de carga. La esfera y el casco de la cabeza van en ABS.
-- Antes de mandar los 14 gajos, imprime un gajo A y un gajo B y prueba que la bayoneta
-  cierre.
-
-Se regeneran con `bash cad/exportar.sh stl`.
+El peso es de la pieza maciza en PLA: es un tope; con relleno pesa menos (menos la
+esfera, que es casi maciza). Se regeneran con `bash cad/exportar.sh stl`.

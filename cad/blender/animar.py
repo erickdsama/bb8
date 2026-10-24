@@ -265,9 +265,9 @@ GAJOS = ["A_ppp", "A_ppm", "A_pmp", "A_mpp", "A_pmm", "A_mpm", "A_mmp",
 def esfera(padre):
     for g in GAJOS:
         m = R_ESFERA @ (RX180 if g[4] == "m" else Matrix())
-        stl(f"parte6-esfera/esfera_gajo_{g}.stl", f"Gajo {g}", "Blanco", padre, m)
+        stl(f"fase2-esfera-y-cabeza/esfera_gajo_{g}.stl", f"Gajo {g}", "Blanco", padre, m)
     for i, e in enumerate([(1, 0, 0), (0, 1, 0), (0, 0, 1), (-1, 0, 0), (0, -1, 0), (0, 0, -1)]):
-        stl("parte6-esfera/esfera_circulo.stl", f"Circulo {i + 1}", "Naranja", padre, R_ESFERA @ apuntar(e))
+        stl("fase2-esfera-y-cabeza/esfera_circulo.stl", f"Circulo {i + 1}", "Naranja", padre, R_ESFERA @ apuntar(e))
 
 
 # ── Plato de carga (en el piso) ──
@@ -275,12 +275,12 @@ def plato(padre):
     """El plato con su bobina emisora, la caja del emisor con su placa y jack, y el eliminador de 24 V."""
     c = vacio("Plato de carga", padre)
     c.location = (PLATO_POS[0] * MM, PLATO_POS[1] * MM, 0)
-    stl("parte6-esfera/esfera_plato_centro.stl", "Plato centro", "Impreso", c)
+    stl("fase3-base-de-carga/plato_centro.stl", "Plato centro", "Impreso", c)
     for k in range(4):   # como la vista de plato.scad: el cuarto con la ranura del cable va atrás
-        stl(f"parte6-esfera/esfera_plato_{'rampa_cable' if k == 0 else 'rampa'}.stl", f"Plato rampa {k + 1}", "Impreso", c,
+        stl(f"fase3-base-de-carga/plato_{'rampa_cable' if k == 0 else 'rampa'}.stl", f"Plato rampa {k + 1}", "Impreso", c,
             Matrix.Rotation(math.radians(90 * k - 135), 4, "Z"))
     yc = -(PLATO_R2 + 2)             # cara de la caja que da al plato
-    stl("parte6-esfera/esfera_plato_caja.stl", "Plato caja emisor", "Impreso", c,
+    stl("fase3-base-de-carga/plato_caja.stl", "Plato caja emisor", "Impreso", c,
         Matrix.Translation((0, yc, 0)) @ Matrix.Rotation(math.pi, 4, "Z"))
     prim("cil", "Bobina emisora", "Negro", c, (0, 0, PLATO_Z_BOBINA + BOBINA_E / 2), dim=(BOBINA_D, BOBINA_D, BOBINA_E), vertices=64)
     caja("Emisor placa", "PCB", c, -25, yc - 45, 2, 50, 40, 1.6)
@@ -327,10 +327,10 @@ def base(padre):
         cil_x(f"Eje {s}", "Metal", padre, x, lado * A_RUEDA, 0, Z_EJE, 6)
         cil_x(f"Llanta {s}", "Hule", padre, lado * (A_RUEDA - RUEDA_A / 2), lado * (A_RUEDA + RUEDA_A / 2), 0, Z_EJE, RUEDA_D)
         cil_x(f"Rin {s}", "Rin", padre, lado * (A_RUEDA - RUEDA_A / 2 + 3), lado * (A_RUEDA + RUEDA_A / 2 + 0.5), 0, Z_EJE, RUEDA_D - 14)
-        # soporte impreso en ABS (cad/stl/parte2-base), atornillado a la plataforma
-        stl(f"parte2-base/base_soporte_motor{'' if lado > 0 else '_izq'}.stl", f"Soporte motor {s}", "Impreso", padre, RX180)
+        # soporte impreso en ABS (cad/stl/fase1-base-y-poste), atornillado a la plataforma
+        stl(f"fase1-base-y-poste/base_soporte_motor{'' if lado > 0 else '_izq'}.stl", f"Soporte motor {s}", "Impreso", padre, RX180)
 
-    stl("parte2-base/base_charola.stl", "Charola", "Impreso", padre)
+    stl("fase1-base-y-poste/base_charola.stl", "Charola", "Impreso", padre)
     caja("LiPo", "LiPo", padre, -LIPO[0] / 2, -LIPO[1] / 2, LIPO_INF, *LIPO)
     for s in (-1, 1):       # lastre en los compartimentos a los lados de la LiPo
         x0 = LIPO[0] / 2 + 0.5 + 4 if s > 0 else -(LIPO[0] / 2 + 0.5 + 4 + 34)
@@ -344,7 +344,7 @@ def base(padre):
     for s in (-1, 1):
         nombre = "adelante" if s > 0 else "atras"
         m = RX180 if s > 0 else Matrix.Scale(-1, 4, (0, 1, 0)) @ RX180
-        stl("parte2-base/base_soporte_bt.stl", f"Soporte RL4 {nombre}", "Impreso", padre, m)
+        stl("fase1-base-y-poste/base_soporte_bt.stl", f"Soporte RL4 {nombre}", "Impreso", padre, m)
         c = Vector((0, s * BT_Y, BT_Z))
         u = c.normalized()
         rot = apuntar(u).to_euler()
@@ -362,7 +362,7 @@ def base(padre):
             prim("cil", f"RL4 {nombre} brida {k}", "Metal", padre, cara - u * 0.75 + q, rot, dim=(RL4_BRIDA[1], RL4_BRIDA[1], 1.5), vertices=32)
             q2 = apuntar(u) @ Vector((0, k * 17.5, 0))
             prim("cil", f"RL4 {nombre} tornillo {k}", "Negro", padre, cara + q2 + u * 1.0, rot, dim=(7, 7, 2.5), vertices=6)
-    stl("parte2-base/base_panel_interruptor.stl", "Panel del interruptor", "Impreso", padre)
+    stl("fase1-base-y-poste/base_panel_interruptor.stl", "Panel del interruptor", "Impreso", padre)
     # bobina receptora, pegada en el portabobina de la charola a 4 mm de la pared
     prim("cil", "Bobina receptora", "Negro", padre, (0, 0, -(RI - BOBINA_AIRE) + BOBINA_E / 2), dim=(BOBINA_D, BOBINA_D, BOBINA_E), vertices=64)
 
@@ -393,9 +393,9 @@ def iman(nombre, padre, pos, d):
 
 
 def poste(padre):
-    stl("parte5-poste/poste_pie_poste.stl", "Pie del poste", "Impreso", padre)
-    stl("parte5-poste/poste_soporte_servo.stl", "Soporte servo", "Impreso", padre)
-    stl("parte5-poste/poste_portaimanes.stl", "Portaimanes", "Impreso", padre)
+    stl("fase1-base-y-poste/poste_pie_poste.stl", "Pie del poste", "Impreso", padre)
+    stl("fase1-base-y-poste/poste_soporte_servo.stl", "Soporte servo", "Impreso", padre)
+    stl("fase1-base-y-poste/poste_portaimanes.stl", "Portaimanes", "Impreso", padre)
     prim("cil", "Tubo", "Tubo", padre, (0, 0, (PLAT_SUP + 2 + TUBO_SUP) / 2), dim=(TUBO_D, TUBO_D, TUBO_SUP - PLAT_SUP - 2), vertices=48)
     ex = 40.7 / 2 - 10.2
     caja("Servo", "Negro", padre, -ex - 40.7 / 2, -19.7 / 2, SERVO_INF, 40.7, 19.7, 36.5)
@@ -409,12 +409,12 @@ def poste(padre):
 
 # ── Cabeza (origen en el polo de la esfera) ──
 def cabeza(padre):
-    stl("parte5-cabeza/cabeza_casco.stl", "Casco cabeza", "Blanco", padre)
-    stl("parte5-cabeza/cabeza_plato.stl", "Plato cabeza", "Impreso", padre, RX180)
-    stl("parte5-cabeza/cabeza_soporte_ojo.stl", "Soporte ojo", "Impreso", padre)
-    stl("parte5-cabeza/cabeza_soporte_bocina.stl", "Soporte bocina", "Impreso", padre)
+    stl("fase2-esfera-y-cabeza/cabeza_casco.stl", "Casco cabeza", "Blanco", padre)
+    stl("fase2-esfera-y-cabeza/cabeza_plato.stl", "Plato cabeza", "Impreso", padre, RX180)
+    stl("fase2-esfera-y-cabeza/cabeza_soporte_ojo.stl", "Soporte ojo", "Impreso", padre)
+    stl("fase2-esfera-y-cabeza/cabeza_soporte_bocina.stl", "Soporte bocina", "Impreso", padre)
     for nombre, (x, y) in (("corta", (0, -0.45)), ("larga", (9, -0.72))):
-        stl(f"parte5-cabeza/cabeza_antena_{nombre}.stl", f"Antena {nombre}", "Gris", padre,
+        stl(f"fase2-esfera-y-cabeza/cabeza_antena_{nombre}.stl", f"Antena {nombre}", "Gris", padre,
             Matrix.Translation((x, y * TAPA_R, Z_TOPE - ESPIGA_ANT)))
     out = os.path.join(CAD, "blender", "out")
     for f, nombre, m in (("ojo_domo.stl", "Domo del ojo", "Mica"), ("ojo_anillo.stl", "Anillo del ojo", "Ojo")):

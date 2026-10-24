@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Exporta los STL (cad/stl, una carpeta por parte), la plantilla de la plataforma
+# Exporta los STL (cad/stl, una carpeta por fase), la plantilla de la plataforma
 # (cad/plantillas) y los renders (cad/png). Requiere OpenSCAD (2021.01 o más nuevo)
 # y, para los PNG sin pantalla, xvfb-run.
 #
@@ -11,13 +11,14 @@ cd "$(dirname "$0")"
 QUE=${1:-todo}
 export FN=${FN:-48}
 JOBS=${JOBS:-$(nproc)}
-mkdir -p stl/parte2-base stl/parte5-poste stl/parte5-cabeza stl/parte6-esfera png plantillas
+mkdir -p stl/fase1-base-y-poste stl/fase2-esfera-y-cabeza stl/fase3-base-de-carga png plantillas
 
 pieza() {   # archivo.scad  nombre  parte; la carpeta sale del prefijo del nombre
     local d
     case $2 in
-        base_*) d=parte2-base ;; poste_*) d=parte5-poste ;;
-        cabeza_*) d=parte5-cabeza ;; esfera_*) d=parte6-esfera ;;
+        base_* | poste_*) d=fase1-base-y-poste ;;
+        esfera_* | cabeza_*) d=fase2-esfera-y-cabeza ;;
+        plato_*) d=fase3-base-de-carga ;;
     esac
     openscad -q -D "\$fn=$FN" -D "parte=\"$3\"" -o "stl/$d/$2.stl" "$1" && echo "  stl/$d/$2.stl"
 }
@@ -30,7 +31,7 @@ if [[ $QUE == todo || $QUE == stl ]]; then
             echo "esfera.scad esfera_gajo_$p $p"
         done
         echo "esfera.scad esfera_circulo circulo"
-        for p in centro rampa rampa_cable caja; do echo "plato.scad esfera_plato_$p $p"; done
+        for p in centro rampa rampa_cable caja; do echo "plato.scad plato_$p $p"; done
         for p in soporte_motor soporte_motor_izq charola soporte_bt panel_interruptor; do echo "base.scad base_$p $p"; done
         for p in pie_poste soporte_servo portaimanes; do echo "poste.scad poste_$p $p"; done
         for p in casco plato tapon soporte_ojo soporte_bocina antena_corta antena_larga; do echo "cabeza.scad cabeza_$p $p"; done
