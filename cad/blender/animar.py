@@ -90,21 +90,22 @@ def mat(nombre, color, rug=0.4, metal=0.0, emision=None, fuerza=0.0):
     if emision:
         p.inputs["Emission"].default_value = (*emision, 1)
         p.inputs["Emission Strength"].default_value = fuerza
+    m.diffuse_color = (*color, 1)          # what the Solid viewport shows
     MATS[nombre] = m
     return m
 
 
 def mdf():
     """MDF: fibra café clara, mate, con grano fino de ruido."""
-    m = mat("MDF", (0.62, 0.47, 0.32), 0.85)
+    m = mat("MDF", (0.30, 0.17, 0.08), 0.85)
     n = m.node_tree.nodes
     bsdf = n["Principled BSDF"]
     ruido = n.new("ShaderNodeTexNoise")
     ruido.inputs["Scale"].default_value = 900.0
     ruido.inputs["Detail"].default_value = 8.0
     rampa = n.new("ShaderNodeValToRGB")
-    rampa.color_ramp.elements[0].color = (0.50, 0.36, 0.23, 1)
-    rampa.color_ramp.elements[1].color = (0.70, 0.55, 0.38, 1)
+    rampa.color_ramp.elements[0].color = (0.24, 0.13, 0.06, 1)   # linear: sRGB ~ (135, 100, 70)
+    rampa.color_ramp.elements[1].color = (0.36, 0.21, 0.10, 1)
     m.node_tree.links.new(ruido.outputs["Fac"], rampa.inputs["Fac"])
     m.node_tree.links.new(rampa.outputs["Color"], bsdf.inputs["Base Color"])
     return m
