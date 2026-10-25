@@ -400,7 +400,7 @@ def poste(padre):
     prim("cil", "Tubo", "Tubo", padre, (0, 0, (PLAT_SUP + 2 + TUBO_SUP) / 2), dim=(TUBO_D, TUBO_D, TUBO_SUP - PLAT_SUP - 2), vertices=48)
     ex = 40.7 / 2 - 10.2
     caja("Servo", "Negro", padre, -ex - 40.7 / 2, -19.7 / 2, SERVO_INF, 40.7, 19.7, 36.5)
-    caja("Servo orejas", "Negro", padre, -ex - 54.5 / 2, -19.7 / 2, SERVO_INF + 26.5, 54.5, 19.7, 2.5)
+    caja("Servo orejas", "Negro", padre, -ex - 52.8 / 2, -19.7 / 2, SERVO_INF + 26.5, 52.8, 19.7, 2.5)
     prim("cil", "Cuerno", "Blanco", padre, (0, 0, PORTA_INF + 1.25), dim=(25, 25, 2.5), vertices=32)
     for k in range(4):
         a = math.radians(45 + 90 * k)

@@ -96,16 +96,17 @@ hueco_iman_int = 2.5;   // imán del poste ↔ pared interior (2–3 mm)
 hueco_iman_ext = 2;     // pared exterior ↔ imán de la cabeza
 porta_d     = 74;       // portaimanes del poste
 porta_e     = 12;       // grosor al centro (deja lugar a la tuerca M4 bajo cada imán)
-// MG996R (cuerpo 40.7 × 19.7 × 42.9 confirmado; orejas y cuerno MEDIR)
+// MG995/MG996R (same body; cuerpo 40.7 × 19.7 × 42.9 confirmado; orejas del plano MG995 y medidas)
 servo   = [40.7, 19.7]; // largo, ancho
 servo_caja_alto = 36.5; // base → tapa de la caja
 servo_alto = 42.9;      // base → punta del estriado
 servo_oreja_z = 26.5;   // base → cara de abajo de las orejas
-servo_oreja_L = 54.5;
+servo_oreja_L = 52.8;
 servo_oreja_e = 2.5;
-servo_agujeros = [49.5, 10];
+servo_agujeros = [47.8, 10.2];
 servo_eje_x = 40.7 / 2 - 10.2;   // el eje va a 10.2 mm de un extremo
-cuerno_d = 25;          // cuerno redondo
+cuerno_d = 20;          // cuerno redondo (medido)
+cuerno_r_torn = 7;      // centro → agujeros de afuera del cuerno (MEDIR)
 cuerno_e = 2.5;
 cuerno_sobre = 1.5;     // cuánto queda la cara del cuerno arriba del estriado
 

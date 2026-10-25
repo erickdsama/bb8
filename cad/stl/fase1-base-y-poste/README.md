@@ -14,7 +14,7 @@ imanes). Boquilla 0.4, capa 0.2 mm. Todas caben en una cama de 220 × 220 mm.
 | `base_soporte_bt` | **2** | 40 %, soportes en el hueco | Las dos ruedas locas RL4 (adelante y atrás, es la misma pieza) | 32 g c/u |
 | `base_panel_interruptor` | 1 | 20 % | Rocker de encendido y LED de carga | 11 g |
 | `poste_pie_poste` | 1 | 30 % | Pie del poste, atornillado al centro de la plataforma | 21 g |
-| `poste_soporte_servo` | 1 | 30 % | Sostiene el MG996R arriba del poste | 37 g |
+| `poste_soporte_servo` | 1 | 30 % | Sostiene el servo (MG995 o MG996R) arriba del poste | 37 g |
 | `poste_portaimanes` | 1 | **50 %** | Los 4 imanes N42 que jalan la cabeza; flojo se rompe | 41 g |
 
 **No se imprime:** la plataforma (MDF de 5.5 mm, ya cortada con
@@ -29,8 +29,8 @@ el número en `cad/parametros.scad` (o `base.scad`) y regenera con `bash cad/exp
 | Qué medir | En el diseño | Afecta a |
 | --- | --- | --- |
 | Interruptor SH12RO: largo × alto del cuerpo (lo que entra en el hueco, sin la ceja) | 19 × 13 mm (`rocker_corte`) | `base_panel_interruptor` |
-| MG996R: de la base a la cara de abajo de las orejas, y entre agujeros de las orejas | 26.5 mm; 49.5 × 10 mm | `poste_soporte_servo` |
-| Cuerno redondo del servo: Ø y distancia del centro a sus agujeros | Ø25 mm; 8 mm | `poste_portaimanes` |
+| ~~MG995: base a orejas y entre agujeros~~ | 26.5 mm; 47.8 × 10.2 mm (plano del MG995, coincide con lo medido) | `poste_soporte_servo` |
+| Cuerno redondo del servo: distancia del centro a sus agujeros de afuera (Ø20 ya medido) | 7 mm (`cuerno_r_torn`) | `poste_portaimanes` |
 | Llanta montada con su cople: de la cara de la caja de engranes al centro de la llanta | 20 mm (`rueda_offset`) | Entre la llanta y el soporte quedan 3.5 mm: si tu cople es más corto, rozan |
 
 ## Holguras revisadas (24 oct)

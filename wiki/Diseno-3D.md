@@ -185,7 +185,7 @@ Mide y corrige en `parametros.scad`:
 - `caja_L` y `motor_L` del JGB37: la caja mide 19–29 mm según la reducción; el motor con encoder, ~50. Cambian la posición de las ruedas y todo lo de abajo.
 - `rueda_offset`: distancia real de la cara de la caja al centro de la rueda con tu cople.
 - Rueda loca RL4: `bola_d`, `bt_brida`, `bt_agujero_sep`, `bt_domo_d`, `bt_bola_fuera`.
-- MG996R: orejas (`servo_oreja_z`, `servo_agujeros`) y el cuerno (`cuerno_d`, y el radio de sus agujeros en `portaimanes`).
+- Servo (MG995 o MG996R, mismo cuerpo): orejas 47.8 × 10.2 del plano del MG995 y cuerno Ø20 medido; falta el radio de sus agujeros (`cuerno_r_torn`).
 - `tubo_d`: el conduit de 25 mm mide 25; el hidráulico de 1/2″, 21.3.
 - Cabeza: `anillo`, `tof`, `bocina_d` (la de UNIT puede ser de 40 o 50 mm), `powerbank`.
 - Agujeros del L298N (`L298N_AG` en `base.scad`).
