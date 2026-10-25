@@ -39,7 +39,7 @@ BOLA_D, BT_Y = 25.4, 110.0
 RL4_ALTO, RL4_DOMO, RL4_BRIDA = 25.4, 32.0, (50.0, 22.0)   # brida → punta de la bola
 BT_R = RI - BOLA_D / 2
 BT_Z = -math.sqrt(BT_R**2 - BT_Y**2)
-TUBO_D = 25.0
+TUBO_D = 29.6                     # PVC conduit 1″
 R_PORTA = RI - 2.5
 PORTA_INF = R_PORTA - 12
 SERVO_INF = PORTA_INF + 2.5 - 42.9 - 1.5
@@ -809,7 +809,7 @@ def cableado_base(padre):
     r.c("cargador BMS P-", "cc OUT-", "bms P-", "negro", R22, via=[(-38, -36, zb - 7), (8, -46, zb - 8), (6, -56, zm - 12)])
 
     # --- LiPo: su XT60 macho sale atrás de la charola; fusible 5 A en línea bajo la plataforma ---
-    xt = (-10.0, -82.0, LIPO_INF + 8)
+    xt = (-10.0, -80.0, LIPO_INF + 14)   # ≥ 5 mm de la pared
     caja("XT60 LiPo", "XT60", padre, xt[0] - 8, xt[1] - 4, xt[2] - 4, 16, 8, 8)
     for n, dx in (("lipo +", -4), ("lipo -", 4)):
         cable(f"Cable {n}", [(dx, -LIPO[1] / 2, LIPO_INF + 12), (dx, -LIPO[1] / 2 - 6, LIPO_INF + 10),
@@ -828,13 +828,13 @@ def cableado_base(padre):
 
     # poder: LiPo + → fusible → rocker → 12V;  LiPo − → BMS B−, BMS P− → GND.
     # Carga: cargador OUT+ al + de la LiPo (empalme en su XT60), OUT− a P−.
-    r.c("lipo+ fusible", "xt60 lipo +", "fus in", "rojo", R12, via=[(-14, -92, -112), (-22, -80, -100)])
+    r.c("lipo+ fusible", "xt60 lipo +", "fus in", "rojo", R12, via=[(-14, -86, -108), (-22, -78, -100)])
     r.c("fusible rocker", "fus out", "rocker 1", "rojo", R12,
         via=[(-52, -46, -76), hole_i + Vector((1, -1, -3)), hole_i + Vector((1, -1, 9)), (-50, -48, -52)])
     # B− regresa por encima de la pared de atrás de la charola (acaba en z = −114)
-    r.c("lipo- BMS B-", "xt60 lipo -", "bms B-", "negro", R12, via=[(-4, -96, -116), (-6, -78, -108), (-30, -60, -92)])
+    r.c("lipo- BMS B-", "xt60 lipo -", "bms B-", "negro", R12, via=[(-4, -88, -110), (-6, -76, -104), (-30, -60, -92)])
     r.c("cargador OUT+ LiPo+", "cc OUT+", "xt60 lipo +", "rojo", R18,
-        via=[(-46, -30, zb - 6), (-52, -50, -78), (-52, -66, -96), (-30, -84, -114), (-16, -92, -122)])
+        via=[(-46, -30, zb - 6), (-52, -50, -78), (-52, -64, -94), (-30, -78, -108), (-16, -86, -114)])
     r.c("BMS P- GND", "bms P-", "riel GND bat", "negro", R18,
         via=[(4, -60, zm - 10), (40, -56, zb - 6), hole_d + Vector((0, -4, -12)), hole_d + Vector((0, -4, 8)), (48, -62, PLAT_SUP + 6)])
     # balanceo: GND, celda 1, celda 2, + de la LiPo a B−, B1, B2, B+ del BMS
