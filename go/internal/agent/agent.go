@@ -25,6 +25,10 @@ func Fields() []config.Field {
 	return []config.Field{
 		{Key: "agent.model", Label: "Model (OpenRouter id)", Type: config.String, Default: "anthropic/claude-sonnet-5.5",
 			Help: "Any OpenRouter model with tool calling, e.g. anthropic/…, openai/…, google/…"},
+		{Key: "agent.reasoning", Label: "Thinking effort", Type: config.Enum,
+			Options: []string{"default", "none", "low", "medium", "high"}, Default: "low",
+			Help: "How long the model thinks before answering. Lower is faster to reply by voice. " +
+				"default = the model's own (high on Claude Sonnet 5.5); none only works on models where thinking is optional."},
 		{Key: "agent.api_key", Label: "OpenRouter API key", Type: config.Secret},
 		{Key: "agent.base_url", Label: "API base URL", Type: config.String, Default: "https://openrouter.ai/api/v1"},
 		{Key: "agent.vision", Label: "Send photos to the model", Type: config.Bool, Default: true,
@@ -103,10 +107,16 @@ type fnSpec struct {
 }
 
 type chatReq struct {
-	Model     string   `json:"model"`
-	Messages  []msg    `json:"messages"`
-	Tools     []fnSpec `json:"tools,omitempty"`
-	MaxTokens int      `json:"max_tokens,omitempty"`
+	Model     string     `json:"model"`
+	Messages  []msg      `json:"messages"`
+	Tools     []fnSpec   `json:"tools,omitempty"`
+	MaxTokens int        `json:"max_tokens,omitempty"`
+	Reasoning *reasoning `json:"reasoning,omitempty"`
+}
+
+// reasoning is OpenRouter's thinking control; nil leaves the model's default.
+type reasoning struct {
+	Effort string `json:"effort"`
 }
 
 type chatResp struct {
@@ -116,6 +126,13 @@ type chatResp struct {
 			ToolCalls []toolCall `json:"tool_calls"`
 		} `json:"message"`
 	} `json:"choices"`
+	Usage struct {
+		PromptTokens     int `json:"prompt_tokens"`
+		CompletionTokens int `json:"completion_tokens"`
+		Details          struct {
+			Reasoning int `json:"reasoning_tokens"`
+		} `json:"completion_tokens_details"`
+	} `json:"usage"`
 	Error *struct {
 		Message string `json:"message"`
 	} `json:"error"`
@@ -147,8 +164,13 @@ func (a *Agent) specs(o tools.CallOpts) []fnSpec {
 }
 
 func (a *Agent) complete(ctx context.Context, msgs []msg, o tools.CallOpts) (*chatResp, error) {
-	body, _ := json.Marshal(chatReq{Model: a.Cfg.String("agent.model"), Messages: msgs, Tools: a.specs(o),
-		MaxTokens: int(a.Cfg.Float("agent.max_tokens"))})
+	cr := chatReq{Model: a.Cfg.String("agent.model"), Messages: msgs, Tools: a.specs(o),
+		MaxTokens: int(a.Cfg.Float("agent.max_tokens"))}
+	if e := a.Cfg.String("agent.reasoning"); e != "" && e != "default" {
+		cr.Reasoning = &reasoning{Effort: e}
+	}
+	body, _ := json.Marshal(cr)
+	t0 := time.Now()
 	url := strings.TrimRight(a.Cfg.String("agent.base_url"), "/") + "/chat/completions"
 	req, _ := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+a.Cfg.Secret("agent.api_key"))
@@ -170,6 +192,8 @@ func (a *Agent) complete(ctx context.Context, msgs []msg, o tools.CallOpts) (*ch
 	if len(out.Choices) == 0 {
 		return nil, fmt.Errorf("model returned no choices (HTTP %d)", r.StatusCode)
 	}
+	slog.Info("agent model call", "ms", time.Since(t0).Milliseconds(), "model", cr.Model, "effort", a.Cfg.String("agent.reasoning"),
+		"prompt_tokens", out.Usage.PromptTokens, "output_tokens", out.Usage.CompletionTokens, "reasoning_tokens", out.Usage.Details.Reasoning)
 	return &out, nil
 }
 

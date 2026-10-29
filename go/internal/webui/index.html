@@ -273,6 +273,7 @@ const pct = (max) => (v) => Math.round(v / max * 100) + "%";
 const UI = {
   "agent.api_key": { label: "OpenRouter key", hint: "BB-8 thinks with it. Get one at openrouter.ai/keys." },
   "agent.model": { label: "AI model", hint: "Any OpenRouter model that can use tools." },
+  "agent.reasoning": { label: "Thinking effort", hint: "Lower answers faster by voice. Claude Sonnet 5.5 thinks on high unless told otherwise." },
   "agent.vision": { label: "Let it see photos" },
   "home.owner": { label: "Your name" },
   "home.city": { label: "City", hint: "For the weather and the local time. Just the city name works best." },
@@ -299,7 +300,7 @@ const UI = {
 const PAGES = [
   { id: "overview", title: "Overview", sub: "What BB-8 needs and a quick chat." },
   { id: "brain", title: "Brain", sub: "The AI that understands you and decides what to do.",
-    main: ["agent.api_key", "agent.model"], more: ["agent.vision", "agent.max_steps", "agent.max_tokens", "agent.history_messages", "agent.reset_after_s", "agent.base_url"] },
+    main: ["agent.api_key", "agent.model", "agent.reasoning"], more: ["agent.vision", "agent.max_steps", "agent.max_tokens", "agent.history_messages", "agent.reset_after_s", "agent.base_url"] },
   { id: "home", title: "Home", sub: "Where BB-8 lives and who it belongs to.",
     main: ["home.owner", "home.city", "home.timezone"], more: ["home.latitude", "home.longitude"] },
   { id: "voice", title: "Voice & eye", sub: "How BB-8 sounds and glows.",

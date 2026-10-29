@@ -167,3 +167,20 @@ func TestConfirmAcrossTurns(t *testing.T) {
 		t.Fatal(err, sent)
 	}
 }
+
+func TestReasoningEffort(t *testing.T) {
+	var seen []chatReq
+	srv := fakeRouter(t, "move", `{"meters":0.1}`, &seen)
+	defer srv.Close()
+	a, _ := setup(t, srv.URL)
+	a.Ask(context.Background(), "hola", true)
+	if seen[0].Reasoning == nil || seen[0].Reasoning.Effort != "low" {
+		t.Fatal("default effort should be sent as low", seen[0].Reasoning)
+	}
+	a.Cfg.Set(map[string]any{"agent.reasoning": "default"}, config.SourceWeb, nil)
+	seen = nil
+	a.Ask(context.Background(), "hola", true)
+	if seen[0].Reasoning != nil {
+		t.Fatal("default must leave reasoning out", seen[0].Reasoning)
+	}
+}
