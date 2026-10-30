@@ -81,6 +81,9 @@ func RobotTools(m *motion.Service, h *Head) []Tool {
 				return Data(h.Eye(ctx, in.Color, in.Pattern, 0))
 			})},
 		{Name: "say",
+			// A spoken turn's reply is already said aloud; offering say there made Haiku
+			// say its reply with it and then hear it a second time.
+			For: func(o CallOpts) bool { return !o.Voice },
 			Description: "Speak through the head speaker (short Spanish text, under 15 words) or make a droid beep.\n\n" +
 				"With text, BB-8 babbles a few beeps and then says it; with text and sound, it beeps that sound first. " +
 				"To react with the eye too, use express.",

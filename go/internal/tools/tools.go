@@ -41,6 +41,7 @@ type CallOpts struct {
 	Speaker      string // the person's name; "" for the web page, an MCP client or no voice ID
 	Admin        bool   // an MCP client or the local API: trusted like the owner, no confirmations
 	Turn         uint64 // the agent's user-turn number; a confirmation must come in a later turn
+	Voice        bool   // the turn came from the microphone: the reply is spoken by itself
 }
 
 type callerKey struct{}

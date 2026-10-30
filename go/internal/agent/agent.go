@@ -264,7 +264,8 @@ func (a *Agent) AskAs(ctx context.Context, t Turn) (rep Reply, err error) {
 	}
 	a.last = time.Now()
 	a.turns++
-	caller := tools.CallOpts{SpeakerKnown: speakerKnown, Speaker: t.Speaker, Turn: a.turns}
+	caller := tools.CallOpts{SpeakerKnown: speakerKnown, Speaker: t.Speaker, Turn: a.turns,
+		Voice: strings.HasPrefix(text, "[Speaker:")}
 	if !t.Known {
 		caller.Speaker = ""
 	}

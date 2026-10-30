@@ -184,3 +184,32 @@ func TestReasoningEffort(t *testing.T) {
 		t.Fatal("default must leave reasoning out", seen[0].Reasoning)
 	}
 }
+
+// A spoken turn's reply is said by itself, so say is not offered to the model then.
+func TestVoiceTurnHidesSay(t *testing.T) {
+	var seen []chatReq
+	srv := fakeRouter(t, "move", `{"meters":0.1}`, &seen)
+	defer srv.Close()
+	a, _ := setup(t, srv.URL)
+	a.Reg.Set("say", []tools.Tool{{Name: "say", For: func(o tools.CallOpts) bool { return !o.Voice },
+		Schema: tools.Object(map[string]any{}), Handler: tools.Bind(func(_ context.Context, _ struct{}) (tools.Output, error) {
+			return tools.Data(map[string]any{"result": "done"})
+		})}})
+	has := func(r chatReq) bool {
+		for _, s := range r.Tools {
+			if s.Function.Name == "say" {
+				return true
+			}
+		}
+		return false
+	}
+	a.Ask(context.Background(), "[Speaker: Erick] hola", true)
+	if has(seen[0]) {
+		t.Fatal("say offered on a voice turn")
+	}
+	seen = nil
+	a.Ask(context.Background(), "hola desde la página", true)
+	if !has(seen[0]) {
+		t.Fatal("say missing on a typed turn")
+	}
+}
