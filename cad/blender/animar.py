@@ -36,7 +36,8 @@ PLAT_SUP = PLAT_INF + PLAT_E
 LIPO = (47.0, 139.0, 25.0)
 LIPO_INF = Z_EJE - MOTOR_D / 2 - 2 - LIPO[2]
 BOLA_D, BT_Y = 25.4, 110.0
-RL4_ALTO, RL4_DOMO, RL4_BRIDA = 25.4, 32.0, (50.0, 22.0)   # brida → punta de la bola
+RL4_ALTO, RL4_DOMO, RL4_BRIDA = 18.5, 30.0, (50.0, 32.0)   # cara de la brida → punta de la bola (medida a mano, 30 oct)
+RL4_SEP = 38.0   # entre centros de los agujeros
 BT_R = RI - BOLA_D / 2
 BT_Z = -math.sqrt(BT_R**2 - BT_Y**2)
 TUBO_D = 29.6                     # PVC conduit 1″
@@ -351,17 +352,17 @@ def base(padre):
         rot = apuntar(u).to_euler()
         cara = c - u * (RL4_ALTO - BOLA_D / 2)          # cara de la brida
         prim("esf", f"RL4 {nombre} bola", "Metal", padre, c, dim=(BOLA_D,) * 3, segments=32, ring_count=16)
-        # domo: falda cilíndrica + media esfera de Ø32; su punta queda 3 mm abajo de la de la bola
+        # domo: falda cilíndrica + media esfera de Ø30; su punta queda 3 mm abajo de la de la bola
         falda = RL4_ALTO - 3 - RL4_DOMO / 2
         prim("cil", f"RL4 {nombre} falda", "Metal", padre, cara + u * falda / 2, rot, dim=(RL4_DOMO, RL4_DOMO, falda), vertices=48)
         d = prim("esf", f"RL4 {nombre} domo", "Metal", padre, cara + u * falda, rot, dim=(RL4_DOMO,) * 3, segments=48, ring_count=24)
         corte(d, cara + u * falda, u)
-        # brida de 2 agujeros: 50 × 22 con las puntas redondas (en el marco de apuntar, el largo va en y)
+        # brida de 2 agujeros: 50 × 32 con las puntas redondas (en el marco de apuntar, el largo va en y)
         prim("cubo", f"RL4 {nombre} brida", "Metal", padre, cara - u * 0.75, rot, dim=(RL4_BRIDA[1], RL4_BRIDA[0] - RL4_BRIDA[1], 1.5))
         for k in (-1, 1):
             q = apuntar(u) @ Vector((0, k * (RL4_BRIDA[0] - RL4_BRIDA[1]) / 2, 0))
             prim("cil", f"RL4 {nombre} brida {k}", "Metal", padre, cara - u * 0.75 + q, rot, dim=(RL4_BRIDA[1], RL4_BRIDA[1], 1.5), vertices=32)
-            q2 = apuntar(u) @ Vector((0, k * 17.5, 0))
+            q2 = apuntar(u) @ Vector((0, k * RL4_SEP / 2, 0))
             prim("cil", f"RL4 {nombre} tornillo {k}", "Negro", padre, cara + q2 + u * 1.0, rot, dim=(7, 7, 2.5), vertices=6)
     stl("fase1-base-y-poste/base_panel_interruptor.stl", "Panel del interruptor", "Impreso", padre)
     # bobina receptora, pegada en el portabobina de la charola a BOBINA_AIRE (7 mm) de la pared
