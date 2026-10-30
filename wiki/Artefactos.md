@@ -25,6 +25,13 @@ quién habla con quién, la secuencia de "BB-8, ven acá" y cómo funciona la si
 - [`docs/artefactos/diagramas.html`](https://github.com/erickdsama/bb8/blob/main/docs/artefactos/diagramas.html)
 - Publicado: <https://claude.ai/artifact/VNK5Zq8wV6UTHjzc1P9Myd>
 
+## Guía de armado 3D
+
+Armado y cableado de la base y el poste en 11 pasos, sobre el modelo de Blender: resalta lo
+nuevo de cada paso, se ve por abajo y dice el nombre de cada pieza al tocarla.
+
+- Publicado: <https://claude.ai/artifact/6XfezBdSw2956qa97WJ6cf>
+
 ## Avance del proyecto
 
 Tracker de fases, tareas y estado de compras.

@@ -122,19 +122,28 @@ module charola() {
             for (s = [-1, 1]) {
                 translate([-25, s > 0 ? ly / 2 : -ly / 2 - charola_pared, charola_z]) cube([50, charola_pared, plat_z_inf - charola_z]);
                 translate([-25, s > 0 ? ly / 2 - 10 : -ly / 2, plat_z_inf - 5]) cube([50, 10, 5]);
+                // 45° gusset under the tab: it prints without supports and backs the nut
+                hull() {
+                    translate([-25, s > 0 ? ly / 2 - 0.01 : -ly / 2, plat_z_inf - 5 - 10]) cube([50, 0.01, 10]);
+                    translate([-25, s > 0 ? ly / 2 - 10 : -ly / 2 + 10 - 0.01, plat_z_inf - 5]) cube([50, 0.01, 0.01]);
+                }
                 // costillas
                 for (x = [-25, 21]) translate([x, s > 0 ? ly / 2 - 6 : -ly / 2, charola_z]) cube([4, 6, plat_z_inf - charola_z]);
             }
           }
         }
-        translate([-lx / 2, -ly / 2, charola_z + charola_piso]) cube([lx, ly, 200]);
+        // LiPo pocket: open to the top in the middle, but at the ends only up to the gusset,
+        // or it eats the tabs the tray hangs from (it did: only 1 mm slivers were left)
+        translate([-lx / 2, -ly / 2 + 10, charola_z + charola_piso]) cube([lx, ly - 20, 200]);
+        translate([-lx / 2, -ly / 2, charola_z + charola_piso]) cube([lx, ly, plat_z_inf - 5 - 10 - charola_z - charola_piso]);
         for (s = [-1, 1]) translate([s > 0 ? lx / 2 + charola_pared : -lx / 2 - charola_pared - lastre_ancho,
                                      -lastre_largo / 2, charola_z + charola_piso]) cube([lastre_ancho, lastre_largo, 200]);
         // ranuras para 2 correas de velcro de 20 mm
         for (y = [-35, 35], s = [-1, 1]) translate([s * (lx / 2 + 1.2) - 1.5, y - 11, charola_z - 1]) cube([3, 22, 10]);
         for (p = agujeros_charola()) translate([p[0], p[1], plat_z_inf - 20]) cylinder(d = 3.4, h = 21, $fn = 16);
         // tuercas M3 por debajo de la pestaña
-        for (p = agujeros_charola()) translate([p[0], p[1], plat_z_inf - 5 - 3]) rotate([0, 0, 30]) cylinder(d = tuerca_m3, h = 5.6, $fn = 6);
+        // (the hex channel runs down through the gusset so the nut goes in from below)
+        for (p = agujeros_charola()) translate([p[0], p[1], plat_z_inf - 25]) rotate([0, 0, 30]) cylinder(d = tuerca_m3, h = 25 - 2.4, $fn = 6);
         // la bobina, pegada en su hueco con la cara hacia la pared, y la ranura de su cable
         // (sube por fuera del portabobina y entra al compartimiento de lastre)
         translate([0, 0, -(Ri - bobina_aire) - 1]) cylinder(d = bobina_d + 0.8, h = bobina_e + 1, $fn = 96);

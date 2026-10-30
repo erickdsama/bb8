@@ -41,3 +41,34 @@ el número en `cad/parametros.scad` (o `base.scad`) y regenera con `bash cad/exp
 - Huecos de tuerca a 6.7 mm (M3) y 8.4 mm (M4) entre puntas, para que entren sin forzar.
 - Plataforma ya cortada: un tornillo del panel cae en la orilla del pasacables (usa rondana)
   y el agujero del Uno junto a la rueda loca de atrás se encima: el Uno va con 3 tornillos.
+
+## Arreglos de la primera impresión (29 oct)
+
+La primera tanda se imprimió con estos defectos. Todos se arreglan sobre la pieza, sin reimprimir:
+
+| Pieza | Defecto | Arreglo |
+| --- | --- | --- |
+| `base_charola` | El hueco de la LiPo se comía las pestañas: de cada pared solo quedaban tiras de 1 mm | Corta las tiras y cuelga la charola con 2 escuadras de 20 × 20 mm por dentro de las paredes altas (M3 × 12). El STL de ahora ya trae pestañas con chaflán de 45° |
+| `base_soporte_motor_izq` | Tapa los 4 agujeros del L298N | Taladra 3 mm usando el MDF de guía; el L298N va con M3 × 16 que se roscan en el soporte, con 2 tuercas de separador |
+| `base_soporte_bt` (adelante) | Tapa la orilla de un agujero de la Raspberry Pi | Taladra 2.5 mm, o atornilla la Pi con 3 tornillos |
+| `base_soporte_bt` | Los agujeros no coinciden con la brida de la RL4 | Marca a través de la brida y taladra pilotos (2.5 mm para M3, 3.3 mm para M4) |
+| `poste_soporte_servo` | El cable del servo no tiene salida hacia el tubo | Sácalo por la ventana del costado y bájalo por fuera del tubo con cinchos |
+
+Cómo se arma el poste: [`cad/png/soporte_servo_armado.png`](../../png/soporte_servo_armado.png).
+Guía 3D paso a paso: <https://claude.ai/artifact/6XfezBdSw2956qa97WJ6cf>.
+
+## Tornillería
+
+Un kit surtido M2–M5 de 1230 piezas (Mercado Libre, ~$244) cubre toda la fase:
+
+| Tornillo | Cuántos | Dónde |
+| --- | --- | --- |
+| M3 × 16 | 22 | Soportes de motor (8), de ruedas locas (6) y pie del poste (4) al MDF; L298N (4) |
+| M3 × 12 | 13 | Panel (2), escuadras (4), orejas del servo (4), Arduino Uno (3) |
+| M3 × 8 | 8 | Motor a la cara de su soporte (la cabeza se hunde ~1.2 mm en el avellanado) |
+| M3 × 6 | 3 | Arduino Uno a sus separadores |
+| M4 × 16 | 8 | Ruedas locas (4) e imanes (4, con tuerca y fijador de roscas) |
+| M2 × 16 | 4 | Raspberry Pi, con los separadores de latón de 5 mm como espaciador |
+| M2 × 12 | 4 | Portaimanes al disco del servo |
+
+Rondana del lado del MDF y apriete a mano: el MDF se aplasta.

@@ -96,18 +96,7 @@ Pon siempre una rondana del lado del MDF y aprieta a mano.
 
 | Pieza | Cant. | Tienda | MXN | Nota |
 | --- | --- | --- | --- | --- |
-| Tornillo M3 × 12 cabeza redonda | 15 | Ferretería | ~2 c/u (est.) | Soportes de motor al MDF (8), panel del interruptor (2), escuadras de la charola al MDF (2), sobran 3 |
-| Tornillo M3 × 16 cabeza redonda | 12 | Ferretería | ~2 c/u (est.) | Soportes de ruedas locas al MDF (6), pie del poste (4), sobran 2 |
-| Tornillo M3 × 10 cabeza redonda | 4 | Ferretería | ~2 c/u (est.) | Escuadras a la pared de la charola (2), sobran 2 |
-| Tornillo M3 × 8 cabeza plana avellanada | 8 | Ferretería | ~2 c/u (est.) | Motor JGB37 a la cara de su soporte, 4 por motor (la llanta pasa a 3.5 mm: la cabeza no puede sobresalir) |
-| Tornillo autorroscante M3 × 20 | 4 | Ferretería | ~2 c/u (est.) | L298N: atraviesa MDF y el soporte del motor izquierdo, que tapa sus agujeros |
-| Tornillo autorroscante M3 × 10 | 4 | Ferretería | ~2 c/u (est.) | Orejas del servo al soporte (piloto de 2.5 mm) |
-| Tornillo M4 × 12 (o autorroscante, según la brida de la RL4) | 4 | Ferretería | ~3 c/u (est.) | Ruedas locas a su soporte. Si la brida de tu RL4 es para M3, cámbialos por M3 × 12 |
-| Tornillo M4 × 16 + tuerca M4 de nylon (contratuerca) | 4 + 4 | Ferretería | ~4 c/u (est.) | Imanes N42 al portaimanes; la de nylon no se afloja con la vibración |
-| Tuercas M3 | 30 | Ferretería | ~1 c/u (est.) | — |
-| Rondanas M3 | 20 | Ferretería | ~1 c/u (est.) | Bajo cada cabeza o tuerca contra el MDF |
-| Tornillo M2 × 10 | 4 | Ferretería / tienda de RC | ~2 c/u (est.) | Portaimanes al disco del servo (si el servo no trae tornillos de ese largo) |
-| Separadores M2.5 de 10 mm + tornillos M2.5 × 6 | 4 + 8 | UNIT / Mercado Libre | 40–60 | Raspberry Pi 3: sus agujeros son de 2.7 mm, el M3 no entra |
+| Kit de tornillos M2–M5, 1230 piezas (cabeza Allen, con tuercas y rondanas) | 1 | Mercado Libre | ~244 | Cubre toda la fase 1: M3 × 6/8/12/16, M4 × 16, M2 × 12/16. Reparto en `cad/stl/fase1-base-y-poste/README.md`. La Pi va con M2 × 16 y los separadores de latón de 5 mm como espaciador |
 | Escuadra metálica de mueble 20 × 20 mm | 2 | Ferretería | ~10 c/u (est.) | Cuelgan la charola del MDF: la impresa no tiene pestañas |
 | Correa de velcro de 20 mm, ~30 cm | 2 | Ferretería / papelería | ~30 (est.) | Amarran la LiPo por las ranuras del piso de la charola |
 | Pegamento epóxico de 5 min (o E6000) | 1 | Ferretería | 60–90 | Imanes y lastre en PETG; el cianoacrilato pega mal en PETG |
@@ -142,7 +131,7 @@ consumo real de los motores.
 
 | Pieza | Cant. | Tienda | MXN | Nota |
 | --- | --- | --- | --- | --- |
-| [LiPo 3S 11.1 V 5200 mAh 80C XT60, Hilldow (2 pzs)](https://www.amazon.com.mx/Hilldow-conector-veh%C3%ADculos-Camiones-paquetes/dp/B0FW4WPFNT) | 1 paquete | Amazon | 813 | ~407 por batería: más barato que una sola de [PCEONAMP](https://www.amazon.com.mx/PCEONAMP-capacidad-Quadcopter-Helic%C3%B3ptero-almacenamiento/dp/B0CHJHHK9V) (710). La segunda es repuesto |
+| [LiPo 3S 11.1 V 5200 mAh 80C XT60, Hilldow, **estuche blando 138 × 43 × 32 mm** (2 pzs)](https://www.amazon.com.mx/Hilldow-conector-veh%C3%ADculos-Camiones-paquetes/dp/B0FW4WPFNT) | 1 paquete | Amazon | 813 | ~407 por batería: más barato que una sola de [PCEONAMP](https://www.amazon.com.mx/PCEONAMP-capacidad-Quadcopter-Helic%C3%B3ptero-almacenamiento/dp/B0CHJHHK9V) (710). La segunda es repuesto |
 | [Cargador balanceador iMAX B6AC 80 W](https://www.mercadolibre.com.mx/cargador-balanceador-imax-b6-b6ac-80w/p/MLM47578491) | 1 | Mercado Libre | 600–750 | La versión **AC** trae fuente interna; la B6 sin AC necesita una fuente de 12 V aparte. [HetPro](https://hetpro-store.com/cargador-de-baterias-lipo-80w/) la tiene en 850 |
 | ~~[Switch de balancín con piloto 12 Vcc, 16 A](https://www.steren.com.mx/switch-de-balancin-de-1-polo-1-tiro-2-posiciones-on-off-con-piloto-12-vcc.html)~~ | 1 | Steren | 19 | . **Comprado: SH12RO en Electrozone (16 oct)** |
 | ~~[Portafusible europeo de cartucho 5 × 20](https://www.steren.com.mx/porta-fusible-europeo-de-cartucho.html) + 3 fusibles 5 A 5 × 20~~ | 1 | Steren | 15 + ~12 | . **Comprado: PF19-3 + fusibles 5 A en Electrozone (16 oct)** |

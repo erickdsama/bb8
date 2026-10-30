@@ -19,7 +19,7 @@ obedezca al agente; hasta la Parte 6 todo va con fuente de pared de 12 V.
 | # | Parte | Corre en | Lista cuando |
 | --- | --- | --- | --- |
 | 1 | [Componentes en protoboard](Parte-1-Protoboard.md) | Arduino | Motores, servo, IMU y ToF responden; `I` contesta `OK BB8 fw=0.1` |
-| 2 | [Base de melamina](Parte-2-Base-de-melamina.md) | — | Se levanta con una mano y nada se mueve |
+| 2 | [Base de MDF](Parte-2-Base-de-melamina.md) | — | Se levanta con una mano y nada se mueve |
 | 3 | [Base andando desde la Pi](Parte-3-Base-andando.md) | Pi + Arduino | Avanza, gira 90° y vuelve con deriva < 5° |
 | 4 | [Agente controla el movimiento](Parte-4-Agente-controla-el-movimiento.md) | Pi | "Oye Jarvis… ven acá" y se mueve |
 | 5 | [Agente controla la cabeza](Parte-5-Agente-controla-la-cabeza.md) | Pi Zero + Pi | Gira la cabeza hacia ti y describe lo que ve |
