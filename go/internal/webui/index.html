@@ -332,7 +332,9 @@ function control(f) {
     i.addEventListener("input", () => { extra.textContent = (ui.fmt || String)(Number(i.value)); });
     return [el("span", { style: "display:flex;flex:1;gap:10px;align-items:center" }, i, extra), i];
   } else if (f.type === "number") i = el("input", { class: "txt", type: "number", step: "any", id, min: f.min ?? "", max: f.max ?? "" });
-  else if (f.type === "secret") i = el("input", { class: "txt", type: "password", id, autocomplete: "off" });
+  // "new-password": browsers ignore "off" on password fields and autofill the site login
+  // into the first one, which then saved the login password as the OpenRouter key.
+  else if (f.type === "secret") i = el("input", { class: "txt", type: "password", id, autocomplete: "new-password" });
   else i = el("input", { class: "txt", type: "text", id });
   return [i, i];
 }
@@ -359,10 +361,12 @@ function settingRow(f) {
     };
     row.querySelector(".ctl").insertBefore(play, saved);
   }
+  // A secret saves only after the person typed or pasted into it, never on autofill.
+  if (f.type === "secret") for (const ev of ["keydown", "paste", "drop"]) i.addEventListener(ev, (e) => { if (e.isTrusted) i.dataset.typed = "1"; });
   i.addEventListener("change", async () => {
     let v = f.type === "bool" ? i.checked : f.type === "number" ? (i.value === "" ? null : Number(i.value)) : i.value;
     if (v === null) return;
-    if (f.type === "secret") { if (v === "") return; v = v.trim(); }
+    if (f.type === "secret") { if (v === "" || !i.dataset.typed) return; v = v.trim(); delete i.dataset.typed; }
     const r = await patch({ [f.key]: v });
     if (!r.ok) { i.classList.add("err"); toast(r.body.error || "Could not save"); return; }
     i.classList.remove("err");
@@ -660,7 +664,7 @@ function connectDialog(kind, existing) {
   }
   if (kind === "custom" && !existing) {
     inputs.url = el("input", { class: "txt", placeholder: "https://…" });
-    inputs.token = el("input", { class: "txt", type: "password", placeholder: "Only if the service gave you one" });
+    inputs.token = el("input", { class: "txt", type: "password", autocomplete: "new-password", placeholder: "Only if the service gave you one" });
     fields.push(el("div", { class: "field" }, el("label", { textContent: "Link" }), inputs.url),
       el("details", { class: "more" }, el("summary", { textContent: "I have a token" }), el("div", { class: "field" }, inputs.token)));
   }
@@ -856,7 +860,7 @@ function showStep(s) {
 
 function calendarDialog() {
   const id = el("input", { class: "txt", placeholder: "…apps.googleusercontent.com", value: values["connectors.calendar.google_client_id"] || "" });
-  const secret = el("input", { class: "txt", type: "password", placeholder: values["connectors.calendar.google_client_secret"] ? "Saved · leave empty to keep" : "Client secret" });
+  const secret = el("input", { class: "txt", type: "password", autocomplete: "new-password", placeholder: values["connectors.calendar.google_client_secret"] ? "Saved · leave empty to keep" : "Client secret" });
   const redirect = values["connectors.mcp.oauth_bridge"] || location.origin + "/oauth/";
   const result = resultBox();
   const go = el("button", { class: "btn", type: "button", textContent: "Save and sign in" });
