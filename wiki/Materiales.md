@@ -88,6 +88,31 @@ consultada (tienda física o sin precio visible). Nada de esto se ha comprado.
 | ~~Cautín 60 W con control de temperatura + estaño con flux + base~~ | 1 | Mercado Libre / Amazon | 250–350 | El MPU6050 y el VL53L0X vienen con los pines sueltos; sin soldar el escáner I2C no los ve. **Comprado (Home Depot, 15 oct): cautín 40 W, soldadura 60/40 con flux, base** |
 | ~~Multímetro básico~~ | 1 | Mercado Libre / Steren | ~200 | Para ajustar el LM2596 a 5.1 V antes de conectar el servo. **Comprado (Home Depot, 15 oct)** |
 
+### Falta para armar la fase 1 (detectado al armar, 29 oct 2026)
+
+Todo lo que se atornilla, cuelga o pega en la base y el poste impresos. Los M3 × 6 del
+pedido de UNIT solo sirven para tarjetas sobre separadores: el MDF ya mide 5.5 mm.
+Pon siempre una rondana del lado del MDF y aprieta a mano.
+
+| Pieza | Cant. | Tienda | MXN | Nota |
+| --- | --- | --- | --- | --- |
+| Tornillo M3 × 12 cabeza redonda | 15 | Ferretería | ~2 c/u (est.) | Soportes de motor al MDF (8), panel del interruptor (2), escuadras de la charola al MDF (2), sobran 3 |
+| Tornillo M3 × 16 cabeza redonda | 12 | Ferretería | ~2 c/u (est.) | Soportes de ruedas locas al MDF (6), pie del poste (4), sobran 2 |
+| Tornillo M3 × 10 cabeza redonda | 4 | Ferretería | ~2 c/u (est.) | Escuadras a la pared de la charola (2), sobran 2 |
+| Tornillo M3 × 8 cabeza plana avellanada | 8 | Ferretería | ~2 c/u (est.) | Motor JGB37 a la cara de su soporte, 4 por motor (la llanta pasa a 3.5 mm: la cabeza no puede sobresalir) |
+| Tornillo autorroscante M3 × 20 | 4 | Ferretería | ~2 c/u (est.) | L298N: atraviesa MDF y el soporte del motor izquierdo, que tapa sus agujeros |
+| Tornillo autorroscante M3 × 10 | 4 | Ferretería | ~2 c/u (est.) | Orejas del servo al soporte (piloto de 2.5 mm) |
+| Tornillo M4 × 12 (o autorroscante, según la brida de la RL4) | 4 | Ferretería | ~3 c/u (est.) | Ruedas locas a su soporte. Si la brida de tu RL4 es para M3, cámbialos por M3 × 12 |
+| Tornillo M4 × 16 + tuerca M4 de nylon (contratuerca) | 4 + 4 | Ferretería | ~4 c/u (est.) | Imanes N42 al portaimanes; la de nylon no se afloja con la vibración |
+| Tuercas M3 | 30 | Ferretería | ~1 c/u (est.) | — |
+| Rondanas M3 | 20 | Ferretería | ~1 c/u (est.) | Bajo cada cabeza o tuerca contra el MDF |
+| Tornillo M2 × 10 | 4 | Ferretería / tienda de RC | ~2 c/u (est.) | Portaimanes al disco del servo (si el servo no trae tornillos de ese largo) |
+| Separadores M2.5 de 10 mm + tornillos M2.5 × 6 | 4 + 8 | UNIT / Mercado Libre | 40–60 | Raspberry Pi 3: sus agujeros son de 2.7 mm, el M3 no entra |
+| Escuadra metálica de mueble 20 × 20 mm | 2 | Ferretería | ~10 c/u (est.) | Cuelgan la charola del MDF: la impresa no tiene pestañas |
+| Correa de velcro de 20 mm, ~30 cm | 2 | Ferretería / papelería | ~30 (est.) | Amarran la LiPo por las ranuras del piso de la charola |
+| Pegamento epóxico de 5 min (o E6000) | 1 | Ferretería | 60–90 | Imanes y lastre en PETG; el cianoacrilato pega mal en PETG |
+| Brocas 2.5, 3.3 y 3.5 mm | 1 juego | Ferretería | 50–80 (est.) | Pilotos de autorroscantes y repasar los agujeros del láser en el MDF |
+
 ### Carrito recomendado, ahora (Partes 2, 4 y 5)
 
 Se puede pedir ya; nada depende del tamaño final de la esfera.
