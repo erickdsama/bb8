@@ -173,8 +173,9 @@ module soporte_bt(s = 1) {
             // La tuerca M4 corre en su canal plano contra plano y no gira.
             for (y = [-1, 1]) {
                 hull() for (c = bt_ranura / 2) translate([0, y * c, -12]) cylinder(d = 4.5, h = 13, $fn = 16);
-                hull() for (c = bt_ranura / 2) translate([0, y * c, -6.5]) rotate([0, 0, 30]) cylinder(d = tuerca_m4, h = 3.4, $fn = 6);   // tuerca M4
-                hull() for (c = bt_ranura / 2) translate([0, y * c, -60 - 6.5]) cylinder(d = 8.6, h = 60, $fn = 24);   // meter la tuerca por detrás
+                // tuerca M4: entra deslizando por la punta del soporte (un canal hacia atrás
+                // se comería el asiento de los tornillos al MDF)
+                hull() for (c = [bt_ranura[0] / 2, bt_brida[0]]) translate([0, y * c, -6.5]) rotate([0, 0, 30]) cylinder(d = tuerca_m4, h = 3.4, $fn = 6);
             }
         }
         // Agujero de la Pi que cae sobre el soporte de adelante: el M2 × 16 de la Pi se rosca aquí.

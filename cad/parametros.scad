@@ -74,7 +74,7 @@ lipo_z_inf  = lipo_z_sup - lipo[2];
 
 // ───────────────────────── Ruedas locas RL4 (Electrozone) ─────────────────────────
 // Domo de acero sobre una brida de 2 agujeros (medidas de Erick con la pieza en mano, 30 oct).
-bola_d       = 25.4;   // 1″: se ven 18 mm por la boca del domo y sale ~3 mm
+bola_d       = 19.05;  // 3/4″: se ven 18 mm por la boca; con 20 mm de salida y la espalda plana no cabe una de 1″
 bt_y         = 110;    // a 90° de las ruedas, adelante y atrás
 bt_brida     = [50, 32];   // punta a punta × ancho al centro (rombo: el domo de 30 + orilla)
 bt_brida_e   = 1.5;

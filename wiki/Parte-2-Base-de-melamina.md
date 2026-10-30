@@ -24,7 +24,7 @@ Lo que falta comprar está en [Materiales](Materiales.md#falta-para-armar-la-fas
 ## Pasos
 
 1. **Motores:** cada JGB37 en su soporte con 4 M3 × 8; el soporte bajo el MDF con 4 M3 × 16 y la tuerca en su hueco. Cople y llanta.
-2. **Ruedas locas:** la RL4 con 2 M4 × 16 en las ranuras, tuerca por detrás; cada soporte bajo el MDF con 3 M3 × 16. En una mesa plana las ruedas locas quedan ~10 mm en el aire: es correcto, porque van inclinadas 48° y tocan la pared curva de la esfera, no el piso.
+2. **Ruedas locas:** primero cada soporte bajo el MDF con M3 × 16 (el del centro entra por el agujero de la cara). En el de adelante no pongas el de la esquina junto a la Pi: su tuerca choca con el separador de la Pi, y el M2 × 16 de la Pi se rosca en el soporte. Luego mete las 2 tuercas M4 deslizando por las puntas del soporte y atornilla la RL4 con 2 M4 × 12 en las ranuras. En una mesa plana las ruedas locas quedan ~9 mm en el aire: es correcto, porque van inclinadas 48° y tocan la pared curva de la esfera, no el piso.
 3. **Charola:** corta las tiras delgadas de arriba de las paredes y cuélgala con 2 escuadras por dentro. LiPo con 2 correas de velcro; lastre en los huecos de los lados.
 4. **Poste:** pie al centro con 4 M3 × 16, tubo hasta el fondo, soporte del servo arriba. El cable del servo sale por la ventana del costado y baja por fuera del tubo con cinchos ([cómo se arma](https://github.com/erickdsama/bb8/blob/main/cad/png/soporte_servo_armado.png)).
 5. **Tarjetas:** Uno sobre separadores de 10 mm; Pi con M2 × 16 y separadores de 5 mm; L298N con M3 × 16 y 2 tuercas de separador, roscado en el soporte del motor (taládralo antes con 3 mm). Ajusta los 2 bucks a 5.1 V antes de conectar nada.
@@ -41,6 +41,6 @@ Repite dos pruebas de la Parte 1 después de montar: un cable flojo aparece ahí
 ## Lista cuando
 
 - [ ] La base se levanta con una mano y nada se mueve ni cuelga
-- [ ] En la mesa, las ruedas apoyan y las ruedas locas quedan ~10 mm arriba, apuntando hacia el centro de la esfera
+- [ ] En la mesa, las ruedas apoyan y las ruedas locas quedan ~9 mm arriba, apuntando hacia el centro de la esfera
 - [ ] `p2` y `p4` pasan otra vez
 - [ ] Peso y centro de gravedad anotados
