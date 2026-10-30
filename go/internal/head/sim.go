@@ -133,7 +133,7 @@ func (s *Sim) State() map[string]any {
 
 // SayPCM: the dummy cannot play the body's voice, so it speaks the text as
 // usual; the answer still covers at least the audio's length.
-func (s *Sim) SayPCM(ctx context.Context, text, sound string, pcm []byte, rate int) (float64, error) {
+func (s *Sim) SayPCM(ctx context.Context, text, sound string, pcm []byte, rate int, _ bool) (float64, error) {
 	secs, err := s.Say(ctx, text, sound)
 	if d := float64(len(pcm)/2) / float64(rate); err == nil && d > secs {
 		secs = math.Round(d*100) / 100

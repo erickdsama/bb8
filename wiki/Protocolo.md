@@ -403,7 +403,7 @@ The head gets `ca.crt`, `bb8-head.crt` and `bb8-head.key`. Each side only accept
 | --- | --- | --- | --- |
 | body → head | `photo` | `{"width": 640}` | `{"ok":true,"bytes":N}` + JPEG frame. `err: "no camera"` without a camera |
 | body → head | `eye` | `{"rgb":[0,220,255],"pattern":"breathe","brightness":0.3}` | `{"ok":true}` |
-| body → head | `say` | `{"text":"hola","sound":"happy"}`, optionally `"pcm":"<base64>","rate":24000` | `{"ok":true,"seconds":1.2}` when done. With `pcm` (16-bit mono, made on the body by Gemini TTS) the head plays it, scaled by `volume`, instead of making speech from `text` |
+| body → head | `say` | `{"text":"hola","sound":"happy"}`, optionally `"pcm":"<base64>","rate":24000` | `{"ok":true,"seconds":1.2}` when done. With `pcm` (16-bit mono, made on the body by Gemini TTS) the head plays it, scaled by `volume`, instead of making speech from `text`. A reply longer than one sentence comes as two `say` requests: the first sentence (with its beep) as soon as it is synthesized, then the rest with `"no_beep":true`, synthesized meanwhile. Heads without `no_beep` support beep again before the rest |
 | body → head | `rest` | `{"active": false}` | `{"ok":true}` |
 | body → head | `config` (event) | `{"rev": 8, "values": {"eye_brightness": 0.3, "volume": 0.7}}` | The head applies it and answers with the `config_ack` event. The body sends it on every connect and on every change under `head.*` |
 | head → body | `tof` (event) | `{"mm": 812}` | every 100 ms while there is a sensor |

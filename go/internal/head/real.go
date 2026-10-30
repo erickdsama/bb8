@@ -149,12 +149,12 @@ func play(ctx context.Context, wav []byte) error {
 }
 
 func (r *Real) Say(ctx context.Context, text, sound string) (float64, error) {
-	return r.SayPCM(ctx, text, sound, nil, 0)
+	return r.SayPCM(ctx, text, sound, nil, 0, true)
 }
 
 // SayPCM plays the beep, then pcm (the body's voice for text) if given, else
 // speaks text with the Wyoming server or espeak-ng.
-func (r *Real) SayPCM(ctx context.Context, text, sound string, pcm []byte, rate int) (float64, error) {
+func (r *Real) SayPCM(ctx context.Context, text, sound string, pcm []byte, rate int, beep bool) (float64, error) {
 	r.sayMu.Lock()
 	defer r.sayMu.Unlock()
 	t0 := time.Now()
@@ -175,9 +175,11 @@ func (r *Real) SayPCM(ctx context.Context, text, sound string, pcm []byte, rate 
 	if key == "" {
 		key = text
 	}
-	wav, _ := BeepWAV(key, 0.6*vol, int(time.Now().UnixNano()%4))
-	if err := play(ctx, wav); err != nil {
-		return 0, fmt.Errorf("aplay: %w", err)
+	if beep || len(pcm) == 0 {
+		wav, _ := BeepWAV(key, 0.6*vol, int(time.Now().UnixNano()%4))
+		if err := play(ctx, wav); err != nil {
+			return 0, fmt.Errorf("aplay: %w", err)
+		}
 	}
 	if len(pcm) > 0 && rate > 0 {
 		if err := play(ctx, wavFrom(scale(pcm, vol), rate, 1)); err != nil {

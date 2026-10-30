@@ -30,7 +30,8 @@ type Backend interface {
 // Voiced is a backend that can play speech the body synthesized (16-bit mono
 // PCM at rate Hz) instead of making its own from the text.
 type Voiced interface {
-	SayPCM(ctx context.Context, text, sound string, pcm []byte, rate int) (seconds float64, err error)
+	// beep=false plays only pcm: the body sends a long reply in parts and beeps once.
+	SayPCM(ctx context.Context, text, sound string, pcm []byte, rate int, beep bool) (seconds float64, err error)
 }
 
 const ToFEvery = 100 * time.Millisecond
@@ -94,6 +95,7 @@ func (h *Head) handle(ctx context.Context, typ string, body json.RawMessage) (an
 			Text, Sound string
 			PCM         []byte `json:"pcm"` // optional: the body's voice for Text
 			Rate        int    `json:"rate"`
+			NoBeep      bool   `json:"no_beep"` // a later part of one reply: no beep before it
 		}
 		if err := json.Unmarshal(body, &in); err != nil {
 			return nil, nil, err
@@ -101,7 +103,7 @@ func (h *Head) handle(ctx context.Context, typ string, body json.RawMessage) (an
 		var secs float64
 		var err error
 		if v, ok := h.B.(Voiced); ok && len(in.PCM) > 0 && in.Rate > 0 {
-			secs, err = v.SayPCM(ctx, in.Text, in.Sound, in.PCM, in.Rate)
+			secs, err = v.SayPCM(ctx, in.Text, in.Sound, in.PCM, in.Rate, !in.NoBeep)
 		} else {
 			secs, err = h.B.Say(ctx, in.Text, in.Sound)
 		}

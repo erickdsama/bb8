@@ -11,6 +11,7 @@ type sayRec struct {
 	said, voiced string
 	pcm          []byte
 	rate         int
+	beep         bool
 }
 
 func (s *sayRec) Say(_ context.Context, text, _ string) (float64, error) {
@@ -18,8 +19,8 @@ func (s *sayRec) Say(_ context.Context, text, _ string) (float64, error) {
 	return 1, nil
 }
 
-func (s *sayRec) SayPCM(_ context.Context, text, _ string, pcm []byte, rate int) (float64, error) {
-	s.voiced, s.pcm, s.rate = text, pcm, rate
+func (s *sayRec) SayPCM(_ context.Context, text, _ string, pcm []byte, rate int, beep bool) (float64, error) {
+	s.voiced, s.pcm, s.rate, s.beep = text, pcm, rate, beep
 	return 2, nil
 }
 
@@ -36,5 +37,19 @@ func TestSayWithBodyVoice(t *testing.T) {
 	}
 	if _, _, err := h.handle(context.Background(), "say", []byte(`{"text":"adios"}`)); err != nil || b.said != "adios" {
 		t.Fatal(err, b.said)
+	}
+}
+
+// A later part of a reply asks for no beep; the first part (and old bodies) beep.
+func TestSayNoBeep(t *testing.T) {
+	b := &sayRec{}
+	h := &Head{B: b}
+	body, _ := json.Marshal(map[string]any{"text": "y luego", "pcm": []byte{1, 0}, "rate": 24000, "no_beep": true})
+	if _, _, err := h.handle(context.Background(), "say", body); err != nil || b.beep {
+		t.Fatal(err, b.beep)
+	}
+	body, _ = json.Marshal(map[string]any{"text": "hola", "pcm": []byte{1, 0}, "rate": 24000})
+	if _, _, err := h.handle(context.Background(), "say", body); err != nil || !b.beep {
+		t.Fatal(err, b.beep)
 	}
 }

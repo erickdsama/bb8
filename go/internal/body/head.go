@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -223,22 +224,94 @@ func (h *Head) Say(ctx context.Context, text, sound string) map[string]any {
 	if text == "" && sound == "" {
 		return fail(errors.New("send 'text' or 'sound'"))
 	}
+	if text != "" && h.Voice != nil {
+		if first, rest := splitFirstSentence(text); rest != "" {
+			return h.sayInParts(ctx, first, rest, sound)
+		}
+	}
+	return h.sayOne(ctx, text, sound, h.voice(ctx, text), false)
+}
+
+type voiced struct {
+	pcm  []byte
+	rate int
+}
+
+// voice makes the body's voice for text; nil when there is none (the head speaks it).
+func (h *Head) voice(ctx context.Context, text string) *voiced {
+	if text == "" || h.Voice == nil {
+		return nil
+	}
+	t0 := time.Now()
+	pcm, rate, err := h.Voice(ctx, text)
+	if err != nil {
+		slog.Warn("voice synthesis failed, the head speaks it", "err", err)
+		return nil
+	}
+	if len(pcm) == 0 || len(pcm) >= 4<<20 { // a link frame is at most 8 MB, base64 included
+		return nil
+	}
+	slog.Info("voice synthesis", "ms", time.Since(t0).Milliseconds(), "chars", len([]rune(text)), "audio_s", len(pcm)/2/rate)
+	return &voiced{pcm, rate}
+}
+
+func (h *Head) sayOne(ctx context.Context, text, sound string, v *voiced, noBeep bool) map[string]any {
 	req := map[string]any{"text": text, "sound": sound}
 	wait := 30 * time.Second
-	if text != "" && h.Voice != nil {
-		pcm, rate, err := h.Voice(ctx, text)
-		if err != nil {
-			slog.Warn("voice synthesis failed, the head speaks it", "err", err)
-		} else if len(pcm) > 0 && len(pcm) < 4<<20 { // a link frame is at most 8 MB, base64 included
-			req["pcm"], req["rate"] = pcm, rate
-			wait += time.Duration(len(pcm)/2/rate) * time.Second
-		}
+	if v != nil {
+		req["pcm"], req["rate"] = v.pcm, v.rate
+		wait += time.Duration(len(v.pcm)/2/v.rate) * time.Second
+	}
+	if noBeep {
+		req["no_beep"] = true
 	}
 	r, _, err := h.request(ctx, "say", req, wait)
 	if err != nil {
 		return fail(err)
 	}
 	return done(r)
+}
+
+// sayInParts starts speaking after the first sentence is synthesized instead of the
+// whole reply: both parts are made at once and the rest plays without a second beep.
+func (h *Head) sayInParts(ctx context.Context, first, rest, sound string) map[string]any {
+	later := make(chan *voiced, 1)
+	go func() { later <- h.voice(ctx, rest) }()
+	r := h.sayOne(ctx, first, sound, h.voice(ctx, first), false)
+	v := <-later
+	if r["result"] != "done" {
+		return r
+	}
+	r2 := h.sayOne(ctx, rest, "", v, v != nil)
+	if s1, ok := r["seconds"].(float64); ok {
+		if s2, ok := r2["seconds"].(float64); ok {
+			r2["seconds"] = s1 + s2
+		}
+	}
+	return r2
+}
+
+// splitFirstSentence cuts text after its first sentence, once that sentence has some
+// length (a lone "¡Hola!" is not worth a separate request). rest is "" when there is
+// nothing to gain.
+func splitFirstSentence(text string) (first, rest string) {
+	rs := []rune(text)
+	for i := 0; i < len(rs)-1; i++ {
+		switch rs[i] {
+		case '.', '!', '?', '…':
+		default:
+			continue
+		}
+		if rs[i+1] != ' ' || i < 25 {
+			continue
+		}
+		first, rest = string(rs[:i+1]), strings.TrimSpace(string(rs[i+1:]))
+		if len([]rune(rest)) < 15 {
+			return text, ""
+		}
+		return first, rest
+	}
+	return text, ""
 }
 
 // Rest: active=false dims the eye and pauses the camera; true wakes them.
