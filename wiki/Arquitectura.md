@@ -10,7 +10,8 @@ flowchart TD
   VZ[Voice front end<br/>Python: wake word, STT, speaker id] -->|POST /agent/ask| B
   B -->|GET /audio/stream| VZ
   CL[Claude Desktop / Code] -->|MCP :8765/mcp + token| B
-  WEB[Config page<br/>browser] -->|HTTP + SSE :8765| B
+  WEB[Pages<br/>browser] -->|HTTPS| BW[bb8-web<br/>off the robot]
+  B -->|dials out, WebSocket| BW
   J[Bluetooth gamepad<br/>wins over the LLM] -->|evdev| B
   B[bb8-body · Pi 3 B+<br/>motion · map · MCP · agent · connectors · config]
   B -->|USB serial 115200| AR[Arduino<br/>own firmware]
@@ -87,9 +88,16 @@ The Python stack used before took ~100 MB on the body (`bb8.motion_api` 40 MB + 
 | `body` | Robot tools, head client, local API, config fields and wiring |
 | `link` | Mutual TLS, framing, `pair` |
 | `head` | Head side: Real and Sim backends, beeps, VL53L0X, mic (VAD + GCC-PHAT direction + audio stream) |
-| `config` | Store, schema, SSE web UI |
-| `agent` | OpenRouter tool loop |
-| `connectors` | Connector interface + `weather`, `calendar` (Google provider) |
+| `config` | Store, schema, SSE API (no pages) |
+| `webui` | The pages (settings, control, voice, people), served by `bb8-web` |
+| `relay` | The robot's outbound link to `bb8-web`: requests and SSE streams through one WebSocket |
+| `agent` | OpenRouter tool loop; speaker profiles; publishes heard/tool/reply |
+| `people` | Profiles (role, notes), agent tools, `/people` page |
+| `events` | Robot → page bus, SSE at `/api/events` |
+| `navigate` | System 1 loop for `navigate_to`: JEV planner with local rules as fallback |
+| `connectors` | Connector interface + `weather` (Open-Meteo), `calendar` (Google provider), `websearch` (OpenRouter web plugin), `mcpclient` (tools of the connected accounts, routed per speaker) |
+| `connections` | Accounts with owners (`connections.json`), MCP OAuth (discovery, registration, PKCE, refresh), Home Assistant sign-in, `/api/connections` |
+| `mdns` | One-shot mDNS: find services, resolve `.local` in the static build |
 | `gamepad` | evdev |
 | `persona` | Emotions, colors, system prompt |
 
@@ -109,7 +117,10 @@ The Python stack used before took ~100 MB on the body (`bb8.motion_api` 40 MB + 
 | `get_map()` / `set_position()` / `update_map()` | House plan: room, how far and how much to turn toward each thing; fix the position; record changes |
 | `listen(wait_s)` | Last thing the head's ReSpeaker heard and from where: the angle relative to the head, converted to two body-frame candidates (in front of / behind the head) |
 | `get_setting()` / `set_setting()` | Settings the agent may change (volume, city…) |
-| `weather`, `calendar_*` | Connector tools, while the connector is enabled |
+| `weather`, `web_search`, `calendar_*` | Connector tools, while the connector is enabled |
+| `scan`, `navigate_to` | Head ToF sweep; drive to a room or furniture by itself (System 1) |
+| `people`, `remember_about`, `forget_about` | Who BB-8 knows; notes are for known voices only |
+| `<name>_<tool>` | Tools of the connected accounts (Zapier, Home Assistant, Notion…). Each person uses their own account; sending, creating or deleting needs a yes in the next turn |
 
 ## Hearing
 

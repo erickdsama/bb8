@@ -13,7 +13,7 @@
 
 **Construir**
 - [1 · Protoboard](Parte-1-Protoboard.md)
-- [2 · Base de melamina](Parte-2-Base-de-melamina.md)
+- [2 · Base de MDF](Parte-2-Base-de-melamina.md)
 - [3 · Base andando](Parte-3-Base-andando.md)
 - [4 · Agente y movimiento](Parte-4-Agente-controla-el-movimiento.md)
 - [5 · Cabeza](Parte-5-Agente-controla-la-cabeza.md)

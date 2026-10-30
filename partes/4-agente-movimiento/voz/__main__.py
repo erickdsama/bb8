@@ -127,14 +127,23 @@ async def bucle(sin_registro: bool) -> None:
             voz.ojo("green")
             panel.evento("state", state="speaking")
             voz.decir(respuesta)
-            # A reply that asks something keeps the conversation open.
-            pregunta = respuesta.rstrip().endswith("?")
+            # A reply that asks or offers something keeps the conversation open.
+            pregunta = espera_respuesta(respuesta)
             seguimiento = seguimiento + 1 if pregunta and seguimiento < V.SEGUIMIENTOS_MAX else 0
             if not seguimiento:
                 voz.ojo("blue", "breathe")
     finally:
         await agente.cerrar()
 
+
+
+_OFERTA = re.compile(r"\b(si quieres|quieres que|te parece|prefieres|dime si)\b", re.I)
+
+
+def espera_respuesta(texto: str) -> bool:
+    """True when BB-8's reply waits for an answer: a question anywhere (not only at the
+    end: Haiku closes offers with a period) or an offer such as "si quieres…"."""
+    return "?" in texto or bool(_OFERTA.search(texto))
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Agente de voz del BB-8")

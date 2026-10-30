@@ -16,7 +16,14 @@ y buck del servo. La cabeza sigue con su power bank.
 - **El Arduino come por VIN desde la batería** (después del interruptor), no solo por el USB de la Pi, para seguir vivo cuando corta la Pi.
 - Nunca bajar de 3.3 V por celda (~10 V); la alarma de voltaje (en el pedido) se pone a 3.5 V.
 - Divisor 10 kΩ / 4.7 kΩ de la batería a **A0** y `HAY_DIVISOR_BAT 1` en el firmware: así `?` reporta `V=` y el firmware rechaza `M` por debajo de 9.9 V.
-- Carga: el XT60 hembra, la extensión de balanceo JST-XH y el rocker van en un panel **en la base** (no en el casco: la esfera gira alrededor de la base y el cable se enredaría). Se alcanzan por la tapa de carga, uno de los círculos naranjas, girando la esfera con la mano. Rocker apagado, iMAX B6AC en modo Balance a 2.6 A (~2 h). La batería nunca sale del robot.
+- **Carga inalámbrica en un plato:** Bebocho rueda encima del plato (o lo pones tú) y carga. No importa hacia dónde mire: la bobina receptora va abajo y abajo siempre es abajo.
+  - El plato (`cad/plato.scad`) mide Ø34 cm: sube por una rampa de ~7° a una orilla de 8 mm y cae a un hoyo de 2.5 mm (máx. ~3°) que lo deja centrado. Para salir solo sube esos ~3°; Bebocho, que se mueve inclinando su base como péndulo, aguanta 10–15°.
+  - La base siempre queda abajo y gira alrededor del centro de la esfera, así que la bobina receptora, bajo la charola, queda siempre a 7 mm de la pared (5 mm en la orilla, para que no roce con costuras ni resina). La emisora va en el centro del plato bajo 1 mm de plástico: 12 mm de bobina a bobina.
+  - Eliminador 24 V → emisor (en una cajita atrás del plato) → bobina emisora. Receptor → cargador CC/CV a **12.6 V y 1.5 A** → BMS 3S con balance → LiPo (~4 h de vacía a llena). El LED del panel prende mientras recibe corriente.
+  - El receptor y el cargador van pegados con cinta doble cara bajo la plataforma, con los componentes hacia abajo, entre los soportes de motor y la pestaña de atrás de la charola. El BMS va de canto, detrás del cargador. Los dos pasacables quedan libres.
+  - El rocker del panel queda adentro: solo para apagar del todo al abrir la esfera. En uso normal se duerme solo.
+  - Cada ~10 cargas, o si las celdas se separan más de 0.05 V, abrir la esfera y cargar en modo Balance con el iMAX B6AC.
+  - Pendiente: que el robot sepa que está cargando (para quedarse quieto en el plato) y que vaya solo al plato con "ve a cargarte" o con batería baja (necesita la cámara de la cabeza). Hoy solo se ve en el voltaje de la batería.
 
 Diagrama "banco contra LiPo" en el artefacto [Diagramas](Artefactos.md#diagramas), sección 2.
 
@@ -52,11 +59,11 @@ para `systemctl poweroff`.
 ## Esfera
 
 El modelo ya está hecho: [Diseño 3D](Diseno-3D.md#esfera) tiene los 14 gajos, los 6
-círculos, la tapa de carga y la bayoneta de la junta, en OpenSCAD paramétrico y en STL.
+círculos, la bayoneta de la junta y el plato de carga, en OpenSCAD paramétrico y en STL.
 
-1. Imprime los gajos de [`cad/stl/parte6-esfera`](https://github.com/erickdsama/bb8/tree/main/cad/stl/parte6-esfera) (6 círculos naranjas + 14 piezas blancas que forman los 8 gajos), con espigas de filamento de 1.75 mm.
+1. Imprime los gajos de [`cad/stl/fase2-esfera-y-cabeza`](https://github.com/erickdsama/bb8/tree/main/cad/stl/fase2-esfera-y-cabeza) (6 círculos naranjas + 14 piezas blancas que forman los 8 gajos), con espigas de filamento de 1.75 mm.
 2. Imprime con capa de 0.28 mm y 10–15 % de relleno (~2–3 kg de PLA).
-3. Pega, **refuerza por dentro** (fibra de vidrio o segunda capa de resina), lija, primer, pinta y laca.
+3. Pega, refuerza por dentro con **una sola capa delgada** de resina (≤ 1 mm, lijada lisa: los domos de las ruedas locas pasan a 3 mm de la pared y la charola a 5 mm), lija, primer, pinta y laca.
 4. Prueba que la base rueda dentro de la esfera **antes** de poner imanes y lastre; si las ruedas giran pero la esfera no, las ruedas locas tocan primero.
 5. Recorta el poste para que los imanes queden a 2–3 mm de la pared.
 6. Lastre hasta 1–1.5 kg en total, lo más abajo posible; prueba que la base no vuelque al frenar.

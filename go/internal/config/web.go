@@ -1,7 +1,6 @@
 package config
 
 import (
-	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,14 +9,9 @@ import (
 	"time"
 )
 
-//go:embed web/index.html web/control.html web/voice.html
-var webFS embed.FS
-
-// Web serves the config UI and API:
+// Web serves the config API (the pages live in webui and are served by bb8-web,
+// off the robot; they reach this API through the relay):
 //
-//	GET   /                     the page
-//	GET   /control              drive page; it talks to /mcp like any MCP client
-//	GET   /voice                live voice pipeline (level, wake word, transcripts)
 //	GET   /api/config           {rev, values, live}
 //	GET   /api/config/schema    fields
 //	PATCH /api/config           {baseRev, values} → 409 with the latest config on a stale rev
@@ -40,21 +34,6 @@ func Web(s *Store, live func() map[string]any) http.Handler {
 		}
 		return out
 	}
-	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
-		b, _ := webFS.ReadFile("web/index.html")
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = w.Write(b)
-	})
-	mux.HandleFunc("GET /voice", func(w http.ResponseWriter, r *http.Request) {
-		b, _ := webFS.ReadFile("web/voice.html")
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = w.Write(b)
-	})
-	mux.HandleFunc("GET /control", func(w http.ResponseWriter, r *http.Request) {
-		b, _ := webFS.ReadFile("web/control.html")
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = w.Write(b)
-	})
 	mux.HandleFunc("GET /api/config", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, current()) })
 	mux.HandleFunc("GET /api/config/schema", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.Schema()) })
 	mux.HandleFunc("GET /api/config/audit", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.Audit()) })

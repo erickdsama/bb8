@@ -22,7 +22,7 @@ sudo systemctl start bb8-body             # con BB8_GAMEPAD=1 lee el mando
 python -m calibrar rutina                 # en el piso: avanza, gira 90°, vuelve
 ```
 
-Los números van a la página de configuración (`http://bb8.local:8765/`, sección
+Los números van a la página de configuración (`bb8-web`, sección
 `motion`, se aplican al momento) y `PULSOS_MAX_CICLO` al firmware.
 
 **Lista cuando** avanza, gira 90° y vuelve con deriva < 5°.

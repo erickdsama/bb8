@@ -11,14 +11,14 @@
 //   - la junta entre mitades es un traslape a media pared con bayoneta de 6 lengüetas
 //     que viven dentro del grosor de la pared (se cierra girando 7°);
 //   - los gajos de una misma mitad se pegan a tope con espigas de filamento de 1.75 mm.
-// Un círculo (el del eje −z del patrón) es la tapa de carga: el piso tiene un hueco y la
-// tapa se atornilla a la ceja con 4 tornillos M2 × 4 avellanados.
+// No hay tapa de carga: la esfera carga por inducción en su plato (plato.scad), así que
+// los 6 círculos son iguales y el casco no tiene huecos.
 //
 // Marco del patrón: ejes del cubo. La mitad A es la que queda del lado +(1,1,1).
 // Uso: openscad -D 'parte="A_ppp"' -o A_ppp.stl esfera.scad
 //   partes: A_ppp A_ppm A_pmp A_mpp A_pmm A_mpm A_mmp
 //           B_ppm B_pmp B_mpp B_pmm B_mpm B_mmp B_mmm
-//           circulo  tapa_carga  vista
+//           circulo  vista
 
 include <parametros.scad>
 
@@ -27,8 +27,6 @@ parte = "vista";
 ALFA = acos(1 / sqrt(3));   // ángulo entre (1,1,1) y cualquier eje
 B = Re + 10;                 // "infinito" para cortes
 EJES = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [-1, 0, 0], [0, -1, 0], [0, 0, -1]];
-EJE_CARGA = [0, 0, -1];
-ang_ceja = ceja_tapa / Re * 180 / PI;
 ang_holg = holg / Re * 180 / PI;
 
 // Del marco de la junta (eje z = (1,1,1)) al marco del patrón.
@@ -64,13 +62,6 @@ module espigas(s) {
     }
 }
 
-// Agujeros piloto ciegos en la ceja para los tornillos de la tapa de carga.
-module tornillos_tapa() {
-    a = circulo_ang - ang_ceja / 2;
-    apuntar(EJE_CARGA) for (k = [0 : 3]) rotate([0, 0, 45 + 90 * k]) rotate([0, a, 0])
-        translate([0, 0, Ri + 0.4]) cylinder(d = 1.6, h = Re - Ri, $fn = 12);
-}
-
 // s = octante [±1, ±1, ±1] para recortar desde el principio (CGAL va mucho más rápido),
 // o undef para la esfera entera.
 module blanco(s) {
@@ -81,11 +72,6 @@ module blanco(s) {
         }
         // asientos de los círculos
         for (e = EJES) if (en_octante(e, s)) apuntar(e) casquete(Re - rebaje, Re + 1, circulo_ang);
-        // hueco de la tapa de carga (deja la ceja)
-        if (en_octante(EJE_CARGA, s)) {
-            apuntar(EJE_CARGA) cono(circulo_ang - ang_ceja, Re + 2);
-            tornillos_tapa();
-        }
         espigas(s);
     }
 }
@@ -142,18 +128,6 @@ module mitad_B(s) {
 // ── Círculos naranjas ──
 module circulo() casquete(Re - rebaje + 0.15, Re, circulo_ang - ang_holg);
 
-module tapa_carga() {
-    difference() {
-        circulo();
-        // tornillos avellanados (cabeza 3.8 mm) y una muesca para la uña
-        a = circulo_ang - ang_ceja / 2;
-        for (k = [0 : 3]) rotate([0, 0, 45 + 90 * k]) rotate([0, a, 0]) {
-            translate([0, 0, Re - rebaje - 1]) cylinder(d = 2.3, h = rebaje + 2, $fn = 12);
-            translate([0, 0, Re - 1.1]) cylinder(d1 = 2.3, d2 = 4.3, h = 1.11, $fn = 16);
-        }
-        rotate([0, circulo_ang - 1.2, 0]) translate([0, 0, Re]) cube([6, 12, 2.5], center = true);
-    }
-}
 
 // Pieza en la orientación del patrón: octante s de la mitad m.
 module pieza(m, s) {
@@ -172,12 +146,11 @@ module esfera_completa(explosion = 0) {
     color("white") mitad_A();
     color("white") mitad_B();
     for (e = EJES) color("darkorange") apuntar(e) translate([0, 0, explosion])
-        if (e == EJE_CARGA) tapa_carga(); else circulo();
+        circulo();
 }
 
 if (parte == "vista") esfera_completa();
 else if (parte == "circulo") circulo();
-else if (parte == "tapa_carga") tapa_carga();
 else {
     m = parte[0];
     s = signos([parte[2], parte[3], parte[4]]);

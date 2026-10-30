@@ -1,16 +1,17 @@
 // BB-8 · base motriz (Partes 2 y 6).
 //
-// La plataforma (MDF de 6 mm en láser) va arriba y todo lo pesado cuelga debajo: motores
+// La plataforma (MDF de 5.5 mm en láser) va arriba y todo lo pesado cuelga debajo: motores
 // en soportes impresos, la LiPo en una charola justo bajo los motores y, a los lados de la
 // LiPo, dos compartimentos para 1–1.5 kg de lastre. Las ruedas locas RL4 van adelante y
 // atrás en soportes inclinados que apuntan al centro de la esfera. Todo impreso en PETG.
+// Bajo la charola cuelga la bobina receptora de la carga inalámbrica (ver plato.scad).
 //
 // Las medidas que salen de la geometría (altura del eje, de la plataforma, inclinación de
 // los ball transfers) se calculan en parametros.scad; corre `reportar()` para verlas.
 //
 // Uso: openscad -D 'parte="soporte_motor"' -o soporte_motor.stl base.scad
 //   partes: plataforma (3D)  plataforma_2d (plantilla DXF/SVG 1:1)  soporte_motor
-//           soporte_motor_izq  charola  soporte_bt (imprime 2)  panel_carga  vista
+//           soporte_motor_izq  charola  soporte_bt (imprime 2)  panel_interruptor  vista
 // Las piezas sueltas salen ya orientadas para imprimir.
 
 include <parametros.scad>
@@ -31,9 +32,10 @@ POS_UNO   = [5 - 68.6 / 2, -88.7];
 POS_L298N = [-71.5, -21.5];
 POS_BUCK  = [[28.5, 0.5], [28.5, -21.5]];
 POS_MPU   = [-75, 30];
-PANEL_AZ  = 225;   // panel de carga: atrás a la izquierda, mirando hacia afuera
+PANEL_AZ  = 225;   // panel del interruptor: atrás a la izquierda, mirando hacia afuera
 PANEL_R   = 86;
 alto_separadores = 8;
+rocker_corte = [19, 13];   // MEDIR: largo × alto del cuerpo del SH12RO (sin la ceja), + 0.4
 
 // ───────────── Agujeros compartidos por la plataforma y las piezas ─────────────
 function agujeros_motor(lado) = [for (x = [x_silla + 8, x_cara - 8], s = [-1, 1]) [lado * x, excentrico + s * 22]];
@@ -75,12 +77,15 @@ module soporte_motor() {
     yc = excentrico;
     alto = plat_z_inf - z_eje;
     difference() {
-        union() {
-            translate([x_silla, yc - silla_ancho / 2, z_eje]) cube([x_cara - x_silla, silla_ancho, alto]);
-            hull() {
-                translate([x_cara, yc - silla_ancho / 2, z_eje]) cube([4, silla_ancho, alto]);
-                translate([x_cara, yc, z_eje]) rotate([0, 90, 0]) cylinder(d = caja_d + 8, h = 4);
+        intersection() {   // la placa redonda (Ø45) subiría 1 mm dentro de la plataforma
+            union() {
+                translate([x_silla, yc - silla_ancho / 2, z_eje]) cube([x_cara - x_silla, silla_ancho, alto]);
+                hull() {
+                    translate([x_cara, yc - silla_ancho / 2, z_eje]) cube([4, silla_ancho, alto]);
+                    translate([x_cara, yc, z_eje]) rotate([0, 90, 0]) cylinder(d = caja_d + 8, h = 4);
+                }
             }
+            translate([-500, -500, plat_z_inf - 1000]) cube([1000, 1000, 1000]);
         }
         translate([x_cara - caja_L - 0.5, yc, z_eje]) rotate([0, 90, 0]) cylinder(d = caja_d + 2 * holg, h = caja_L + 0.51);
         translate([x_silla - 1, yc, z_eje]) rotate([0, 90, 0]) cylinder(d = motor_d + 1.5, h = x_cara - caja_L - x_silla + 1.01);
@@ -96,8 +101,8 @@ module soporte_motor() {
         // tornillos M3 a la plataforma con tuerca atrapada
         for (p = agujeros_motor(1)) translate([p[0], p[1], plat_z_inf - 14]) {
             cylinder(d = 3.4, h = 15, $fn = 16);
-            translate([0, 0, 4]) rotate([0, 0, 30]) cylinder(d = 6.4, h = 2.8, $fn = 6);
-            translate([0, (p[1] > yc ? 1 : -1) * 6, 4 + 1.4]) cube([5.6, 12, 2.8], center = true);
+            translate([0, 0, 4]) rotate([0, 0, 30]) cylinder(d = tuerca_m3, h = 2.8, $fn = 6);
+            translate([0, (p[1] > yc ? 1 : -1) * 6, 4 + 1.4]) cube([5.9, 12, 2.8], center = true);
         }
     }
 }
@@ -108,26 +113,41 @@ module charola() {
     largo = ly + 2 * charola_pared;
     alto_muro = lipo[2] - 5;
     difference() {
-        union() {
-            intersection() {
-                translate([-ancho / 2, -largo / 2, charola_z]) cube([ancho, largo, charola_piso + alto_muro]);
-                sphere(Ri - 3, $fn = 160);
-            }
+        intersection() {
+          sphere(Ri - holg_pared, $fn = 160);   // nada de la charola llega a menos de holg_pared
+          union() {
+            translate([-ancho / 2, -largo / 2, charola_z]) cube([ancho, largo, charola_piso + alto_muro]);
+            // portabobina: baja del piso de la charola hasta bobina_aire de la pared
+            translate([0, 0, -(Ri - bobina_aire)]) cylinder(d = bobina_d + 6, h = charola_z + Ri - bobina_aire + 0.01, $fn = 96);
             for (s = [-1, 1]) {
                 translate([-25, s > 0 ? ly / 2 : -ly / 2 - charola_pared, charola_z]) cube([50, charola_pared, plat_z_inf - charola_z]);
                 translate([-25, s > 0 ? ly / 2 - 10 : -ly / 2, plat_z_inf - 5]) cube([50, 10, 5]);
+                // 45° gusset under the tab: it prints without supports and backs the nut
+                hull() {
+                    translate([-25, s > 0 ? ly / 2 - 0.01 : -ly / 2, plat_z_inf - 5 - 10]) cube([50, 0.01, 10]);
+                    translate([-25, s > 0 ? ly / 2 - 10 : -ly / 2 + 10 - 0.01, plat_z_inf - 5]) cube([50, 0.01, 0.01]);
+                }
                 // costillas
                 for (x = [-25, 21]) translate([x, s > 0 ? ly / 2 - 6 : -ly / 2, charola_z]) cube([4, 6, plat_z_inf - charola_z]);
             }
+          }
         }
-        translate([-lx / 2, -ly / 2, charola_z + charola_piso]) cube([lx, ly, 200]);
+        // LiPo pocket: open to the top in the middle, but at the ends only up to the gusset,
+        // or it eats the tabs the tray hangs from (it did: only 1 mm slivers were left)
+        translate([-lx / 2, -ly / 2 + 10, charola_z + charola_piso]) cube([lx, ly - 20, 200]);
+        translate([-lx / 2, -ly / 2, charola_z + charola_piso]) cube([lx, ly, plat_z_inf - 5 - 10 - charola_z - charola_piso]);
         for (s = [-1, 1]) translate([s > 0 ? lx / 2 + charola_pared : -lx / 2 - charola_pared - lastre_ancho,
                                      -lastre_largo / 2, charola_z + charola_piso]) cube([lastre_ancho, lastre_largo, 200]);
         // ranuras para 2 correas de velcro de 20 mm
         for (y = [-35, 35], s = [-1, 1]) translate([s * (lx / 2 + 1.2) - 1.5, y - 11, charola_z - 1]) cube([3, 22, 10]);
         for (p = agujeros_charola()) translate([p[0], p[1], plat_z_inf - 20]) cylinder(d = 3.4, h = 21, $fn = 16);
         // tuercas M3 por debajo de la pestaña
-        for (p = agujeros_charola()) translate([p[0], p[1], plat_z_inf - 5 - 3]) rotate([0, 0, 30]) cylinder(d = 6.4, h = 5.6, $fn = 6);
+        // (the hex channel runs down through the gusset so the nut goes in from below)
+        for (p = agujeros_charola()) translate([p[0], p[1], plat_z_inf - 25]) rotate([0, 0, 30]) cylinder(d = tuerca_m3, h = 25 - 2.4, $fn = 6);
+        // la bobina, pegada en su hueco con la cara hacia la pared, y la ranura de su cable
+        // (sube por fuera del portabobina y entra al compartimiento de lastre)
+        translate([0, 0, -(Ri - bobina_aire) - 1]) cylinder(d = bobina_d + 0.8, h = bobina_e + 1, $fn = 96);
+        translate([bobina_d / 2 - 2, -2.5, -(Ri - bobina_aire) - 1]) cube([10, 5, Ri - bobina_aire + charola_z + charola_piso + 2]);
         // salida del cable de la LiPo
         translate([-8, -ly / 2 - charola_pared - 1, charola_z + charola_piso + 4]) cube([16, charola_pared + 2, 30]);
     }
@@ -135,7 +155,7 @@ module charola() {
 
 // ───────────── Soporte de rueda loca RL4 (s = 1 adelante, −1 atrás) ─────────────
 // Bloque bajo la plataforma con la cara inclinada hacia el centro de la esfera. La brida
-// de la RL4 se atornilla a esa cara con 2 M4 y tuerca por detrás.
+// de la RL4 se atornilla a esa cara con 2 M4 y tuerca por detrás, en ranuras.
 bt_c = [0, bt_y, bt_c_z];
 bt_u = unitario(bt_c);
 bt_cara = bt_c - (bt_bola_fuera - bola_d / 2) * bt_u;   // cara de la brida
@@ -149,12 +169,18 @@ module soporte_bt(s = 1) {
         }
         translate(bt_atras) apuntar(bt_u) {
             cylinder(d = 2 * bt_brida[0], h = 60);              // todo lo que va delante de la brida
-            for (y = [-1, 1]) translate([0, y * bt_agujero_sep / 2, 0]) {
-                translate([0, 0, -12]) cylinder(d = 4.5, h = 13, $fn = 16);
-                translate([0, 0, -6.5]) rotate([0, 0, 30]) cylinder(d = 8.1, h = 3.4, $fn = 6);   // tuerca M4
-                translate([0, 0, -60 - 6.5]) cylinder(d = 10, h = 60, $fn = 24);                  // llave por detrás
+            // Ranuras: la brida entra con cualquier separación de bt_ranura[0] a bt_ranura[1].
+            // La tuerca M4 corre en su canal plano contra plano y no gira.
+            for (y = [-1, 1]) {
+                hull() for (c = bt_ranura / 2) translate([0, y * c, -12]) cylinder(d = 4.5, h = 13, $fn = 16);
+                // tuerca M4: entra deslizando por la punta del soporte (un canal hacia atrás
+                // se comería el asiento de los tornillos al MDF)
+                hull() for (c = [bt_ranura[0] / 2, bt_brida[0]]) translate([0, y * c, -6.5]) rotate([0, 0, 30]) cylinder(d = tuerca_m4, h = 3.4, $fn = 6);
             }
         }
+        // Agujero de la Pi que cae sobre el soporte de adelante: el M2 × 16 de la Pi se rosca aquí.
+        for (p = PI4_AG) let(q = POS_PI4 + p) if (abs(q[0]) < 24 && q[1] > 80 && q[1] < 104)
+            translate([q[0], q[1], plat_z_inf - 8]) cylinder(d = 1.7, h = 9, $fn = 12);
         for (p = agujeros_bt(1)) translate([p[0], p[1], plat_z_inf - 20]) {
             cylinder(d = 3.4, h = 21, $fn = 16);
             translate([0, 0, -46]) cylinder(d = 7, h = 60, $fn = 24);   // cabeza del tornillo por abajo
@@ -162,11 +188,11 @@ module soporte_bt(s = 1) {
     }
 }
 
-// ───────────── Panel de carga ─────────────
-// Rocker 10 A (corte 19 × 13), XT60 hembra pegado y extensión de balanceo JST-XH 4p.
-// Va en la base, no en el casco: la esfera gira alrededor de la base y cualquier cable
-// al casco se enredaría. Se alcanza por la tapa de carga girando la esfera con la mano.
-module panel_carga() {
+// ───────────── Panel del interruptor ─────────────
+// Rocker SH12RO (corte `rocker_corte`, MEDIR) para apagar del todo al abrir la esfera (mantenimiento,
+// guardarlo) y un LED de 5 mm que se enciende mientras carga. La carga es inalámbrica,
+// así que ya no hay XT60 ni balanceo por fuera: la LiPo se conecta adentro.
+module panel_interruptor() {
     rotate([0, 0, PANEL_AZ]) translate([PANEL_R, 0, plat_z_sup]) difference() {
         union() {
             translate([-12, -30, 0]) cube([15, 60, 3]);          // pie
@@ -176,9 +202,8 @@ module panel_carga() {
                 translate([0, y, 0]) cube([1, 3, 36]);
             }
         }
-        translate([-1, -9.5 - 11, 18 - 6.5]) cube([5, 19, 13]);          // rocker
-        translate([-1, 6, 6]) cube([5, 16.2, 8.4]);                      // XT60
-        translate([-1, 6, 22]) cube([5, 12.6, 6]);                       // JST-XH 4p
+        translate([-1, -rocker_corte[0] / 2 - 11, 18 - rocker_corte[1] / 2]) cube([5, rocker_corte[0], rocker_corte[1]]);   // rocker
+        translate([-1, 14, 18]) rotate([0, 90, 0]) cylinder(d = 5.2, h = 5, $fn = 24);   // LED de carga
         for (t = [-18, 18]) translate([-9, t, -1]) cylinder(d = 3.4, h = 5, $fn = 16);
     }
 }
@@ -208,7 +233,8 @@ module base_completa() {
     translate([0, 0, lipo_z_inf]) lipo();
     for (s = [-1, 1]) color("orange") soporte_bt(s);
     for (s = [-1, 1]) mirror([0, s > 0 ? 0 : 1, 0]) translate(bt_cara) apuntar(bt_u) ball_transfer();
-    color("orange") panel_carga();
+    color("orange") panel_interruptor();
+    color("#555") translate([0, 0, -(Ri - bobina_aire)]) cylinder(d = bobina_d, h = bobina_e, $fn = 64);   // bobina receptora
     electronica();
 }
 
@@ -219,4 +245,4 @@ else if (parte == "soporte_motor") rotate([180, 0, 0]) soporte_motor();
 else if (parte == "soporte_motor_izq") rotate([180, 0, 0]) mirror([1, 0, 0]) soporte_motor();
 else if (parte == "charola") charola();
 else if (parte == "soporte_bt") rotate([180, 0, 0]) soporte_bt(1);
-else if (parte == "panel_carga") panel_carga();
+else if (parte == "panel_interruptor") panel_interruptor();

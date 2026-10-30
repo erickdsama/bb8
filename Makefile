@@ -1,12 +1,15 @@
 # Go binaries of the BB-8. Static (CGO off), stripped.
-#   make            # bin/ for this PC (bb8-body, bb8-head)
+#   make            # bin/ for this PC (bb8-body, bb8-head, bb8-web)
 #   make pi         # dist/linux-arm64/bb8-body + bb8-head  (Pi 3 B+, 64-bit OS)
 #   make zero       # dist/linux-armv6/bb8-head             (Pi Zero W, armv6)
 #   make release    # pi + zero
 #   make test       # go vet + go test
 #   make probar     # dummy + Go binaries + end-to-end test (fresh dummy)
 GO      ?= $(shell command -v go 2>/dev/null || echo $(HOME)/.local/go/bin/go)
-FLAGS   := -trimpath -ldflags "-s -w"
+# Google sign-in client (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET): gitignored, see google_client.env.example
+-include google_client.env
+CAL     := github.com/erickdsama/bb8/go/internal/connectors/calendar
+FLAGS   := -trimpath -ldflags "-s -w -X $(CAL).builtinID=$(GOOGLE_CLIENT_ID) -X $(CAL).builtinSecret=$(GOOGLE_CLIENT_SECRET)"
 PY      ?= $(shell [ -x .venv/bin/python ] && echo .venv/bin/python || echo python3)
 export CGO_ENABLED=0
 

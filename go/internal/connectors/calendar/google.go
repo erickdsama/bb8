@@ -3,125 +3,153 @@ package calendar
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/erickdsama/bb8/go/internal/config"
+	"github.com/erickdsama/bb8/go/internal/connections"
 	"github.com/erickdsama/bb8/go/internal/connectors"
+	"github.com/erickdsama/bb8/go/internal/tools"
 )
 
-// Google Calendar over REST with an OAuth refresh token (no SDK: keeps the binary small).
+// Google Calendar over REST (no SDK: keeps the binary small). Each person signs
+// in with their own Google account on the Services page (a "google" account in
+// the connections store); a call uses the account of whoever is speaking, else
+// a shared one. All accounts sign in with one OAuth client that the owner
+// registers in Google Cloud: its ID and secret are the settings below.
 const (
 	keyClientID     = "connectors.calendar.google_client_id"
 	keyClientSecret = "connectors.calendar.google_client_secret"
-	keyRefresh      = "connectors.calendar.google_refresh_token"
 	keyCalendarID   = "connectors.calendar.google_calendar_id"
-	keyRedirect     = "connectors.calendar.google_redirect_url"
-	scope           = "https://www.googleapis.com/auth/calendar.events"
 )
 
-// Endpoints; tests point them at a fake server.
-var (
-	GoogleAPI   = "https://www.googleapis.com/calendar/v3"
-	GoogleToken = "https://oauth2.googleapis.com/token"
-	GoogleAuth  = "https://accounts.google.com/o/oauth2/v2/auth"
-)
+// GoogleAPI is the Calendar endpoint; tests point it at a fake server.
+var GoogleAPI = "https://www.googleapis.com/calendar/v3"
 
 func GoogleFields() []config.Field {
 	return []config.Field{
-		{Key: keyClientID, Label: "Google OAuth client ID", Type: config.String,
-			Help: "Google Cloud console → APIs → Credentials → OAuth client (Web application)."},
-		{Key: keyClientSecret, Label: "Google OAuth client secret", Type: config.Secret},
-		{Key: keyRedirect, Label: "OAuth redirect URL", Type: config.String,
-			Default: "http://localhost:8765/api/connectors/calendar/callback",
-			Help:    "Register it in the OAuth client. Open the config page through an SSH tunnel to use localhost."},
-		{Key: keyRefresh, Label: "Google refresh token", Type: config.Secret, Help: "Filled by \"Connect Google\"."},
-		{Key: keyCalendarID, Label: "Calendar ID", Type: config.String, Default: "primary"},
+		{Key: keyClientID, Label: "Client ID", Type: config.String,
+			Help: "Empty = the one built in (google_client.env)."},
+		{Key: keyClientSecret, Label: "Client secret", Type: config.Secret},
+		{Key: keyCalendarID, Label: "Calendar ID", Type: config.String, Default: "primary", Advanced: true},
 	}
 }
 
-var tokens = struct {
-	sync.Mutex
-	m map[string]cachedToken
-}{m: map[string]cachedToken{}}
+// The built-in Google client, baked in at build time from the gitignored
+// google_client.env (see the Makefile), so nobody has to paste it in the page.
+var builtinID, builtinSecret string
 
-type cachedToken struct {
-	access string
-	exp    time.Time
+// GoogleClient is the OAuth client the sign-in uses (connections.Flows.Client):
+// the settings when both are set, else the built-in one.
+func GoogleClient(c *config.Store) (id, secret string) {
+	id, secret = strings.TrimSpace(c.String(keyClientID)), strings.TrimSpace(c.Secret(keyClientSecret))
+	if id == "" || secret == "" {
+		return builtinID, builtinSecret
+	}
+	return id, secret
 }
 
 type Google struct {
-	c    *config.Store
-	HTTP *http.Client
+	c     *config.Store
+	accts *connections.Store
+	owner func() string // home.owner: who the page, MCP clients and no voice ID act as
+	HTTP  *http.Client
+
+	mu   sync.Mutex
+	cals map[string]calCache // account ID → its calendars
 }
 
-func NewGoogle(c *config.Store) *Google {
-	return &Google{c: c, HTTP: &http.Client{Timeout: 10 * time.Second}}
+// gCal is one calendar of an account.
+type gCal struct {
+	ID      string
+	Summary string
+	Main    bool
+	Write   bool
+}
+
+type calCache struct {
+	at      time.Time
+	list    []gCal
+	limited bool // signed in before BB-8 asked for the calendar list: only the main calendar
+}
+
+func NewGoogle(c *config.Store, accts *connections.Store, owner func() string) *Google {
+	if owner == nil {
+		owner = func() string { return "" }
+	}
+	return &Google{c: c, accts: accts, owner: owner, HTTP: &http.Client{Timeout: 10 * time.Second}, cals: map[string]calCache{}}
+}
+
+func (g *Google) accounts() []connections.Connection {
+	if g.accts == nil {
+		return nil
+	}
+	return g.accts.OfKind(connections.KindGoogle)
+}
+
+// serving: every account this caller reads, oldest first (all of a person's own).
+func (g *Google) serving(o tools.CallOpts) []connections.Connection {
+	person := o.Speaker
+	if o.SpeakerKnown && person == "" {
+		person = g.owner()
+	}
+	return connections.PickAll(g.accounts(), o.SpeakerKnown, person, o.Admin)
+}
+
+func (g *Google) Serves(o tools.CallOpts, write bool) bool {
+	if write && !o.SpeakerKnown {
+		return false
+	}
+	return len(g.serving(o)) > 0
+}
+
+// Confirm: ask before adding events if any account says so.
+func (g *Google) Confirm() bool {
+	for _, a := range g.accounts() {
+		if a.Confirm {
+			return true
+		}
+	}
+	return false
 }
 
 func (g *Google) Ready() (connectors.State, string) {
-	if g.c.String(keyClientID) == "" || g.c.Secret(keyClientSecret) == "" {
-		return connectors.NeedsConf, "set the Google OAuth client ID and secret"
+	if id, secret := GoogleClient(g.c); id == "" || secret == "" {
+		return connectors.NeedsConf, "set up the Google client (ID and secret)"
 	}
-	if g.c.Secret(keyRefresh) == "" {
-		return connectors.NeedsAuth, "open /api/connectors/calendar/auth to connect Google"
+	list := g.accounts()
+	if len(list) == 0 {
+		return connectors.NeedsAuth, "sign in with Google on the Services page"
 	}
-	return connectors.OK, ""
+	var who []string
+	g.mu.Lock()
+	for _, a := range list {
+		o := a.Owner
+		if o == "" {
+			o = "shared"
+		}
+		w := strings.TrimSpace(a.Account + " (" + o + ")")
+		if g.cals[a.ID].limited {
+			w += " · sign in again to see all calendars"
+		}
+		who = append(who, w)
+	}
+	g.mu.Unlock()
+	return connectors.OK, strings.Join(who, ", ")
 }
 
-func (g *Google) token(ctx context.Context) (string, error) {
-	refresh := g.c.Secret(keyRefresh)
-	if refresh == "" {
-		return "", errors.New("Google calendar not connected yet")
-	}
-	tokens.Lock()
-	t := tokens.m[refresh]
-	tokens.Unlock()
-	if t.access != "" && time.Until(t.exp) > time.Minute {
-		return t.access, nil
-	}
-	var out struct {
-		Access    string `json:"access_token"`
-		ExpiresIn int    `json:"expires_in"`
-		Error     string `json:"error"`
-	}
-	if err := postForm(ctx, g.HTTP, GoogleToken, url.Values{"grant_type": {"refresh_token"}, "refresh_token": {refresh},
-		"client_id": {g.c.String(keyClientID)}, "client_secret": {g.c.Secret(keyClientSecret)}}, &out); err != nil {
-		return "", err
-	}
-	if out.Access == "" {
-		return "", fmt.Errorf("Google token refresh failed: %s", out.Error)
-	}
-	tokens.Lock()
-	tokens.m[refresh] = cachedToken{out.Access, time.Now().Add(time.Duration(out.ExpiresIn) * time.Second)}
-	tokens.Unlock()
-	return out.Access, nil
-}
+var errNoScope = errors.New("Google Calendar: no calendar permission (sign in again and tick the calendar box)")
 
-func postForm(ctx context.Context, h *http.Client, u string, form url.Values, v any) error {
-	req, _ := http.NewRequestWithContext(ctx, "POST", u, bytes.NewBufferString(form.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	r, err := h.Do(req)
-	if err != nil {
-		return err
-	}
-	defer r.Body.Close()
-	return json.NewDecoder(r.Body).Decode(v)
-}
-
-func (g *Google) do(ctx context.Context, method, path string, q url.Values, body any, out any) error {
-	tok, err := g.token(ctx)
-	if err != nil {
-		return err
-	}
+// doAs calls the Calendar API with one account's token.
+func (g *Google) doAs(ctx context.Context, acctID, method, path string, q url.Values, body any, out any) error {
 	var buf bytes.Buffer
 	if body != nil {
 		_ = json.NewEncoder(&buf).Encode(body)
@@ -130,18 +158,98 @@ func (g *Google) do(ctx context.Context, method, path string, q url.Values, body
 	if len(q) > 0 {
 		u += "?" + q.Encode()
 	}
-	req, _ := http.NewRequestWithContext(ctx, method, u, &buf)
-	req.Header.Set("Authorization", "Bearer "+tok)
+	req, _ := http.NewRequestWithContext(ctx, method, u, bytes.NewReader(buf.Bytes()))
 	req.Header.Set("Content-Type", "application/json")
-	r, err := g.HTTP.Do(req)
+	r, err := g.accts.Client(acctID, g.HTTP).Do(req) // signs and refreshes the token
 	if err != nil {
 		return err
 	}
 	defer r.Body.Close()
 	if r.StatusCode >= 300 {
-		return fmt.Errorf("Google Calendar: HTTP %d", r.StatusCode)
+		var e struct {
+			Error struct {
+				Message string `json:"message"`
+				Errors  []struct {
+					Reason string `json:"reason"`
+				} `json:"errors"`
+			} `json:"error"`
+		}
+		_ = json.NewDecoder(io.LimitReader(r.Body, 8<<10)).Decode(&e)
+		reason := ""
+		if len(e.Error.Errors) > 0 {
+			reason = e.Error.Errors[0].Reason
+		}
+		switch reason {
+		case "accessNotConfigured":
+			return errors.New("Google Calendar: the Calendar API is off in the Google Cloud project (enable it)")
+		case "insufficientPermissions":
+			return errNoScope
+		}
+		return fmt.Errorf("Google Calendar: HTTP %d %s %s", r.StatusCode, reason, e.Error.Message)
+	}
+	if out == nil {
+		return nil
 	}
 	return json.NewDecoder(r.Body).Decode(out)
+}
+
+func (g *Google) mainID() string {
+	if id := g.c.String(keyCalendarID); id != "" {
+		return id
+	}
+	return "primary"
+}
+
+// calendars lists an account's calendars: the ones shown in Google Calendar
+// (selected, not hidden) that BB-8 may read. Cached for 10 minutes.
+func (g *Google) calendars(ctx context.Context, acctID string) []gCal {
+	g.mu.Lock()
+	cc, ok := g.cals[acctID]
+	g.mu.Unlock()
+	if ok && time.Since(cc.at) < 10*time.Minute {
+		return cc.list
+	}
+	var out struct {
+		Items []struct {
+			ID              string `json:"id"`
+			Summary         string `json:"summary"`
+			SummaryOverride string `json:"summaryOverride"`
+			Primary         bool   `json:"primary"`
+			Selected        bool   `json:"selected"`
+			Hidden          bool   `json:"hidden"`
+			AccessRole      string `json:"accessRole"`
+		} `json:"items"`
+	}
+	main := []gCal{{ID: g.mainID(), Main: true, Write: true}}
+	err := g.doAs(ctx, acctID, "GET", "/users/me/calendarList", url.Values{"maxResults": {"100"}}, nil, &out)
+	cc = calCache{at: time.Now(), list: main, limited: errors.Is(err, errNoScope)}
+	if err == nil {
+		var list []gCal
+		for _, it := range out.Items {
+			if it.Hidden || it.AccessRole == "freeBusyReader" || (!it.Selected && !it.Primary) {
+				continue
+			}
+			name := it.SummaryOverride
+			if name == "" {
+				name = it.Summary
+			}
+			c := gCal{ID: it.ID, Summary: name, Main: it.Primary, Write: it.AccessRole == "owner" || it.AccessRole == "writer"}
+			if c.Main { // main first
+				list = append([]gCal{c}, list...)
+			} else {
+				list = append(list, c)
+			}
+		}
+		if len(list) > 0 {
+			cc.list = list
+		}
+	} else if !cc.limited {
+		cc.at = time.Now().Add(-9 * time.Minute) // a passing error: ask again in a minute
+	}
+	g.mu.Lock()
+	g.cals[acctID] = cc
+	g.mu.Unlock()
+	return cc.list
 }
 
 type gTime struct {
@@ -151,6 +259,8 @@ type gTime struct {
 }
 
 type gEvent struct {
+	ID       string `json:"id,omitempty"`
+	ICalUID  string `json:"iCalUID,omitempty"`
 	Summary  string `json:"summary"`
 	Location string `json:"location,omitempty"`
 	Start    gTime  `json:"start"`
@@ -166,97 +276,123 @@ func (t gTime) parse(loc *time.Location) (time.Time, bool) {
 	return v, true
 }
 
-func (g *Google) calPath() string {
-	id := g.c.String(keyCalendarID)
-	if id == "" {
-		id = "primary"
-	}
+func calPath(id string) string {
 	return "/calendars/" + url.PathEscape(id) + "/events"
 }
 
+// Events reads every calendar of every account the caller has, merged by start.
+// An event on two calendars (an invitation in two accounts) shows once.
 func (g *Google) Events(ctx context.Context, from, to time.Time) ([]Event, error) {
-	var out struct {
-		Items []gEvent `json:"items"`
+	accts := g.serving(tools.CallerFrom(ctx))
+	if len(accts) == 0 {
+		return nil, tools.ErrNotYours
 	}
-	q := url.Values{"timeMin": {from.Format(time.RFC3339)}, "timeMax": {to.Format(time.RFC3339)},
-		"singleEvents": {"true"}, "orderBy": {"startTime"}, "maxResults": {"50"}}
-	if err := g.do(ctx, "GET", g.calPath(), q, nil, &out); err != nil {
-		return nil, err
+	type src struct {
+		acct connections.Connection
+		cal  gCal
+	}
+	var srcs []src
+	for _, a := range accts {
+		for _, c := range g.calendars(ctx, a.ID) {
+			srcs = append(srcs, src{a, c})
+		}
 	}
 	loc := location(g.c)
-	es := make([]Event, 0, len(out.Items))
-	for _, it := range out.Items {
-		s, all := it.Start.parse(loc)
-		e, _ := it.End.parse(loc)
-		es = append(es, Event{Title: it.Summary, Start: s, End: e, AllDay: all, Location: it.Location})
+	seen := map[string]bool{}
+	var es []Event
+	var firstErr error
+	ok := 0
+	for _, sr := range srcs {
+		var out struct {
+			Items []gEvent `json:"items"`
+		}
+		q := url.Values{"timeMin": {from.Format(time.RFC3339)}, "timeMax": {to.Format(time.RFC3339)},
+			"singleEvents": {"true"}, "orderBy": {"startTime"}, "maxResults": {"50"}}
+		if err := g.doAs(ctx, sr.acct.ID, "GET", calPath(sr.cal.ID), q, nil, &out); err != nil {
+			if firstErr == nil {
+				firstErr = err
+			}
+			continue
+		}
+		ok++
+		for _, it := range out.Items {
+			s, all := it.Start.parse(loc)
+			e, _ := it.End.parse(loc)
+			uid := it.ICalUID
+			if uid == "" {
+				uid = sr.cal.ID + "/" + it.ID
+			}
+			if k := uid + "|" + s.Format(time.RFC3339); seen[k] {
+				continue
+			} else {
+				seen[k] = true
+			}
+			ev := Event{Title: it.Summary, Start: s, End: e, AllDay: all, Location: it.Location}
+			if len(srcs) > 1 {
+				ev.Calendar = sr.cal.Summary
+				if ev.Calendar == "" || (len(accts) > 1 && sr.cal.Main) {
+					ev.Calendar = sr.acct.Account
+				}
+			}
+			es = append(es, ev)
+		}
 	}
-	sort.Slice(es, func(i, j int) bool { return es[i].Start.Before(es[j].Start) })
+	if ok == 0 && firstErr != nil {
+		return nil, firstErr
+	}
+	sort.SliceStable(es, func(i, j int) bool { return es[i].Start.Before(es[j].Start) })
 	return es, nil
 }
 
+// target picks where a new event goes: the calendar named in e.Calendar
+// (an account's e-mail or a calendar's name, loosely), else the main calendar
+// of the person's first (oldest) account.
+func (g *Google) target(ctx context.Context, want string) (connections.Connection, gCal, error) {
+	accts := g.serving(tools.CallerFrom(ctx))
+	if len(accts) == 0 {
+		return connections.Connection{}, gCal{}, tools.ErrNotYours
+	}
+	want = strings.ToLower(strings.TrimSpace(want))
+	if want == "" {
+		return accts[0], gCal{ID: g.mainID(), Main: true, Write: true}, nil
+	}
+	var names []string
+	for _, a := range accts {
+		if strings.Contains(strings.ToLower(a.Account), want) {
+			return a, gCal{ID: g.mainID(), Main: true, Write: true}, nil
+		}
+		for _, c := range g.calendars(ctx, a.ID) {
+			if !c.Write {
+				continue
+			}
+			if c.Summary != "" && strings.Contains(strings.ToLower(c.Summary), want) {
+				return a, c, nil
+			}
+			names = append(names, c.Summary)
+		}
+		names = append(names, a.Account)
+	}
+	return connections.Connection{}, gCal{}, fmt.Errorf("no calendar called %q; use one of: %s", want, strings.Join(names, ", "))
+}
+
 func (g *Google) Add(ctx context.Context, e Event) (Event, error) {
+	a, cal, err := g.target(ctx, e.Calendar)
+	if err != nil {
+		return Event{}, err
+	}
 	tz := g.c.String("home.timezone")
 	in := gEvent{Summary: e.Title, Location: e.Location,
 		Start: gTime{DateTime: e.Start.Format(time.RFC3339), TimeZone: tz},
 		End:   gTime{DateTime: e.End.Format(time.RFC3339), TimeZone: tz}}
 	var out gEvent
-	if err := g.do(ctx, "POST", g.calPath(), nil, in, &out); err != nil {
+	if err := g.doAs(ctx, a.ID, "POST", calPath(cal.ID), nil, in, &out); err != nil {
 		return Event{}, err
 	}
 	s, _ := out.Start.parse(location(g.c))
 	en, _ := out.End.parse(location(g.c))
-	return Event{Title: out.Summary, Start: s, End: en}, nil
-}
-
-// --- OAuth (web) -------------------------------------------------------------
-
-var oauthState = struct {
-	sync.Mutex
-	v string
-}{}
-
-// AuthHandlers serve /api/connectors/calendar/auth and /callback. The callback
-// stores the refresh token as a secret through the config store.
-func AuthHandlers(c *config.Store, mux *http.ServeMux) {
-	mux.HandleFunc("GET /api/connectors/calendar/auth", func(w http.ResponseWriter, r *http.Request) {
-		if c.String(keyClientID) == "" {
-			http.Error(w, "set the Google OAuth client ID and secret first", 400)
-			return
-		}
-		b := make([]byte, 16)
-		_, _ = rand.Read(b)
-		oauthState.Lock()
-		oauthState.v = hex.EncodeToString(b)
-		st := oauthState.v
-		oauthState.Unlock()
-		q := url.Values{"client_id": {c.String(keyClientID)}, "redirect_uri": {c.String(keyRedirect)},
-			"response_type": {"code"}, "scope": {scope}, "access_type": {"offline"}, "prompt": {"consent"}, "state": {st}}
-		http.Redirect(w, r, GoogleAuth+"?"+q.Encode(), http.StatusFound)
-	})
-	mux.HandleFunc("GET /api/connectors/calendar/callback", func(w http.ResponseWriter, r *http.Request) {
-		oauthState.Lock()
-		want := oauthState.v
-		oauthState.v = ""
-		oauthState.Unlock()
-		if want == "" || r.URL.Query().Get("state") != want {
-			http.Error(w, "bad state; start again", 400)
-			return
-		}
-		var out struct {
-			Refresh string `json:"refresh_token"`
-			Error   string `json:"error"`
-		}
-		err := postForm(r.Context(), http.DefaultClient, GoogleToken, url.Values{"grant_type": {"authorization_code"},
-			"code": {r.URL.Query().Get("code")}, "redirect_uri": {c.String(keyRedirect)},
-			"client_id": {c.String(keyClientID)}, "client_secret": {c.Secret(keyClientSecret)}}, &out)
-		if err != nil || out.Refresh == "" {
-			http.Error(w, fmt.Sprintf("Google did not return a refresh token: %v %s", err, out.Error), 502)
-			return
-		}
-		if _, err := c.Set(map[string]any{keyRefresh: out.Refresh}, config.SourceWeb, nil); err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		http.Redirect(w, r, "/", http.StatusFound)
-	})
+	name := cal.Summary
+	if cal.Main || name == "" {
+		name = a.Account
+	}
+	return Event{Title: out.Summary, Start: s, End: en, Calendar: name}, nil
 }

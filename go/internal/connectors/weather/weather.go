@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/erickdsama/bb8/go/internal/config"
@@ -19,6 +21,11 @@ type Weather struct {
 	ForecastURL string // https://api.open-meteo.com/v1/forecast
 	GeocodeURL  string // https://geocoding-api.open-meteo.com/v1/search
 	HTTP        *http.Client
+
+	mu      sync.Mutex
+	cache   map[string]geoHit // home.city text → place
+	failed  map[string]string // home.city text → why it was not found (for the page)
+	looking map[string]bool
 }
 
 func New() *Weather {
@@ -26,22 +33,59 @@ func New() *Weather {
 		ForecastURL: "https://api.open-meteo.com/v1/forecast",
 		GeocodeURL:  "https://geocoding-api.open-meteo.com/v1/search",
 		HTTP:        &http.Client{Timeout: 8 * time.Second},
+		cache:       map[string]geoHit{},
+		failed:      map[string]string{},
+		looking:     map[string]bool{},
 	}
 }
 
-func (w *Weather) ID() string { return "weather" }
+func (w *Weather) ID() string      { return "weather" }
+func (w *Weather) DefaultOn() bool { return true } // Open-Meteo needs no key
+func (w *Weather) Title() string   { return "Weather" }
+func (w *Weather) Description() string {
+	return "Weather now, today and tomorrow where you live. Free, no account."
+}
 
 func (w *Weather) Fields() []config.Field {
 	return []config.Field{{Key: "connectors.weather.units", Label: "Units", Type: config.Enum,
 		Options: []string{"metric", "imperial"}, Default: "metric",
-		Help: "Uses home.latitude/longitude, or home.city when they are 0."}}
+		Help: "Uses the home location.", Advanced: true}}
 }
 
 func (w *Weather) Status(c *config.Store) connectors.Status {
-	if c.Float("home.latitude") == 0 && c.Float("home.longitude") == 0 && c.String("home.city") == "" {
-		return connectors.Status{ID: w.ID(), State: connectors.NeedsConf, Detail: "set home.city or home.latitude/longitude"}
+	city := c.String("home.city")
+	if c.Float("home.latitude") != 0 || c.Float("home.longitude") != 0 {
+		return connectors.Status{ID: w.ID(), State: connectors.OK, Detail: "Home: latitude/longitude"}
 	}
-	return connectors.Status{ID: w.ID(), State: connectors.OK}
+	if city == "" {
+		return connectors.Status{ID: w.ID(), State: connectors.NeedsConf, Detail: "Set Home → City."}
+	}
+	// Look the city up in the background so the page shows what it matched.
+	w.mu.Lock()
+	hit, ok := w.cache[city]
+	failed, looking := w.failed[city], w.looking[city]
+	if !ok && failed == "" && !looking {
+		w.looking[city] = true
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			_, _, _, err := w.geocode(ctx, city)
+			w.mu.Lock()
+			delete(w.looking, city)
+			if errors.Is(err, errNotFound) { // network errors are retried on the next look
+				w.failed[city] = err.Error()
+			}
+			w.mu.Unlock()
+		}()
+	}
+	w.mu.Unlock()
+	switch {
+	case ok:
+		return connectors.Status{ID: w.ID(), State: connectors.OK, Detail: "Home: " + strings.Trim(hit.Name+", "+hit.Admin1+", "+hit.Country, ", ")}
+	case failed != "":
+		return connectors.Status{ID: w.ID(), State: connectors.Error, Detail: failed}
+	}
+	return connectors.Status{ID: w.ID(), State: connectors.OK, Detail: "Looking up " + city + "…"}
 }
 
 func (w *Weather) Tools(c *config.Store) []tools.Tool {
@@ -82,20 +126,72 @@ func (w *Weather) place(ctx context.Context, c *config.Store) (lat, lon float64,
 	if name == "" {
 		return 0, 0, "", errors.New("I don't know where home is: set home.city")
 	}
-	var g struct {
-		Results []struct {
-			Name      string  `json:"name"`
-			Latitude  float64 `json:"latitude"`
-			Longitude float64 `json:"longitude"`
-		} `json:"results"`
+	return w.geocode(ctx, name)
+}
+
+// abbrev expands what people write before a place name ("Cd. Juárez", "Sta. Ana").
+var abbrev = map[string]string{"cd": "Ciudad", "cd.": "Ciudad", "cdad.": "Ciudad", "sta.": "Santa", "sto.": "Santo",
+	"sn.": "San", "gral.": "General", "st.": "Saint", "ft.": "Fort", "mt.": "Mount"}
+
+type geoHit struct {
+	Name      string  `json:"name"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+	Admin1    string  `json:"admin1"`
+	Country   string  `json:"country"`
+}
+
+var errNotFound = errors.New("not found")
+
+// geocode resolves a free-form city. Open-Meteo only matches the place name, so
+// "Cd. Juarez Chihuahua" or "Monterrey, NL" find nothing as typed: abbreviations
+// are expanded, then words are dropped from the end and used as a state/country
+// hint to pick among the results.
+func (w *Weather) geocode(ctx context.Context, text string) (lat, lon float64, name string, err error) {
+	w.mu.Lock()
+	if hit, ok := w.cache[text]; ok {
+		w.mu.Unlock()
+		return hit.Latitude, hit.Longitude, hit.Name, nil
 	}
-	if err := w.getJSON(ctx, w.GeocodeURL+"?count=1&language=es&name="+url.QueryEscape(name), &g); err != nil {
-		return 0, 0, "", err
+	w.mu.Unlock()
+
+	words := strings.Fields(strings.NewReplacer(",", " ", ";", " ").Replace(text))
+	for i, wd := range words {
+		if full, ok := abbrev[strings.ToLower(wd)]; ok {
+			words[i] = full
+		}
 	}
-	if len(g.Results) == 0 {
-		return 0, 0, "", fmt.Errorf("city %q not found", name)
+	for n := len(words); n >= 1; n-- {
+		var g struct {
+			Results []geoHit `json:"results"`
+		}
+		q := strings.Join(words[:n], " ")
+		if err := w.getJSON(ctx, w.GeocodeURL+"?count=10&language=es&name="+url.QueryEscape(q), &g); err != nil {
+			return 0, 0, "", err
+		}
+		if len(g.Results) == 0 {
+			continue
+		}
+		hit := g.Results[0]
+		if hint := fold(strings.Join(words[n:], " ")); hint != "" {
+			for _, r := range g.Results {
+				if strings.Contains(fold(r.Admin1+" "+r.Country), hint) {
+					hit = r
+					break
+				}
+			}
+		}
+		w.mu.Lock()
+		w.cache[text] = hit
+		w.mu.Unlock()
+		return hit.Latitude, hit.Longitude, hit.Name, nil
 	}
-	return g.Results[0].Latitude, g.Results[0].Longitude, g.Results[0].Name, nil
+	return 0, 0, "", fmt.Errorf("city %q %w; try just the city name, e.g. \"Ciudad Juárez\"", text, errNotFound)
+}
+
+// fold lowercases and strips Spanish accents so "Juárez" matches "juarez".
+func fold(s string) string {
+	return strings.NewReplacer("á", "a", "é", "e", "í", "i", "ó", "o", "ú", "u", "ü", "u", "ñ", "n").Replace(strings.ToLower(strings.TrimSpace(s)))
 }
 
 // Get returns the weather for when (now|today|tomorrow).

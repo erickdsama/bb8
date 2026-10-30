@@ -30,7 +30,7 @@ module pie_poste() {
         }
         translate([0, 0, 2]) cylinder(d = tubo_d + 2 * holg, h = pie_socket);
         translate([0, 0, -1]) cylinder(d = tubo_d - 6, h = 5);               // cables hacia abajo
-        rotate([0, 0, 45]) translate([0, -5, 2]) cube([30, 10, 12]);            // salida lateral del cable del servo
+        rotate([0, 0, 22.5]) translate([0, -5, 2]) cube([30, 10, 12]);          // salida del cable del servo, entre un tornillo y una costilla
         for (k = [0 : 3]) rotate([0, 0, 45 + 90 * k]) translate([22, 0, -1]) {
             cylinder(d = 3.4, h = 10, $fn = 16);
             translate([0, 0, 4]) cylinder(d = 6.5, h = 10, $fn = 24);
@@ -75,13 +75,13 @@ module portaimanes() {
             // tuerca de nylon M4 por debajo, donde el eje del imán sale por la cara de abajo
             t = (r_porta * d[2] - porta_z_inf) / d[2];
             p = (r_porta - t) * d;
-            translate([p[0], p[1], porta_z_inf - 1]) rotate([0, 0, 30]) cylinder(d = 8.1, h = 5, $fn = 6);
+            translate([p[0], p[1], porta_z_inf - 1]) rotate([0, 0, 30]) cylinder(d = tuerca_m4, h = 5, $fn = 6);
         }
         // cuerno redondo del servo y acceso al tornillo central
         translate([0, 0, porta_z_inf - 1]) cylinder(d = cuerno_d + 0.6, h = cuerno_e + 1, $fn = 64);
         translate([0, 0, porta_z_inf]) cylinder(d = 7, h = 50, $fn = 24);
-        // 4 tornillos M2 al cuerno: MEDIR el cuerno y ajusta el radio
-        for (k = [0 : 3]) rotate([0, 0, 90 * k]) translate([8, 0, porta_z_inf]) {
+        // 4 tornillos M2 al cuerno, en sus agujeros de afuera
+        for (k = [0 : 3]) rotate([0, 0, 90 * k]) translate([cuerno_r_torn, 0, porta_z_inf]) {
             cylinder(d = 2.2, h = 50, $fn = 12);
             translate([0, 0, 6]) cylinder(d = 4.2, h = 50, $fn = 16);
         }

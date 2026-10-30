@@ -16,7 +16,7 @@ servo, Arduino alimentado por VIN, divisor de batería en A0 (`HAY_DIVISOR_BAT 1
 P-MOSFET de lado alto en A3 para cortar la Pi. La esfera impresa y la cabeza con
 imanes también se arman aquí.
 
-La esfera (14 gajos, 6 círculos, tapa de carga), el poste con imanes y la cabeza están
+La esfera (14 gajos, 6 círculos), el plato de carga inalámbrica, el poste con imanes y la cabeza están
 en [`cad/`](../../cad).
 
 **Lista cuando** rueda sin cable, se duerme solo y despierta al moverlo.

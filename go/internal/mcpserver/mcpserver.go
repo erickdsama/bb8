@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -18,8 +19,14 @@ import (
 // MCP clients (Claude) are treated as a known speaker.
 func New(reg *tools.Registry, instructions string) *mcp.Server {
 	s := mcp.NewServer(&mcp.Implementation{Name: "bb8", Version: "0.4"}, &mcp.ServerOptions{Instructions: instructions})
-	var names []string
-	sync := func() {
+	var (
+		mu    sync.Mutex
+		names []string
+	)
+	// Connectors register their tools from goroutines: subscribe first, then sync.
+	resync := func() {
+		mu.Lock()
+		defer mu.Unlock()
 		s.RemoveTools(names...)
 		names = names[:0]
 		for _, t := range reg.List() {
@@ -27,14 +34,14 @@ func New(reg *tools.Registry, instructions string) *mcp.Server {
 			s.AddTool(&mcp.Tool{Name: t.Name, Description: t.Description, InputSchema: t.Schema}, handler(reg, t.Name))
 		}
 	}
-	sync()
-	reg.OnChange(sync)
+	reg.OnChange(resync)
+	resync()
 	return s
 }
 
 func handler(reg *tools.Registry, name string) mcp.ToolHandler {
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		out, err := reg.Call(ctx, name, req.Params.Arguments, tools.CallOpts{SpeakerKnown: true})
+		out, err := reg.Call(ctx, name, req.Params.Arguments, tools.CallOpts{SpeakerKnown: true, Admin: true})
 		if err != nil {
 			return &mcp.CallToolResult{IsError: true, Content: []mcp.Content{&mcp.TextContent{Text: err.Error()}}}, nil
 		}

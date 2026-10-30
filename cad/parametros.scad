@@ -8,6 +8,10 @@
 
 $fn = 48;          // exportar.sh lo sube para los STL finales
 holg = 0.3;        // holgura general de impresión (FDM 0.4 mm)
+holg_pared = 5;    // lo que no toca la esfera queda al menos a 5 mm de su pared interior
+                   // (la esfera gira alrededor de la base; costuras, pegamento y resina adentro)
+tuerca_m3 = 6.7;   // Ø entre puntas del hueco de tuerca M3 (la tuerca mide 6.35)
+tuerca_m4 = 8.4;   // Ø entre puntas del hueco de tuerca M4 (la tuerca mide 8.08)
 
 // ───────────────────────── Esfera ─────────────────────────
 esfera_d   = 330;              // 30–35 cm
@@ -22,7 +26,6 @@ lengueta_n = 6;                // lengüetas de la bayoneta (múltiplo de 3 por 
 lengueta_alto = 0.6;           // cuánto sobresale cada lengüeta
 lengueta_giro = 7;             // grados que se gira para cerrar
 espiga_d   = 1.9;              // agujero para espiga de filamento 1.75 entre gajos
-ceja_tapa  = 8;                // ceja que sostiene la tapa de carga (mm de arco)
 
 // ───────────────────────── Motores JGB37-520B (encoder, 319 RPM) ─────────────────────────
 caja_d     = 37;     // diámetro de la caja de engranes
@@ -52,9 +55,9 @@ x_contacto = a_rueda + rueda_ancho / 2 - chaflan_llanta;
 z_eje = -(sqrt(Ri * Ri - x_contacto * x_contacto) - rueda_d / 2);
 angulo_contacto = asin(x_contacto / Ri);   // inclinación de la pared donde pisa la rueda
 
-// ───────────────────────── Plataforma (MDF 6 mm) ─────────────────────────
+// ───────────────────────── Plataforma (MDF 5.5 mm) ─────────────────────────
 plat_d      = 210;    // 20–22 cm
-plat_e      = 6;      // MDF de 6 mm cortado en láser (FabLab) con plantillas/plataforma.dxf
+plat_e      = 5.5;    // MDF "de 6" (5.5 real) cortado en láser con plantillas/plataforma.dxf
 cuna_techo  = 3;      // material del soporte de motor encima de la caja
 plat_z_inf  = z_eje + caja_d / 2 + cuna_techo;   // cara de abajo de la plataforma
 plat_z_sup  = plat_z_inf + plat_e;               // cara de arriba
@@ -70,22 +73,23 @@ lipo_z_sup  = z_motor_inf - 2;          // la LiPo va justo debajo de los motore
 lipo_z_inf  = lipo_z_sup - lipo[2];
 
 // ───────────────────────── Ruedas locas RL4 (Electrozone) ─────────────────────────
-// Domo de acero sobre una brida de 2 agujeros (medidas de Erick, 20 oct).
-bola_d       = 25.4;   // 1″: se ven 18 mm por la boca del domo y sale ~3 mm
+// Domo de acero sobre una brida de 2 agujeros (medidas de Erick con la pieza en mano, 30 oct).
+bola_d       = 19.05;  // 3/4″: se ven 18 mm por la boca; con 20 mm de salida y la espalda plana no cabe una de 1″
 bt_y         = 110;    // a 90° de las ruedas, adelante y atrás
-bt_brida     = [50, 22];   // largo × ancho de la brida
+bt_brida     = [50, 32];   // punta a punta × ancho al centro (rombo: el domo de 30 + orilla)
 bt_brida_e   = 1.5;
 bt_agujero_d = 5;
-bt_agujero_sep = 35;   // entre centros (5 mm de orilla + 2.5 de radio, en cada lado)
-bt_domo_d    = 32;     // domo (del escaneo)
-bt_bola_fuera = 25.4;  // cara de la brida → punta de la bola (la bola sale ~3 mm del domo)
+bt_agujero_sep = 38;   // entre centros: 43 de orilla a orilla de los agujeros − 5
+bt_ranura    = [35, 41];   // ranuras de ±3 mm alrededor de bt_agujero_sep
+bt_domo_d    = 30;     // base del domo sobre la brida
+bt_bola_fuera = 20 - bt_brida_e;  // cara de la brida → punta de la bola (20 desde la espalda)
 // centro de la bola: toca el casco por dentro
 bt_c_r = Ri - bola_d / 2;
 bt_c_z = -sqrt(bt_c_r * bt_c_r - bt_y * bt_y);
 bt_inclinacion = asin(bt_y / bt_c_r);    // el ball transfer apunta al centro de la esfera
 
 // ───────────────────────── Poste e imanes ─────────────────────────
-tubo_d      = 25;       // tubo PVC conduit 25 mm (el hidráulico de 1/2″ mide 21.3: cámbialo)
+tubo_d      = 29.6;     // tubo PVC conduit 1″ (nominal 25 mm): exterior 29.4–29.6 según la ficha
 iman_d      = 20;       // N42 20 × 5 avellanado M4
 iman_e      = 5;
 iman_r      = 27;       // radio del círculo de los 4 imanes (poste y cabeza)
@@ -93,16 +97,17 @@ hueco_iman_int = 2.5;   // imán del poste ↔ pared interior (2–3 mm)
 hueco_iman_ext = 2;     // pared exterior ↔ imán de la cabeza
 porta_d     = 74;       // portaimanes del poste
 porta_e     = 12;       // grosor al centro (deja lugar a la tuerca M4 bajo cada imán)
-// MG996R (cuerpo 40.7 × 19.7 × 42.9 confirmado; orejas y cuerno MEDIR)
+// MG995/MG996R (same body; cuerpo 40.7 × 19.7 × 42.9 confirmado; orejas del plano MG995 y medidas)
 servo   = [40.7, 19.7]; // largo, ancho
 servo_caja_alto = 36.5; // base → tapa de la caja
 servo_alto = 42.9;      // base → punta del estriado
 servo_oreja_z = 26.5;   // base → cara de abajo de las orejas
-servo_oreja_L = 54.5;
+servo_oreja_L = 52.8;
 servo_oreja_e = 2.5;
-servo_agujeros = [49.5, 10];
+servo_agujeros = [47.8, 10.2];
 servo_eje_x = 40.7 / 2 - 10.2;   // el eje va a 10.2 mm de un extremo
-cuerno_d = 25;          // cuerno redondo
+cuerno_d = 20;          // cuerno redondo (medido)
+cuerno_r_torn = 7;      // centro → agujeros de afuera del cuerno (MEDIR)
 cuerno_e = 2.5;
 cuerno_sobre = 1.5;     // cuánto queda la cara del cuerno arriba del estriado
 
@@ -191,6 +196,18 @@ module cono(ang, h) {
     cylinder(h = h, r1 = 0, r2 = h * tan(ang));
 }
 
+// ───────────── Carga inalámbrica ─────────────
+// La base siempre cuelga abajo y gira alrededor del centro de la esfera (ruedas y ball
+// transfers tocan la pared), así que un punto de la base queda siempre a la misma
+// distancia de la pared: la bobina receptora va ahí, bajo la charola, y la emisora en el
+// plato de carga (plato.scad). Bobinas de ~50 mm: MEDIR las que lleguen y ajustar.
+bobina_d     = 50;     // Ø de la bobina (receptora y emisora)
+bobina_e     = 4;      // grosor con su ferrita
+bobina_aire  = 7;      // aire entre la bobina y la pared en el centro (en la orilla ~5 mm)
+piel_bobina  = 1;      // plástico del plato entre la bobina emisora y la esfera
+// distancia bobina-bobina: aire + pared + piel del plato (el módulo debe dar ≥ 10 mm)
+bobina_dist  = bobina_aire + pared + piel_bobina;
+
 module reportar() {
     echo(str("a_rueda (plano medio) = ", a_rueda, " mm"));
     echo(str("eje de ruedas z = ", z_eje, " mm; pared donde pisa la rueda a ", angulo_contacto, "°"));
@@ -200,4 +217,5 @@ module reportar() {
     echo(str("ball transfers: centro bola (0, ±", bt_y, ", ", bt_c_z, "), inclinación ", bt_inclinacion, "°"));
     echo(str("tubo del poste: cortar a ", tubo_L - 2, " mm (del fondo del pie a la manga del servo)"));
     echo(str("cabeza: Ø", cabeza_d, ", alto sobre el polo ", cab_z_tope));
+    echo(str("carga: bobina a ", bobina_aire, " mm de la pared; bobina a bobina ", bobina_dist, " mm"));
 }

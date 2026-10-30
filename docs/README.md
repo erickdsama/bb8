@@ -8,6 +8,7 @@
 | [`artefactos/avance-del-proyecto.html`](artefactos/avance-del-proyecto.html) | Tracker de fases, tareas y compras |
 | [`artefactos/mecanica-bb8.html`](artefactos/mecanica-bb8.html) | Corte animado del mecanismo interno |
 | [`artefactos/animacion-bb8-en-casa.html`](artefactos/animacion-bb8-en-casa.html) | Animación 2D con música |
+| [`marca/`](marca/) | Logo y textos de marca (Bebocho) |
 
 Los HTML se ven descargándolos y abriéndolos en el navegador. El documento técnico
 asume el DRV8871; donde no coincida con el código, mandan el código y

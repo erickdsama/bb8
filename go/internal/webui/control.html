@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BB-8 Control</title>
+<!-- 3D visor only; the page works without it (no internet → no model). -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root {
+  --void:#040305; --obsidian:#0d0706; --ember:#2b0e04; --glow:#521905;
+  --orange:#ff5a00; --orange-hi:#ff8533;
+  --line:rgba(255,120,40,.22); --line-hi:rgba(255,120,40,.55);
+  --card:rgba(14,9,8,.78); --ink:#faf6f2; --mute:#a8968b; --dim:#6e5d53;
+  --cyan:#00f0ff; --ok:#10b981; --warn:#f59e0b; --bad:#ef4444;
+  --mono:ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body {
+  min-height:100vh; color:var(--ink); font:15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at 72% 48%, rgba(255,88,12,.22) 0%, rgba(120,32,5,.12) 34%, transparent 65%),
+    linear-gradient(135deg, var(--void) 0%, var(--obsidian) 48%, var(--ember) 88%, var(--glow) 100%);
+  background-attachment:fixed;
+}
+body::before { content:""; position:fixed; inset:0; pointer-events:none;
+  background-image:linear-gradient(rgba(255,100,20,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,100,20,.03) 1px, transparent 1px);
+  background-size:36px 36px; }
+
+header { position:relative; z-index:10; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  padding:12px 20px; background:rgba(6,4,5,.75); border-bottom:1px solid var(--line); backdrop-filter:blur(16px); }
+.emblem { width:34px; height:34px; border-radius:50%; display:grid; place-items:center; flex-shrink:0;
+  background:radial-gradient(circle at 32% 32%, var(--orange-hi), var(--orange)); box-shadow:0 0 18px rgba(255,90,0,.55); }
+.emblem::after { content:""; width:12px; height:12px; border-radius:50%; background:#080504; border:2px solid #fff; }
+h1 { font-size:.95rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+header p { font-size:.72rem; color:var(--mute); }
+.pill { display:flex; align-items:center; gap:8px; padding:5px 12px; border-radius:999px; font-size:.75rem; font-weight:600;
+  background:rgba(18,11,9,.85); border:1px solid var(--line); }
+.dot { width:8px; height:8px; border-radius:50%; background:var(--bad); box-shadow:0 0 8px var(--bad); }
+.dot.on { background:var(--ok); box-shadow:0 0 8px var(--ok); }
+header a { margin-left:auto; color:var(--orange-hi); font-size:.8rem; }
+
+main { position:relative; z-index:5; display:grid; grid-template-columns:420px 1fr; min-height:calc(100vh - 60px); }
+@media (max-width:1000px) { main { grid-template-columns:1fr; } .visor { min-height:440px; order:-1; } }
+
+aside { display:flex; flex-direction:column; gap:14px; padding:18px 20px; border-right:1px solid var(--line);
+  background:linear-gradient(180deg, rgba(12,7,6,.82), rgba(19,9,6,.68)); backdrop-filter:blur(20px); }
+@media (max-width:480px) { aside { padding:16px; } }
+
+.battery { border:1px solid var(--line); border-radius:14px; padding:12px 14px; display:grid; gap:8px;
+  background:linear-gradient(135deg, rgba(35,16,10,.9), rgba(16,10,8,.9)); }
+.battery-top { display:flex; justify-content:space-between; align-items:center; }
+.label { font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; color:var(--orange-hi); font-weight:700; }
+.big { font-size:1.35rem; font-weight:800; }
+.segs { display:grid; grid-template-columns:repeat(10,1fr); gap:4px; height:9px; }
+.seg { border-radius:3px; background:rgba(255,255,255,.08); }
+.seg.lit { background:linear-gradient(90deg, var(--orange), var(--ok)); }
+.seg.warn { background:var(--warn); } .seg.crit { background:var(--bad); }
+.sub { display:flex; justify-content:space-between; gap:8px; font:.72rem var(--mono); color:var(--mute); flex-wrap:wrap; }
+
+.tabs { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; padding:4px; border-radius:12px;
+  background:rgba(0,0,0,.45); border:1px solid rgba(255,120,40,.16); }
+.tab { background:transparent; border:0; color:var(--mute); padding:8px 4px; border-radius:8px; font:600 .74rem system-ui, sans-serif; cursor:pointer; }
+.tab.active { background:linear-gradient(135deg, var(--orange), #cc3d00); color:#fff; }
+.pane { display:none; flex-direction:column; gap:12px; } .pane.active { display:flex; }
+
+.card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:12px; }
+.card h3 { font-size:.74rem; text-transform:uppercase; letter-spacing:.09em; color:var(--orange-hi); display:flex; justify-content:space-between; }
+.hint { font-size:.74rem; color:var(--dim); }
+
+.pad { display:grid; grid-template-columns:repeat(3,68px); grid-template-rows:repeat(3,68px); gap:8px; justify-content:center; }
+.pad button { font-size:24px; border-radius:14px; cursor:pointer; color:var(--ink);
+  background:rgba(255,90,0,.10); border:1px solid var(--line); transition:background .15s, transform .1s; }
+.pad button:hover:not(:disabled) { background:rgba(255,90,0,.25); border-color:var(--orange); }
+.pad button:active:not(:disabled) { transform:scale(.95); }
+.pad button:disabled { opacity:.35; cursor:default; }
+.pad #stop { background:var(--bad); border:0; color:#fff; font:700 .85rem system-ui, sans-serif; letter-spacing:.06em; box-shadow:0 0 18px rgba(239,68,68,.45); }
+#up { grid-area:1/2; } #left { grid-area:2/1; } #stop { grid-area:2/2; } #right { grid-area:2/3; } #down { grid-area:3/2; }
+
+.choices { display:flex; gap:6px; align-items:center; flex-wrap:wrap; font-size:.78rem; color:var(--mute); }
+.chip { background:rgba(255,90,0,.10); border:1px solid var(--line); color:var(--orange-hi); padding:5px 10px; border-radius:8px;
+  font:600 .74rem system-ui, sans-serif; cursor:pointer; }
+.chip.active, .chip:hover { background:rgba(255,90,0,.28); border-color:var(--orange); color:#fff; }
+
+.ctl { display:flex; flex-direction:column; gap:6px; }
+.ctl-label { display:flex; justify-content:space-between; font-size:.8rem; color:var(--mute); }
+.ctl-label strong { color:var(--ink); }
+input[type=range] { width:100%; accent-color:var(--orange); }
+.row { display:flex; gap:8px; align-items:center; }
+input[type=text] { flex:1; min-width:0; background:rgba(0,0,0,.55); border:1px solid var(--line); color:var(--ink);
+  padding:9px 11px; border-radius:10px; font:inherit; font-size:.86rem; outline:none; }
+input[type=text]:focus { border-color:var(--orange); }
+input[type=color] { width:46px; height:36px; border:0; background:none; cursor:pointer; }
+.btn { background:linear-gradient(135deg, var(--orange), #d13a00); color:#fff; border:0; padding:9px 14px; border-radius:10px;
+  font:600 .82rem system-ui, sans-serif; cursor:pointer; }
+.btn.ghost { background:rgba(255,90,0,.12); border:1px solid var(--line); color:var(--orange-hi); }
+
+.orbs { display:grid; grid-template-columns:repeat(6,1fr); gap:8px; }
+.orb { height:34px; border-radius:10px; border:2px solid rgba(255,255,255,.15); cursor:pointer; }
+.orb.active { border-color:#fff; box-shadow:0 0 12px currentColor; }
+.emotions { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+.emo { display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:10px; cursor:pointer; text-align:left; color:var(--ink);
+  background:rgba(255,255,255,.03); border:1px solid rgba(255,120,40,.18); font:inherit; }
+.emo:hover, .emo.active { background:rgba(255,90,0,.18); border-color:var(--orange); }
+.emo i { width:11px; height:11px; border-radius:50%; flex-shrink:0; box-shadow:0 0 8px currentColor; }
+.emo b { display:block; font-size:.78rem; } .emo span { font-size:.68rem; color:var(--mute); }
+
+.term { background:rgba(0,0,0,.65); border:1px solid var(--line); border-radius:10px; padding:10px; height:260px; overflow-y:auto;
+  font:.72rem/1.5 var(--mono); color:#d6c6bc; }
+.term .tx { color:var(--orange-hi); } .term .rx { color:var(--cyan); } .term .err { color:var(--bad); }
+.term .ev-heard { color:#f3f0ea; } .term .ev-reply { color:var(--cyan); } .term .ev-alert { color:var(--bad); } .term .t { color:var(--mute); }
+#banner { position:fixed; top:14px; left:50%; transform:translate(-50%, -140%); z-index:9; background:rgba(8,5,5,.92); border:1px solid var(--bad);
+  color:#fff; padding:9px 16px; border-radius:10px; font-size:.85rem; transition:transform .25s; max-width:90vw; }
+#banner.show { transform:translate(-50%, 0); } #banner.info { border-color:var(--orange); }
+
+.visor { position:relative; overflow:hidden; display:flex; flex-direction:column; justify-content:space-between; }
+#visor-canvas { position:absolute; inset:0; width:100%; height:100%; cursor:grab; z-index:1; }
+#visor-canvas:active { cursor:grabbing; }
+.no3d { position:absolute; inset:0; display:none; place-items:center; color:var(--dim); font-size:.85rem; z-index:1; text-align:center; padding:24px; }
+.hud { position:relative; z-index:3; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; padding:18px 22px; pointer-events:none; flex-wrap:wrap; }
+.hud.bottom { align-items:flex-end; background:linear-gradient(to top, rgba(4,3,5,.85), transparent); }
+.hud-col { display:flex; flex-direction:column; gap:8px; pointer-events:auto; }
+.hud-card { background:rgba(8,5,5,.76); border:1px solid var(--line); border-left:3px solid var(--orange); border-radius:10px;
+  padding:8px 12px; backdrop-filter:blur(12px); min-width:180px; }
+.hud-card .k { font-size:.64rem; text-transform:uppercase; letter-spacing:.1em; color:var(--mute); }
+.hud-card .v { font-size:.92rem; font-weight:700; margin-top:2px; display:flex; align-items:center; gap:8px; }
+.flag { color:var(--bad); }
+.cams { display:flex; gap:6px; background:rgba(8,5,5,.8); border:1px solid var(--line); padding:5px; border-radius:12px; pointer-events:auto; }
+.strip { display:flex; gap:16px; flex-wrap:wrap; background:rgba(8,5,5,.78); border:1px solid var(--line); padding:9px 16px;
+  border-radius:12px; pointer-events:auto; font:.74rem var(--mono); }
+.strip span { color:var(--mute); margin-right:5px; } .strip strong { color:var(--orange-hi); }
+</style>
+</head>
+<body>
+<header>
+  <div class="emblem"></div>
+  <div><h1>BB-8 Control <span id="sim-badge" hidden style="font-size:12px;letter-spacing:.08em;background:#f59e0b;color:#1a0d00;border-radius:6px;padding:2px 8px;vertical-align:middle">SIMULATOR</span></h1><p>Every button is an MCP tool call · same tools and limits as Claude</p></div>
+  <div class="pill"><span class="dot" id="dot"></span><span id="conn">connecting…</span></div>
+  <a id="cfg" href="/">Config →</a>
+</header>
+
+<div id="banner"></div>
+<main>
+  <aside>
+    <div class="battery">
+      <div class="battery-top"><span class="label">⚡ 3S battery</span><span class="big" id="bat-pct">–</span></div>
+      <div class="segs" id="segs"></div>
+      <div class="sub"><span id="bat-v">PACK: –</span><span id="bat-state">no reading</span></div>
+    </div>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="p-drive">Drive</button>
+      <button class="tab" data-tab="p-head">Head</button>
+      <button class="tab" data-tab="p-eye">Eye</button>
+      <button class="tab" data-tab="p-act">Activity</button>
+      <button class="tab" data-tab="p-log">Log</button>
+    </nav>
+
+    <section id="p-drive" class="pane active">
+      <div class="card">
+        <h3><span>Drive</span><span id="busy" class="hint"></span></h3>
+        <div class="pad">
+          <button id="up" title="Forward (↑)">▲</button>
+          <button id="left" title="Turn left (←)">◀</button>
+          <button id="stop" title="Stop (space)">STOP</button>
+          <button id="right" title="Turn right (→)">▶</button>
+          <button id="down" title="Back (↓)">▼</button>
+        </div>
+        <div class="choices" data-name="dist">Distance
+          <button class="chip active" data-v="0.1">10 cm</button><button class="chip" data-v="0.2">20 cm</button><button class="chip" data-v="0.5">50 cm</button>
+        </div>
+        <div class="choices" data-name="ang">Turn
+          <button class="chip" data-v="15">15°</button><button class="chip active" data-v="45">45°</button><button class="chip" data-v="90">90°</button>
+        </div>
+        <p class="hint">Arrows drive, space stops. The robot stops by itself; obstacle, tilt and the watchdog still brake on the Arduino.</p>
+      </div>
+    </section>
+
+    <section id="p-head" class="pane">
+      <div class="card">
+        <h3><span>Head</span></h3>
+        <div class="ctl">
+          <div class="ctl-label"><span>Look (servo, + right)</span><strong id="head-val">0°</strong></div>
+          <input id="head" type="range" min="-90" max="90" step="5" value="0">
+        </div>
+        <div class="row"><button class="btn ghost" id="center">Center</button></div>
+      </div>
+      <div class="card">
+        <h3><span>Voice</span><span class="hint" id="head-link"></span></h3>
+        <div class="row"><input id="say-text" type="text" placeholder="Something for BB-8 to say (Spanish)"><button class="btn" id="say">Say</button></div>
+      </div>
+    </section>
+
+    <section id="p-eye" class="pane">
+      <div class="card">
+        <h3><span>Eye color (WS2812)</span><strong id="eye-hex" style="font-family:var(--mono)">#FF3B1A</strong></h3>
+        <div class="orbs" id="orbs"></div>
+        <div class="row"><input id="eye" type="color" value="#ff3b1a"><span class="hint">Custom color</span></div>
+      </div>
+      <div class="card">
+        <h3><span>Emotions</span></h3>
+        <div class="emotions" id="emotions"></div>
+        <p class="hint">Each one plays its beep and sets the eye (tool <code>express</code>). Needs the head.</p>
+      </div>
+    </section>
+
+    <section id="p-act" class="pane">
+      <div class="card">
+        <h3><span>What BB-8 hears, says and feels</span><span class="hint" id="ev-state">…</span></h3>
+        <div class="term" id="activity"></div>
+        <p class="hint">Live from the robot (<code>/api/events</code>): voice, replies, tools, alerts, head link, people. <a id="people-link" href="/people" style="color:var(--orange-hi)">People →</a></p>
+      </div>
+    </section>
+
+    <section id="p-log" class="pane">
+      <div class="card">
+        <h3><span>MCP calls</span><button class="btn ghost" id="clear" style="padding:2px 8px;font-size:.66rem">Clear</button></h3>
+        <div class="term" id="log"></div>
+      </div>
+    </section>
+  </aside>
+
+  <section class="visor">
+    <canvas id="visor-canvas"></canvas>
+    <div class="no3d" id="no3d">3D view needs internet (three.js from cdnjs). Everything else works.</div>
+    <div class="hud">
+      <div class="hud-col">
+        <div class="hud-card"><div class="k">Arduino</div><div class="v" id="h-ard">–</div></div>
+        <div class="hud-card"><div class="k">Control · position</div><div class="v" id="h-pos">–</div></div>
+        <div class="hud-card"><div class="k">Eye</div><div class="v"><span id="h-eye-dot" style="width:10px;height:10px;border-radius:50%"></span><span id="h-eye">–</span></div></div>
+      </div>
+      <div class="cams">
+        <button class="chip active" data-cam="full">Full</button>
+        <button class="chip" data-cam="dome">Dome</button>
+        <button class="chip" data-cam="radar">Top</button>
+      </div>
+    </div>
+    <div class="hud bottom">
+      <div class="strip">
+        <div><span>HEADING</span><strong id="h-hdg">–</strong></div>
+        <div><span>TILT</span><strong id="h-tilt">–</strong></div>
+        <div><span>HEAD</span><strong id="h-head">–</strong></div>
+        <div><span>AHEAD</span><strong id="h-tof">–</strong></div>
+        <div><span>FLAGS</span><strong id="h-flags">–</strong></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+/* ---------------- MCP client (streamable HTTP) ----------------
+   initialize → Mcp-Session-Id → notifications/initialized → tools/call. */
+const q = new URLSearchParams(location.search);
+let token = q.get("token") || "";
+try { if (token) localStorage.setItem("bb8-token", token); else token = localStorage.getItem("bb8-token") || ""; } catch (e) {}
+if (token) document.getElementById("cfg").href = "/?token=" + encodeURIComponent(token);
+const $ = (id) => document.getElementById(id);
+
+let session = null, nextId = 1, initializing = null;
+
+function post(msg) {
+  const headers = { "Content-Type": "application/json", "Accept": "application/json, text/event-stream" };
+  if (token) headers.Authorization = "Bearer " + token;
+  if (session) headers["Mcp-Session-Id"] = session;
+  return fetch("/mcp", { method: "POST", headers, body: JSON.stringify(msg) });
+}
+
+// Replies come as JSON or as an SSE stream; take the message with our id.
+async function readReply(r, id) {
+  const text = await r.text();
+  if ((r.headers.get("Content-Type") || "").includes("text/event-stream")) {
+    for (const block of text.split(/\n\n/)) {
+      const data = block.split("\n").filter((l) => l.startsWith("data:")).map((l) => l.slice(5).trim()).join("\n");
+      if (!data) continue;
+      const m = JSON.parse(data);
+      if (m.id === id) return m;
+    }
+    throw new Error("no reply");
+  }
+  return JSON.parse(text);
+}
+
+async function init() {
+  session = null;
+  const id = nextId++;
+  const r = await post({ jsonrpc: "2.0", id, method: "initialize",
+    params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "bb8-control-page", version: "2" } } });
+  if (r.status === 401) { location.href = "/login?next=/control"; throw new Error("sign in"); }
+  if (!r.ok) throw new Error("initialize: HTTP " + r.status);
+  session = r.headers.get("Mcp-Session-Id");
+  await readReply(r, id);
+  await post({ jsonrpc: "2.0", method: "notifications/initialized" });
+}
+
+async function ensureSession() {
+  if (session) return;
+  if (!initializing) initializing = init().finally(() => { initializing = null; });
+  await initializing;
+}
+
+async function callTool(name, args = {}, retry = true) {
+  await ensureSession();
+  const id = nextId++;
+  const r = await post({ jsonrpc: "2.0", id, method: "tools/call", params: { name, arguments: args } });
+  if ((r.status === 404 || r.status === 400) && retry) { session = null; return callTool(name, args, false); }
+  if (!r.ok) throw new Error(name + ": HTTP " + r.status);
+  const m = await readReply(r, id);
+  if (m.error) throw new Error(m.error.message);
+  const txt = (m.result.content || []).map((c) => c.text || "").join("");
+  if (m.result.isError) throw new Error(txt);
+  try { return JSON.parse(txt); } catch (e) { return { text: txt }; }
+}
+
+/* ---------------- log ---------------- */
+function log(kind, msg) {
+  const d = document.createElement("div");
+  d.innerHTML = `<span class="${kind}">[${new Date().toLocaleTimeString([], { hour12: false })}]</span> `;
+  d.append(msg);
+  $("log").prepend(d);
+  while ($("log").children.length > 80) $("log").lastChild.remove();
+}
+$("clear").onclick = () => ($("log").innerHTML = "");
+
+// A tool call from a button: logged both ways.
+async function tool(name, args = {}) {
+  log("tx", `→ ${name} ${JSON.stringify(args)}`);
+  try {
+    const r = await callTool(name, args);
+    log(r.result && r.result !== "done" ? "err" : "rx", `← ${name} ${JSON.stringify(r)}`);
+    return r;
+  } catch (e) { log("err", `✗ ${name}: ${e.message}`); return null; }
+}
+
+/* ---------------- tabs and chips ---------------- */
+document.querySelectorAll(".tab").forEach((b) => b.onclick = () => {
+  document.querySelectorAll(".tab, .pane").forEach((x) => x.classList.remove("active"));
+  b.classList.add("active"); $(b.dataset.tab).classList.add("active");
+});
+document.querySelectorAll(".choices").forEach((g) => g.querySelectorAll(".chip").forEach((c) => c.onclick = () => {
+  g.querySelectorAll(".chip").forEach((x) => x.classList.remove("active")); c.classList.add("active");
+}));
+const pick = (n) => parseFloat(document.querySelector(`.choices[data-name=${n}] .chip.active`).dataset.v);
+
+/* ---------------- drive: one order at a time, STOP always goes ---------------- */
+let busy = false;
+function setBusy(b) { busy = b; ["up", "down", "left", "right"].forEach((k) => ($(k).disabled = b)); $("busy").textContent = b ? "moving…" : ""; }
+async function order(name, args) {
+  if (busy) return;
+  setBusy(true);
+  await tool(name, args);
+  setBusy(false);
+  refresh();
+}
+$("up").onclick = () => order("move", { meters: pick("dist") });
+$("down").onclick = () => order("move", { meters: -pick("dist") });
+$("left").onclick = () => order("turn", { degrees: -pick("ang") });
+$("right").onclick = () => order("turn", { degrees: pick("ang") });
+$("stop").onclick = () => tool("stop");
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT" && e.target.type === "text") return;
+  const k = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" }[e.key];
+  if (k) { e.preventDefault(); $(k).click(); }
+  if (e.key === " ") { e.preventDefault(); $("stop").click(); }
+});
+
+/* ---------------- head ---------------- */
+let headTimer;
+$("head").oninput = () => {
+  $("head-val").textContent = $("head").value + "°";
+  clearTimeout(headTimer);
+  headTimer = setTimeout(() => tool("look_at", { degrees: +$("head").value }), 150);
+};
+$("center").onclick = () => { $("head").value = 0; $("head-val").textContent = "0°"; tool("look_at", { degrees: 0 }); };
+$("say").onclick = () => { const t = $("say-text").value.trim(); if (t) tool("say", { text: t }); };
+
+/* ---------------- eye and emotions ---------------- */
+let eyeColor = "#ff3b1a", eyeMode = "idle";
+const PRESETS = ["#ff3b1a", "#00f0ff", "#ff8c00", "#10b981", "#a855f7", "#ffffff"];
+const EMOTIONS = [ // name, eye color in the persona, label
+  ["happy", "#10b981", "Happy", "green, steady"], ["curious", "#00f0ff", "Curious", "cyan, breathe"],
+  ["thinking", "#ff8c00", "Thinking", "orange, breathe"], ["greeting", "#00f0ff", "Greeting", "cyan, steady"],
+  ["sad", "#3b82f6", "Sad", "blue, breathe"], ["alert", "#ef4444", "Alert", "red, blink"],
+];
+PRESETS.forEach((c) => {
+  const b = document.createElement("button");
+  b.className = "orb"; b.style.background = c; b.style.color = c; b.dataset.color = c;
+  b.onclick = () => { setEye(c, "idle"); tool("set_eye_color", { color: c }); };
+  $("orbs").append(b);
+});
+EMOTIONS.forEach(([name, color, label, sub]) => {
+  const b = document.createElement("button");
+  b.className = "emo"; b.dataset.emo = name;
+  b.innerHTML = `<i style="background:${color};color:${color}"></i><div><b>${label}</b><span>${sub}</span></div>`;
+  b.onclick = () => { setEye(color, name); tool("express", { emotion: name }); };
+  $("emotions").append(b);
+});
+$("eye").oninput = () => setEye($("eye").value, "idle");
+$("eye").onchange = () => tool("set_eye_color", { color: $("eye").value });
+
+function setEye(c, mode) {
+  eyeColor = c.toLowerCase(); eyeMode = mode;
+  $("eye-hex").textContent = eyeColor.toUpperCase(); $("eye").value = eyeColor;
+  $("h-eye-dot").style.background = eyeColor; $("h-eye-dot").style.boxShadow = `0 0 10px ${eyeColor}`;
+  $("h-eye").textContent = `${mode.toUpperCase()} · ${eyeColor.toUpperCase()}`;
+  document.querySelectorAll(".orb").forEach((o) => o.classList.toggle("active", o.dataset.color === eyeColor));
+  document.querySelectorAll(".emo").forEach((o) => o.classList.toggle("active", o.dataset.emo === mode));
+  if (window.visor) visor.eye(eyeColor);
+}
+
+/* ---------------- battery (3S: 10.2 V empty … 12.6 V full) ---------------- */
+for (let i = 0; i < 10; i++) { const s = document.createElement("div"); s.className = "seg"; $("segs").append(s); }
+function battery(v) {
+  if (!v) { $("bat-pct").textContent = "–"; $("bat-v").textContent = "PACK: –"; $("bat-state").textContent = "no reading (divider on A0)";
+    document.querySelectorAll(".seg").forEach((s) => (s.className = "seg")); return; }
+  const pct = Math.max(0, Math.min(100, Math.round(((v - 10.2) / (12.6 - 10.2)) * 100)));
+  $("bat-pct").textContent = pct + "%"; $("bat-v").textContent = `PACK: ${v.toFixed(2)} V`;
+  $("bat-state").textContent = pct <= 20 ? "CRITICAL" : pct <= 40 ? "LOW" : "NOMINAL";
+  document.querySelectorAll(".seg").forEach((s, i) => {
+    s.className = "seg";
+    if (i < Math.ceil(pct / 10)) s.classList.add(pct <= 20 ? "crit" : pct <= 40 ? "warn" : "lit");
+  });
+}
+
+/* ---------------- state, polled with get_pose ---------------- */
+const fmt = (v, d, u) => (v === null || v === undefined ? "–" : (+v).toFixed(d) + u);
+async function refresh() {
+  try {
+    const p = await callTool("get_pose");
+    $("dot").classList.add("on"); $("conn").textContent = "connected over MCP";
+    $("h-ard").textContent = p.arduino_connected ? (p.arduino || "connected") : "not connected";
+    const sim = /fw=sim/.test(p.arduino || "");   // the dummy's Arduino: nothing here moves the real robot
+    $("sim-badge").hidden = !sim; document.title = sim ? "BB-8 Control · SIMULATOR" : "BB-8 Control";
+    $("h-pos").textContent = `${p.control}${p.asleep ? " · asleep" : ""} · x ${fmt(p.x_m, 2, "")} y ${fmt(p.y_m, 2, "")} m`;
+    $("h-hdg").textContent = fmt(p.heading_deg, 1, "°");
+    $("h-tilt").textContent = fmt(p.tilt_deg, 1, "°");
+    $("h-head").textContent = fmt(p.head_deg, 0, "°");
+    $("h-tof").textContent = p.tof_m === null ? "clear" : fmt(p.tof_m * 100, 0, " cm");
+    const flags = p.flags || [];
+    $("h-flags").innerHTML = flags.length ? `<span class="flag">${flags.join(", ")}</span>` : "none";
+    $("head-link").textContent = p.head && p.head.connected ? "head connected" : "head offline";
+    battery(p.battery_v);
+    if (window.visor) visor.pose(p, flags.length > 0);
+  } catch (e) {
+    session = null;
+    $("dot").classList.remove("on"); $("conn").textContent = e.message;
+  }
+}
+
+/* ---------------- 3D visor (three.js), driven by the real pose ---------------- */
+function startVisor() {
+  if (!window.THREE) { $("no3d").style.display = "grid"; return; }
+  const canvas = $("visor-canvas");
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+  const camPos = new THREE.Vector3(0, 1.35, 5.1), camLook = new THREE.Vector3(0, 0.15, 0);
+  camera.position.copy(camPos);
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15;
+
+  scene.add(new THREE.AmbientLight(0xffdfc8, 0.55));
+  const key = new THREE.DirectionalLight(0xfff6f0, 1.35); key.position.set(4.5, 7.5, 5.5); scene.add(key);
+  const rim = new THREE.PointLight(0xff5500, 3.2, 14); rim.position.set(-4, 0.5, -3); scene.add(rim);
+  const under = new THREE.PointLight(0xff3b00, 1.6, 6); under.position.set(0, -1.8, 0.5); scene.add(under);
+
+  function sphereMap() {
+    const c = document.createElement("canvas"); c.width = 2048; c.height = 1024;
+    const x = c.getContext("2d");
+    x.fillStyle = "#f3f0ea"; x.fillRect(0, 0, c.width, c.height);
+    x.strokeStyle = "#b5aea4"; x.lineWidth = 4; x.beginPath();
+    x.moveTo(0, c.height / 2); x.lineTo(c.width, c.height / 2);
+    for (let i = 1; i < 4; i++) { x.moveTo((c.width / 4) * i, 0); x.lineTo((c.width / 4) * i, c.height); }
+    x.stroke();
+    [[256, 512, 165], [768, 512, 165], [1280, 512, 165], [1792, 512, 165], [512, 195, 110], [1536, 830, 110]].forEach(([cx, cy, r]) => {
+      x.fillStyle = "#ff6210"; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill();
+      x.fillStyle = "#f3f0ea"; x.beginPath(); x.arc(cx, cy, r * 0.62, 0, 7); x.fill();
+      x.fillStyle = "#ff6210";
+      for (let a = 0; a < 4; a++) { x.save(); x.translate(cx, cy); x.rotate((a * Math.PI) / 2 + Math.PI / 4); x.fillRect(-14, r * 0.45, 28, r * 0.25); x.restore(); }
+      x.fillStyle = "#7c766e"; x.beginPath(); x.arc(cx, cy, r * 0.24, 0, 7); x.fill();
+      x.fillStyle = "#383430"; x.fillRect(cx - r * 0.14, cy - 6, r * 0.28, 12);
+    });
+    const t = new THREE.CanvasTexture(c); t.anisotropy = 4; return t;
+  }
+  function domeMap() {
+    const c = document.createElement("canvas"); c.width = 1024; c.height = 512;
+    const x = c.getContext("2d");
+    x.fillStyle = "#f3f0ea"; x.fillRect(0, 0, 1024, 512);
+    x.fillStyle = "#8b857c"; x.fillRect(0, 68, 1024, 32);
+    x.fillStyle = "#ff6210"; x.fillRect(0, 115, 1024, 42); x.fillRect(0, 415, 1024, 38);
+    x.fillStyle = "#6e685f"; x.fillRect(0, 462, 1024, 28);
+    x.strokeStyle = "#aba398"; x.lineWidth = 3;
+    for (let i = 0; i < 8; i++) { x.beginPath(); x.moveTo(i * 128, 157); x.lineTo(i * 128, 415); x.stroke(); }
+    return new THREE.CanvasTexture(c);
+  }
+  function glow(hex, s) {
+    const c = document.createElement("canvas"); c.width = c.height = 128;
+    const x = c.getContext("2d"), g = x.createRadialGradient(64, 64, 4, 64, 64, 60);
+    g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(0.35, hex); g.addColorStop(1, "rgba(0,0,0,0)");
+    x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), color: hex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+    sp.scale.set(s, s, 1); return sp;
+  }
+
+  const droid = new THREE.Group(); scene.add(droid);
+  const R = 1.18;
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(R, 64, 64), new THREE.MeshStandardMaterial({ map: sphereMap(), roughness: 0.28, metalness: 0.14 }));
+  ball.position.y = -0.15; droid.add(ball);
+  const gimbal = new THREE.Group(); gimbal.position.y = -0.15; droid.add(gimbal);
+  const dome = new THREE.Group(); dome.position.y = R - 0.03; gimbal.add(dome);
+  dome.add(new THREE.Mesh(new THREE.SphereGeometry(0.76, 64, 32, 0, Math.PI * 2, 0, Math.PI * 0.52), new THREE.MeshStandardMaterial({ map: domeMap(), roughness: 0.26, metalness: 0.18 })));
+  const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.755, 0.7, 0.09, 48), new THREE.MeshStandardMaterial({ color: 0x3b3734, metalness: 0.75, roughness: 0.3 }));
+  skirt.position.y = 0.01; dome.add(skirt);
+  const housing = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.21, 0.14, 36).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x111113, metalness: 0.8, roughness: 0.2 }));
+  housing.position.set(0, 0.34, 0.65); housing.lookAt(0, 0.48, 1.6); dome.add(housing);
+  const irisMat = new THREE.MeshStandardMaterial({ color: 0xff3b1a, emissive: 0xff3b1a, emissiveIntensity: 2.5, roughness: 0.05 });
+  const iris = new THREE.Mesh(new THREE.SphereGeometry(0.135, 32, 32), irisMat); iris.position.set(0, 0.34, 0.7); dome.add(iris);
+  const eyeGlow = glow("#ff3b1a", 0.82); eyeGlow.position.set(0, 0.34, 0.78); dome.add(eyeGlow);
+  const eyeLight = new THREE.PointLight(0xff3b1a, 3, 5); eyeLight.position.set(0, 0.34, 0.9); dome.add(eyeLight);
+  const lens = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), new THREE.MeshStandardMaterial({ color: 0x27272a, metalness: 0.85, roughness: 0.2 }));
+  lens.position.set(0.29, 0.23, 0.66); dome.add(lens);
+  [[-0.12, 0.88, -0.18, 0.014, 0.018, 0.48], [0.11, 0.78, -0.2, 0.01, 0.014, 0.28]].forEach(([x, y, z, r1, r2, h]) => {
+    const a = new THREE.Mesh(new THREE.CylinderGeometry(r1, r2, h, 12), new THREE.MeshStandardMaterial({ color: 0xe7e5e4, metalness: 0.85, roughness: 0.2 }));
+    a.position.set(x, y, z); dome.add(a);
+  });
+
+  const deck = new THREE.Group(); deck.position.y = -1.33; scene.add(deck);
+  deck.add(new THREE.Mesh(new THREE.RingGeometry(1.65, 1.68, 64).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xff5a00, side: THREE.DoubleSide, transparent: true, opacity: 0.55 })));
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0xff3b1a, side: THREE.DoubleSide, transparent: true, opacity: 0.4 });
+  const ring = new THREE.Mesh(new THREE.RingGeometry(1.15, 1.22, 64).rotateX(-Math.PI / 2), ringMat); deck.add(ring);
+  const grid = new THREE.GridHelper(6.5, 22, 0xff5a00, 0x2a1208); grid.material.transparent = true; grid.material.opacity = 0.28; deck.add(grid);
+
+  // Drag to orbit.
+  let drag = false, lastX = 0, orbit = 0.25;
+  canvas.addEventListener("pointerdown", (e) => { drag = true; lastX = e.clientX; });
+  addEventListener("pointerup", () => (drag = false));
+  addEventListener("pointermove", (e) => { if (drag) { orbit += (e.clientX - lastX) * 0.009; lastX = e.clientX; } });
+  document.querySelectorAll("[data-cam]").forEach((b) => b.onclick = () => {
+    document.querySelectorAll("[data-cam]").forEach((x) => x.classList.remove("active")); b.classList.add("active");
+    const m = b.dataset.cam;
+    if (m === "full") { camPos.set(0, 1.35, 5.1); camLook.set(0, 0.15, 0); }
+    if (m === "dome") { camPos.set(0.15, 1.45, 2.35); camLook.set(0, 1.15, 0); }
+    if (m === "radar") { camPos.set(0, 5.6, 1.2); camLook.set(0, -0.2, 0); }
+  });
+  function resize() {
+    const r = canvas.parentElement.getBoundingClientRect();
+    renderer.setSize(r.width, r.height, false); camera.aspect = r.width / r.height; camera.updateProjectionMatrix();
+  }
+  addEventListener("resize", resize); resize();
+
+  // Real robot → model. Sphere radius on the real robot ≈ 0.16 m.
+  const st = { headYaw: 0, tilt: 0, roll: 0, rollTarget: 0, alert: false, lastX: null, lastY: null };
+  window.visor = {
+    eye(c) { irisMat.color.set(c); irisMat.emissive.set(c); eyeLight.color.set(c); eyeGlow.material.color.set(c); ringMat.color.set(c); },
+    pose(p, alert) {
+      st.headYaw = THREE.MathUtils.degToRad(-(p.head_deg || 0)); // + right on the robot = −y here (it faces the camera)
+      st.tilt = THREE.MathUtils.degToRad(Math.min(p.tilt_deg || 0, 40));
+      if (st.lastX !== null) {
+        const d = Math.hypot(p.x_m - st.lastX, p.y_m - st.lastY);
+        st.rollTarget += d / 0.16;
+      }
+      st.lastX = p.x_m; st.lastY = p.y_m; st.alert = alert;
+    },
+  };
+
+  const clock = new THREE.Clock();
+  (function frame() {
+    requestAnimationFrame(frame);
+    const t = clock.getElapsedTime();
+    camera.position.lerp(camPos, 0.07); camera.lookAt(camLook);
+    droid.rotation.y += (orbit - droid.rotation.y) * 0.08;
+    st.roll += (st.rollTarget - st.roll) * 0.08; ball.rotation.x = st.roll;
+    dome.rotation.y += (st.headYaw - dome.rotation.y) * 0.12;
+    gimbal.rotation.x += (st.tilt * 0.5 + (st.rollTarget - st.roll) * 0.15 - gimbal.rotation.x) * 0.1;
+    let glowK;
+    if (st.alert || eyeMode === "alert") glowK = Math.sin(t * 24) > 0 ? 4.2 : 0.25;
+    else if (eyeMode === "thinking" || eyeMode === "curious" || eyeMode === "sad") glowK = 2 + Math.sin(t * 2.8) * 1.2;
+    else glowK = 2 + Math.sin(t * 2.8) * 0.5;
+    irisMat.emissiveIntensity = glowK; eyeLight.intensity = glowK * 1.15;
+    gimbal.rotation.z = Math.sin(t * 1.1) * 0.03;
+    ring.scale.setScalar(1 + Math.sin(t * 2.8) * 0.04);
+    renderer.render(scene, camera);
+  })();
+}
+
+/* ---------------- robot → page: live events (SSE) ----------------
+   A pose event refreshes at once; the 3 s poll is only a fallback. */
+let bannerT;
+function banner(text, info) {
+  const b = $("banner"); b.textContent = text; b.className = "show" + (info ? " info" : "");
+  clearTimeout(bannerT); bannerT = setTimeout(() => (b.className = ""), 4000);
+}
+const ALERTS = { obstacle: "Obstacle ahead", tilt: "Tilted: motors stopped", watchdog: "Watchdog: no orders, braked",
+  battery_low: "Battery low", imu: "IMU not answering" };
+function activity(cls, text, at) {
+  const d = document.createElement("div"); d.className = cls;
+  const t = document.createElement("span"); t.className = "t"; t.textContent = new Date(at).toLocaleTimeString() + " ";
+  d.append(t, text); $("activity").prepend(d);
+  while ($("activity").children.length > 120) $("activity").lastChild.remove();
+}
+let lastPoseRefresh = 0;
+function events() {
+  const es = new EventSource("/api/events" + (token ? "?token=" + encodeURIComponent(token) : ""));
+  es.onopen = () => ($("ev-state").textContent = "live");
+  es.onerror = () => { $("ev-state").textContent = "reconnecting…"; };
+  const on = (type, f) => es.addEventListener(type, (e) => { const ev = JSON.parse(e.data); f(ev.data || {}, ev.at); });
+  on("pose", () => { const n = Date.now(); if (n - lastPoseRefresh > 250) { lastPoseRefresh = n; refresh(); } });
+  on("heard", (d, at) => activity("ev-heard", "🎙 " + (d.speaker ? d.speaker + ": " : "") + d.text, at));
+  on("reply", (d, at) => activity(d.error ? "err" : "ev-reply", "BB-8: " + (d.error || d.text) + (d.tools && d.tools.length ? "  [" + d.tools.join(", ") + "]" : ""), at));
+  on("tool", (d, at) => activity(d.error ? "err" : "rx", "→ " + d.name + (d.result ? " · " + d.result : "") + (d.error ? " · " + d.error : ""), at));
+  on("alert", (d, at) => {
+    const name = ALERTS[d.kind] || d.kind;
+    activity("ev-alert", (d.on ? "⚠ " : "✓ cleared: ") + name + (d.distance_m ? ` (${Math.round(d.distance_m * 100)} cm)` : ""), at);
+    if (d.on) banner("⚠ " + name + (d.distance_m ? ` · ${Math.round(d.distance_m * 100)} cm` : ""));
+    refresh();
+  });
+  on("control", (d, at) => { activity("tx", "control: " + d.who, at); if (d.who === "manual") banner("The gamepad has control", true); });
+  on("head", (d, at) => { activity(d.connected ? "rx" : "err", d.connected ? "head connected" : "head link dropped", at); if (!d.connected) banner("Head link dropped"); });
+  on("person", (d, at) => activity("tx", "person: " + d.name + " · " + d.what + " (" + d.role + ")", at));
+  on("nav", (d, at) => {
+    if (d.done) { activity(d.done === "arrived" ? "rx" : "err", `🧭 ${d.target}: ${d.done}${d.reason ? " · " + d.reason : ""} (${d.steps} steps)`, at); return; }
+    const conf = d.confidence && d.by === "jev" ? " " + Math.round(d.confidence * 100) + "%" : "";
+    activity(d.result === "done" ? "tx" : "err", `🧭 ${d.step}. ${d.action} [${d.by}${conf}] → ${d.result}${d.reason ? " · " + d.reason : ""} · ${d.waypoint} ${d.distance_m} m`, at);
+  });
+  on("config", (d, at) => activity("t", "config rev " + d.rev + " by " + d.source + ": " + (d.keys || []).join(", "), at));
+}
+if (token) $("people-link").href = "/people?token=" + encodeURIComponent(token);
+
+startVisor();
+setEye("#ff3b1a", "idle");
+refresh();
+events();
+setInterval(() => { if (!document.hidden) refresh(); }, 3000);
+</script>
+</body>
+</html>

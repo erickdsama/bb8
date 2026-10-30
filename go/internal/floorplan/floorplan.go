@@ -481,6 +481,117 @@ func (m *Map) route(from, to string) []string {
 	return nil
 }
 
+// Where is the pose on the plan (meters, degrees clockwise from east) and the room
+// or door there. ok is false without a plan.
+func (m *Map) Where(o Odo) (x, y, heading float64, place string, ok bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if !m.load() || m.anchor == nil {
+		return 0, 0, 0, "", false
+	}
+	x, y, heading = m.toPlan(o)
+	room, door := m.room(x, y)
+	if room == "" {
+		room = door
+	}
+	return round(x, 2), round(y, 2), round(heading, 1), room, true
+}
+
+// Waypoint is the next point to drive to on the way to a room or a piece of furniture.
+type Waypoint struct {
+	Target    string  `json:"target"`
+	Kind      string  `json:"kind"` // room, furniture, door (a door on the way)
+	Name      string  `json:"name"`
+	TurnDeg   float64 `json:"turn_deg"` // + right, from the current heading
+	DistanceM float64 `json:"distance_m"`
+	Direct    bool    `json:"direct"`   // no wall or furniture in the straight line
+	ArriveM   float64 `json:"arrive_m"` // close enough at this distance
+	Final     bool    `json:"final"`    // the target itself, not a door on the way
+	Room      string  `json:"room"`     // where the robot is now ("" = in a doorway)
+	Uncertain bool    `json:"uncertain"`
+}
+
+// ErrNoTarget: the name is not a room or furniture of the plan.
+var ErrNoTarget = errors.New("not a room or furniture of the plan")
+
+// Waypoint plans one hop toward target: the target itself if it is in this room,
+// or else the first open door of the route.
+func (m *Map) Waypoint(o Odo, target string) (Waypoint, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if !m.load() {
+		return Waypoint{}, m.noPlan()
+	}
+	x, y, hd := m.toPlan(o)
+	room, _ := m.room(x, y)
+	w := Waypoint{Target: target, Room: room, Uncertain: m.uncertain != ""}
+	var tx, ty float64
+	var skip *Box
+	found := false
+	for i, f := range m.plan.Furniture {
+		if strings.EqualFold(f.Name, target) {
+			tx, ty = f.center()
+			skip = &m.plan.Furniture[i].Box
+			w.Kind, w.Name, w.Final = "furniture", f.Name, true
+			// stop in front of it: half its size plus a little margin
+			w.ArriveM = math.Max(f.X[1]-f.X[0], f.Y[1]-f.Y[0])/2 + 0.3
+			found = true
+			for _, r := range m.plan.Rooms {
+				if r.inside(tx, ty, 0) {
+					target = r.Name // route by its room
+				}
+			}
+			break
+		}
+	}
+	isRoom := false
+	for _, r := range m.plan.Rooms {
+		if strings.EqualFold(r.Name, target) {
+			target, isRoom = r.Name, true
+			if !found {
+				tx, ty = r.center()
+				w.Kind, w.Name, w.Final, w.ArriveM = "room", r.Name, true, 0.35
+				found = true
+			}
+		}
+	}
+	if !found {
+		var names []string
+		for _, r := range m.plan.Rooms {
+			names = append(names, r.Name)
+		}
+		for _, f := range m.plan.Furniture {
+			names = append(names, f.Name)
+		}
+		return Waypoint{}, fmt.Errorf("%w: %q (use one of: %s)", ErrNoTarget, target, strings.Join(names, ", "))
+	}
+	if isRoom && room != "" && room != target {
+		rt := m.route(room, target)
+		if rt == nil {
+			return Waypoint{}, errors.New("no path through open doors from " + room + " to " + target)
+		}
+		for _, d := range m.plan.Doors {
+			if d.name() == rt[0] {
+				tx, ty, skip = d.X, d.Y, nil
+				w.Kind, w.Name, w.Final, w.ArriveM = "door", d.name(), false, 0.2
+			}
+		}
+	}
+	w.DistanceM = round(math.Hypot(tx-x, ty-y), 2)
+	w.TurnDeg = math.Round(Norm180(-math.Atan2(ty-y, tx-x)*180/math.Pi - hd))
+	w.Direct = true
+	for _, b := range m.blockers() {
+		if skip != nil && b == *skip {
+			continue
+		}
+		if b.crosses(x, y, tx, ty) {
+			w.Direct = false
+			break
+		}
+	}
+	return w, nil
+}
+
 // Describe is what get_map returns.
 func (m *Map) Describe(o Odo, traveled float64) (map[string]any, error) {
 	m.mu.Lock()

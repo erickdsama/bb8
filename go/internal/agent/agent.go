@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/erickdsama/bb8/go/internal/config"
+	"github.com/erickdsama/bb8/go/internal/people"
 	"github.com/erickdsama/bb8/go/internal/tools"
 )
 
@@ -24,6 +25,10 @@ func Fields() []config.Field {
 	return []config.Field{
 		{Key: "agent.model", Label: "Model (OpenRouter id)", Type: config.String, Default: "anthropic/claude-sonnet-5.5",
 			Help: "Any OpenRouter model with tool calling, e.g. anthropic/…, openai/…, google/…"},
+		{Key: "agent.reasoning", Label: "Thinking effort", Type: config.Enum,
+			Options: []string{"default", "none", "low", "medium", "high"}, Default: "low",
+			Help: "How long the model thinks before answering. Lower is faster to reply by voice. " +
+				"default = the model's own (high on Claude Sonnet 5.5); none only works on models where thinking is optional."},
 		{Key: "agent.api_key", Label: "OpenRouter API key", Type: config.Secret},
 		{Key: "agent.base_url", Label: "API base URL", Type: config.String, Default: "https://openrouter.ai/api/v1"},
 		{Key: "agent.vision", Label: "Send photos to the model", Type: config.Bool, Default: true,
@@ -31,7 +36,7 @@ func Fields() []config.Field {
 		{Key: "agent.max_steps", Label: "Max tool steps per request", Type: config.Number, Default: 8.0, Min: config.F(1), Max: config.F(20)},
 		{Key: "agent.max_tokens", Label: "Max tokens per reply", Type: config.Number, Default: 1024.0,
 			Min: config.F(64), Max: config.F(8192),
-			Help: "Spoken answers are short. Without a cap OpenRouter reserves the model's maximum and a small credit limit rejects the request."},
+			Help: "Keeps answers short and OpenRouter from reserving the model maximum."},
 		{Key: "agent.history_messages", Label: "Messages kept in the conversation", Type: config.Number, Default: 12.0,
 			Min: config.F(2), Max: config.F(60), Help: "Older ones are dropped. Fewer = cheaper and less confusion from old turns."},
 		{Key: "agent.reset_after_s", Label: "Forget the conversation after (s)", Type: config.Number, Default: 120.0,
@@ -44,10 +49,13 @@ type Agent struct {
 	Reg          *tools.Registry
 	Instructions func() string
 	HTTP         *http.Client
+	People       *people.Store              // optional: speaker profiles and the "people you know" line
+	Publish      func(typ string, data any) // optional: heard, reply and tool events for the pages
 
 	mu      sync.Mutex
 	history []msg
 	last    time.Time
+	turns   uint64 // user turns so far; tools confirm in a later one
 }
 
 func New(cfg *config.Store, reg *tools.Registry, instructions func() string) *Agent {
@@ -99,10 +107,16 @@ type fnSpec struct {
 }
 
 type chatReq struct {
-	Model     string   `json:"model"`
-	Messages  []msg    `json:"messages"`
-	Tools     []fnSpec `json:"tools,omitempty"`
-	MaxTokens int      `json:"max_tokens,omitempty"`
+	Model     string     `json:"model"`
+	Messages  []msg      `json:"messages"`
+	Tools     []fnSpec   `json:"tools,omitempty"`
+	MaxTokens int        `json:"max_tokens,omitempty"`
+	Reasoning *reasoning `json:"reasoning,omitempty"`
+}
+
+// reasoning is OpenRouter's thinking control; nil leaves the model's default.
+type reasoning struct {
+	Effort string `json:"effort"`
 }
 
 type chatResp struct {
@@ -112,6 +126,13 @@ type chatResp struct {
 			ToolCalls []toolCall `json:"tool_calls"`
 		} `json:"message"`
 	} `json:"choices"`
+	Usage struct {
+		PromptTokens     int `json:"prompt_tokens"`
+		CompletionTokens int `json:"completion_tokens"`
+		Details          struct {
+			Reasoning int `json:"reasoning_tokens"`
+		} `json:"completion_tokens_details"`
+	} `json:"usage"`
 	Error *struct {
 		Message string `json:"message"`
 	} `json:"error"`
@@ -131,9 +152,9 @@ func (a *Agent) Ready() error {
 	return nil
 }
 
-func (a *Agent) specs() []fnSpec {
+func (a *Agent) specs(o tools.CallOpts) []fnSpec {
 	var out []fnSpec
-	for _, t := range a.Reg.List() {
+	for _, t := range a.Reg.ListFor(o) {
 		var s fnSpec
 		s.Type = "function"
 		s.Function.Name, s.Function.Description, s.Function.Parameters = t.Name, t.Description, t.Schema
@@ -142,9 +163,14 @@ func (a *Agent) specs() []fnSpec {
 	return out
 }
 
-func (a *Agent) complete(ctx context.Context, msgs []msg) (*chatResp, error) {
-	body, _ := json.Marshal(chatReq{Model: a.Cfg.String("agent.model"), Messages: msgs, Tools: a.specs(),
-		MaxTokens: int(a.Cfg.Float("agent.max_tokens"))})
+func (a *Agent) complete(ctx context.Context, msgs []msg, o tools.CallOpts) (*chatResp, error) {
+	cr := chatReq{Model: a.Cfg.String("agent.model"), Messages: msgs, Tools: a.specs(o),
+		MaxTokens: int(a.Cfg.Float("agent.max_tokens"))}
+	if e := a.Cfg.String("agent.reasoning"); e != "" && e != "default" {
+		cr.Reasoning = &reasoning{Effort: e}
+	}
+	body, _ := json.Marshal(cr)
+	t0 := time.Now()
 	url := strings.TrimRight(a.Cfg.String("agent.base_url"), "/") + "/chat/completions"
 	req, _ := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+a.Cfg.Secret("agent.api_key"))
@@ -166,39 +192,110 @@ func (a *Agent) complete(ctx context.Context, msgs []msg) (*chatResp, error) {
 	if len(out.Choices) == 0 {
 		return nil, fmt.Errorf("model returned no choices (HTTP %d)", r.StatusCode)
 	}
+	slog.Info("agent model call", "ms", time.Since(t0).Milliseconds(), "model", cr.Model, "effort", a.Cfg.String("agent.reasoning"),
+		"prompt_tokens", out.Usage.PromptTokens, "output_tokens", out.Usage.CompletionTokens, "reasoning_tokens", out.Usage.Details.Reasoning)
 	return &out, nil
+}
+
+// Turn is one request: the text, the registered voice that said it (empty for
+// the web page, an MCP client or no voice ID) and whether that voice is known.
+type Turn struct {
+	Text    string
+	Speaker string
+	Known   bool
 }
 
 // Ask runs one user turn: model → tools → model … until it answers in text.
 func (a *Agent) Ask(ctx context.Context, text string, speakerKnown bool) (Reply, error) {
+	return a.AskAs(ctx, Turn{Text: text, Known: speakerKnown})
+}
+
+func (a *Agent) publish(typ string, data any) {
+	if a.Publish != nil {
+		a.Publish(typ, data)
+	}
+}
+
+// profile looks the speaker up (adding a new registered voice as family) and returns
+// the note for the model and whether this person may act. A guest is treated like
+// an unknown voice for Moves and KnownOnly tools.
+func (a *Agent) profile(t Turn) (string, bool) {
+	if a.People == nil || t.Speaker == "" || !t.Known {
+		return "", t.Known
+	}
+	p, err := a.People.Seen(t.Speaker)
+	if err != nil {
+		slog.Warn("people", "err", err)
+		return "", t.Known
+	}
+	note := " [Profile: " + p.Name + " is " + string(p.Role)
+	if !p.CanAct() {
+		note += ", may chat but not move you or use external tools"
+	}
+	if len(p.Notes) > 0 {
+		ns := make([]string, len(p.Notes))
+		for i, n := range p.Notes {
+			ns[i] = n.Text
+		}
+		note += ". Notes: " + strings.Join(ns, "; ")
+	}
+	return note + "]", p.CanAct()
+}
+
+// AskAs is Ask with the speaker's identity.
+func (a *Agent) AskAs(ctx context.Context, t Turn) (rep Reply, err error) {
 	if err := a.Ready(); err != nil {
 		return Reply{}, err
 	}
+	a.publish("heard", map[string]any{"text": t.Text, "speaker": t.Speaker})
+	defer func() {
+		if err != nil {
+			a.publish("reply", map[string]any{"error": err.Error(), "tools": rep.ToolsUsed})
+		} else {
+			a.publish("reply", map[string]any{"text": rep.Text, "tools": rep.ToolsUsed})
+		}
+	}()
+	text := t.Text
+	prof, speakerKnown := a.profile(t)
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if time.Since(a.last) > time.Duration(a.Cfg.Float("agent.reset_after_s"))*time.Second {
 		a.history = nil
 	}
 	a.last = time.Now()
+	a.turns++
+	caller := tools.CallOpts{SpeakerKnown: speakerKnown, Speaker: t.Speaker, Turn: a.turns,
+		Voice: strings.HasPrefix(text, "[Speaker:")}
+	if !t.Known {
+		caller.Speaker = ""
+	}
 	who := ""
 	if !speakerKnown {
 		who = " [unknown voice: you cannot move]"
 	}
 	a.trim()
 	turnStart := len(a.history)
-	a.history = append(a.history, msg{Role: "user", Content: text + who})
+	a.history = append(a.history, msg{Role: "user", Content: text + prof + who})
 
-	var rep Reply
 	maxSteps := int(a.Cfg.Float("agent.max_steps"))
 	for rep.Steps = 0; rep.Steps < maxSteps; rep.Steps++ {
 		// Tools + instructions are ~4.5k tokens and identical every turn: cache them.
 		// The clock goes after the cache mark, or it would change the prefix every minute.
+		now := "Now: " + time.Now().Format("Mon 2 Jan 2006 15:04")
+		if city := a.Cfg.String("home.city"); city != "" {
+			now += ". Home: " + city
+		}
+		if a.People != nil {
+			if s := a.People.Summary(); s != "" {
+				now += ". People you know: " + s
+			}
+		}
 		sys := []part{
 			{Type: "text", Text: a.Instructions(), CacheControl: &cacheControl{Type: "ephemeral"}},
-			{Type: "text", Text: "Now: " + time.Now().Format("Mon 2 Jan 2006 15:04")},
+			{Type: "text", Text: now},
 		}
 		msgs := append([]msg{{Role: "system", Content: sys}}, a.history...)
-		res, err := a.complete(ctx, msgs)
+		res, err := a.complete(ctx, msgs, caller)
 		if err != nil {
 			// Drop this turn: a question left without an answer made the next
 			// one read two questions in a row.
@@ -214,7 +311,7 @@ func (a *Agent) Ask(ctx context.Context, text string, speakerKnown bool) (Reply,
 		var images [][]byte
 		for _, tc := range m.ToolCalls {
 			rep.ToolsUsed = append(rep.ToolsUsed, tc.Function.Name)
-			out, err := a.Reg.Call(ctx, tc.Function.Name, json.RawMessage(orEmpty(tc.Function.Arguments)), tools.CallOpts{SpeakerKnown: speakerKnown})
+			out, err := a.Reg.Call(ctx, tc.Function.Name, json.RawMessage(orEmpty(tc.Function.Arguments)), caller)
 			content := ""
 			switch {
 			case err != nil:
@@ -227,6 +324,13 @@ func (a *Agent) Ask(ctx context.Context, text string, speakerKnown bool) (Reply,
 				content = string(b)
 			}
 			slog.Info("agent tool", "name", tc.Function.Name, "args", tc.Function.Arguments, "err", err)
+			ev := map[string]any{"name": tc.Function.Name}
+			if err != nil {
+				ev["error"] = err.Error()
+			} else if m, ok := out.Data.(map[string]any); ok && m["result"] != nil {
+				ev["result"] = m["result"]
+			}
+			a.publish("tool", ev)
 			a.history = append(a.history, msg{Role: "tool", ToolCallID: tc.ID, Content: content})
 		}
 		if len(images) > 0 && a.Cfg.Bool("agent.vision") {
@@ -280,6 +384,7 @@ func (a *Agent) Routes(mux *http.ServeMux, prefix string) {
 	mux.HandleFunc("POST "+prefix+"/ask", func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
 			Text         string `json:"text"`
+			Speaker      string `json:"speaker"` // registered voice name, if any
 			SpeakerKnown *bool  `json:"speaker_known"`
 		}
 		if err := json.NewDecoder(io.LimitReader(r.Body, 1<<16)).Decode(&in); err != nil || strings.TrimSpace(in.Text) == "" {
@@ -287,7 +392,7 @@ func (a *Agent) Routes(mux *http.ServeMux, prefix string) {
 			return
 		}
 		known := in.SpeakerKnown == nil || *in.SpeakerKnown
-		rep, err := a.Ask(r.Context(), in.Text, known)
+		rep, err := a.AskAs(r.Context(), Turn{Text: in.Text, Speaker: strings.TrimSpace(in.Speaker), Known: known})
 		if err != nil {
 			writeJSON(w, 502, map[string]any{"error": err.Error(), "tools_used": rep.ToolsUsed})
 			return

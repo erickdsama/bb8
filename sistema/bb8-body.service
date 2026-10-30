@@ -1,4 +1,4 @@
-# Main Pi: serial owner, motion, floor plan, MCP + config web (:8765), local API
+# Main Pi: serial owner, motion, floor plan, MCP + config API (:8765), local API
 # (127.0.0.1:8770) and the secure head link (:8772). Replaces bb8-motion + bb8-mcp.
 [Unit]
 Description=BB-8 body (motion, MCP, config, head link)

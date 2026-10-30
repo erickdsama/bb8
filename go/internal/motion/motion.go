@@ -8,6 +8,7 @@ package motion
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"math"
 	"sync"
@@ -35,6 +36,8 @@ type Params struct {
 	HeadMaxDeg     float64 `json:"head_max_deg"`
 	OrderMaxS      float64 `json:"order_max_s"`
 	ManualHoldS    float64 `json:"manual_hold_s"`
+	BlindMaxM      float64 `json:"blind_max_m"`       // forward move cap without a fresh ToF reading
+	ObstacleMemM   float64 `json:"obstacle_memory_m"` // readings closer than this are remembered (0 = off)
 }
 
 func Defaults() Params {
@@ -42,6 +45,7 @@ func Defaults() Params {
 		WheelDiameterM: 0.065, TicksPerRev: 1320, SlipFactor: 1.0, TrackWidthM: 0.17,
 		PWMCruise: 140, PWMMin: 45, PWMTurn: 90, PWMTurnMin: 40, PWMManualMax: 150,
 		MoveMaxM: 2.0, TurnMaxDeg: 360, HeadMaxDeg: 90, OrderMaxS: 5.0, ManualHoldS: 1.0,
+		BlindMaxM: 0.3, ObstacleMemM: 0.7,
 	}
 }
 
@@ -53,6 +57,9 @@ const (
 	PollEvery   = 50 * time.Millisecond
 	ToFEvery    = 100 * time.Millisecond
 	ToFFwdMaxHD = 15
+	ceilBlindM  = 0.5
+	// StopM is where the Arduino brakes (OBSTACULO_MM); the memory brakes at the same place.
+	StopM = 0.25
 )
 
 func (p Params) Clamp() Params {
@@ -66,6 +73,8 @@ func (p Params) Clamp() Params {
 	p.HeadMaxDeg = clamp(p.HeadMaxDeg, 0, 90)
 	p.OrderMaxS = clamp(p.OrderMaxS, 0.5, ceilOrderS)
 	p.ManualHoldS = clamp(p.ManualHoldS, 0.2, 5)
+	p.BlindMaxM = clamp(p.BlindMaxM, 0, ceilBlindM)
+	p.ObstacleMemM = clamp(p.ObstacleMemM, 0, 2)
 	if p.WheelDiameterM <= 0 || p.TicksPerRev <= 0 || p.SlipFactor <= 0 {
 		d := Defaults()
 		p.WheelDiameterM, p.TicksPerRev, p.SlipFactor = d.WheelDiameterM, d.TicksPerRev, d.SlipFactor
@@ -345,6 +354,56 @@ func (s *Service) LookAt(degrees float64) Result {
 	return s.run(func(gen int64) (Result, error) { return s.head(clamp(degrees, -lim, lim), gen) })
 }
 
+// Scan sweeps the head from -range to +range in steps and reads the ToF at each
+// stop, then looks ahead again. Directions are relative to the body front, + right.
+func (s *Service) Scan(rangeDeg, stepDeg float64) Result {
+	p := s.Params()
+	rangeDeg = clamp(rangeDeg, 10, p.HeadMaxDeg)
+	stepDeg = clamp(stepDeg, 10, 45)
+	return s.run(func(gen int64) (Result, error) {
+		s.mu.Lock()
+		src := s.tofSource
+		s.mu.Unlock()
+		if src == nil {
+			return Result{"result": "error", "reason": "no head ToF"}, nil
+		}
+		var pts []Result
+		best, bestD := 0.0, -1.0
+		closest, closeD := 0.0, math.Inf(1)
+		for a := -rangeDeg; a <= rangeDeg+0.01; a += stepDeg {
+			if r, err := s.head(a, gen); err != nil {
+				return nil, err
+			} else if r["result"] != "done" {
+				return r, nil
+			}
+			time.Sleep(2 * ToFEvery) // the head pushes a reading every 100 ms
+			pt := Result{"deg": round(a, 0), "distance_m": nil}
+			if mm, ok := src(); ok && mm > 0 {
+				d := float64(mm) / 1000
+				pt["distance_m"] = round(d, 2)
+				if d > bestD {
+					best, bestD = a, d
+				}
+				if d < closeD {
+					closest, closeD = a, d
+				}
+			}
+			pts = append(pts, pt)
+		}
+		if _, err := s.head(0, gen); err != nil {
+			return nil, err
+		}
+		out := Result{"result": "done", "points": pts}
+		if bestD >= 0 {
+			out["clearest_deg"], out["clearest_m"] = round(best, 0), round(bestD, 2)
+			out["closest_deg"], out["closest_m"] = round(closest, 0), round(closeD, 2)
+		} else {
+			out["result"], out["reason"] = "error", "no ToF readings (is the head connected?)"
+		}
+		return out, nil
+	})
+}
+
 func (s *Service) Sleep() Result {
 	s.Stop()
 	if _, err := s.send(protocol.CmdSleep); err != nil {
@@ -377,6 +436,18 @@ func (s *Service) odo() (floorplan.Odo, float64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return floorplan.Odo{X: s.x, Y: s.y, Heading: s.status.YawDeg}, s.traveled
+}
+
+// Waypoint is the next hop toward a room or piece of furniture (see floorplan.Map.Waypoint).
+func (s *Service) Waypoint(target string) (floorplan.Waypoint, error) {
+	o, _ := s.odo()
+	return s.Map.Waypoint(o, target)
+}
+
+// Where is the pose on the house plan (see floorplan.Map.Where).
+func (s *Service) Where() (x, y, heading float64, place string, ok bool) {
+	o, _ := s.odo()
+	return s.Map.Where(o)
 }
 
 func (s *Service) Pose() Result {
@@ -530,9 +601,75 @@ func (s *Service) interrupted(gen int64, out Result) Result {
 	return nil
 }
 
+// forwardToF is the latest forward distance in meters: the head ToF (only while the
+// head looks ahead) or the Arduino's own. ok is false when there is none.
+func (s *Service) forwardToF() (float64, bool) {
+	s.mu.Lock()
+	src, st := s.tofSource, s.status
+	s.mu.Unlock()
+	if src != nil && st.HeadDeg <= ToFFwdMaxHD && st.HeadDeg >= -ToFFwdMaxHD {
+		if mm, ok := src(); ok && mm > 0 {
+			return float64(mm) / 1000, true
+		}
+	}
+	if st.ToFMM > 0 {
+		return float64(st.ToFMM) / 1000, true
+	}
+	return 0, false
+}
+
+// Ahead is the forward distance in meters, if there is a reading.
+func (s *Service) Ahead() (float64, bool) { return s.forwardToF() }
+
+// The head ToF sits ~34 cm up and looks 10° down with a 25° cone: a low thing
+// (a shoe, a toy) is seen from ~0.6 m and then drops under the cone before the
+// Arduino's 25 cm brake. obstacleMemory keeps the closest thing seen and moves it
+// toward the robot as the wheels turn, and says when it would be within StopM.
+type obstacleMemory struct {
+	limit float64 // remember readings closer than this
+	ahead float64 // predicted distance of the closest remembered thing (0 = none)
+	at    float64 // traveled when ahead was set
+}
+
+func (o *obstacleMemory) see(d, traveled float64) {
+	if o.limit <= 0 || d <= 0 || d >= o.limit {
+		return
+	}
+	if o.ahead == 0 || d < o.ahead-(traveled-o.at) {
+		o.ahead, o.at = d, traveled
+	}
+}
+
+func (o *obstacleMemory) tooClose(traveled float64) (float64, bool) {
+	if o.ahead == 0 {
+		return 0, false
+	}
+	left := o.ahead - (traveled - o.at)
+	return left, left < StopM
+}
+
 func (s *Service) drive(meters float64, gen int64) (Result, error) {
 	p := s.Params()
 	tpm := p.TicksPerM()
+	extra := Result{}
+	if meters > 0 {
+		// The ToF is on the head: look ahead before driving forward.
+		if hd := s.Status().HeadDeg; hd > ToFFwdMaxHD || hd < -ToFFwdMaxHD {
+			if r, err := s.head(0, gen); err != nil {
+				return nil, err
+			} else if r["result"] != "done" {
+				return r, nil
+			}
+			extra["head_centered_from_deg"] = hd
+			time.Sleep(2 * ToFEvery) // let a fresh forward reading arrive
+		}
+		if _, ok := s.forwardToF(); !ok && meters > p.BlindMaxM {
+			meters = p.BlindMaxM
+			extra["blind"] = true
+			extra["reason"] = fmt.Sprintf("no distance sensor reading: moved at most %.2f m", p.BlindMaxM)
+		}
+	}
+	mem := obstacleMemory{limit: p.ObstacleMemM}
 	st := s.waitStatus()
 	e0 := float64(st.EncLeft+st.EncRight) / 2
 	yaw0 := st.YawDeg
@@ -546,13 +683,25 @@ func (s *Service) drive(meters float64, gen int64) (Result, error) {
 		return (float64(c.EncLeft+c.EncRight)/2 - e0) / tpm
 	}
 	for {
-		out := Result{"meters": round(traveled(), 3)}
+		out := merge(Result{"meters": round(traveled(), 3)}, extra)
 		if r := s.interrupted(gen, out); r != nil {
 			return r, nil
 		}
 		if sign > 0 && s.Status().Has("obstacle") {
 			_, _ = s.send(protocol.CmdStop)
 			return s.blocked(out), nil
+		}
+		if sign > 0 {
+			t := traveled()
+			if d, ok := s.forwardToF(); ok {
+				mem.see(d, t)
+			}
+			if left, near := mem.tooClose(t); near {
+				_, _ = s.send(protocol.CmdStop)
+				return merge(out, Result{"result": "blocked", "reason": "obstacle_below_view",
+					"distance_m": round(math.Max(left, 0), 2),
+					"note":       "something low was seen ahead and is now under the sensor"}), nil
+			}
 		}
 		remaining := meters - traveled()
 		if remaining*sign < 0.01 {
@@ -577,7 +726,7 @@ func (s *Service) drive(meters float64, gen int64) (Result, error) {
 	_, _ = s.send(protocol.CmdStop)
 	time.Sleep(150 * time.Millisecond)
 	s.waitStatus()
-	return Result{"result": "done", "meters": round(traveled(), 3), "seconds": round(time.Since(t0).Seconds(), 2)}, nil
+	return merge(Result{"result": "done", "meters": round(traveled(), 3), "seconds": round(time.Since(t0).Seconds(), 2)}, extra), nil
 }
 
 func (s *Service) blocked(out Result) Result {

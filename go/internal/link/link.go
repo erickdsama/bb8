@@ -166,8 +166,6 @@ func (p *Peer) Close() {
 	p.once.Do(func() { close(p.done); p.conn.Close() })
 }
 
-func (p *Peer) Done() <-chan struct{} { return p.done }
-
 // serve reads frames until the connection ends.
 func (p *Peer) serve(ctx context.Context) error {
 	defer p.Close()

@@ -16,7 +16,8 @@ This page is the single source of truth. If something changes here, it also chan
 ```mermaid
 flowchart LR
   CL[Claude<br/>Desktop or Code] -->|MCP streamable-http :8765/mcp<br/>bearer token from the LAN| B
-  WEB[Browser<br/>config page] -->|HTTP :8765 / + SSE<br/>bearer token| B
+  WEB[Browser<br/>pages] -->|HTTPS, owner login| BW[bb8-web<br/>off the robot]
+  B -->|dials out: WebSocket /robot<br/>device token| BW
   VOZ[Voice front end<br/>Python, wake word + STT] -->|HTTP 127.0.0.1:8770<br/>/agent/ask, /tools| B
   B[bb8-body<br/>Pi 3 B+] -->|serial USB 115200<br/>ASCII lines| AR[Arduino]
   H[bb8-head<br/>Pi Zero W] -->|mutual TLS 1.3 :8772<br/>head dials, one connection| B
@@ -26,7 +27,7 @@ flowchart LR
 | Link | Transport | Who starts it |
 | --- | --- | --- |
 | Claude → body | MCP streamable-http on `/mcp`, port 8765. Clients from the LAN need `Authorization: Bearer <token>` | Claude |
-| Browser → body | HTTP on port 8765 (`/`, `/api/*`) with the same token, and SSE for live changes | Browser |
+| Browser → bb8-web → body | The pages are on `bb8-web`; their `/api/*` requests (and SSE) go down the link the robot opened (§ web relay) | The robot dials bb8-web |
 | Voice, power manager → body | HTTP JSON on `127.0.0.1:8770`, loopback only | Client |
 | Body → Arduino | Serial USB 115200 8N1, one line per command | Always the Pi |
 | Head ↔ body | Mutual TLS 1.3 on port 8772, one persistent connection, framed JSON | The head |
@@ -166,7 +167,11 @@ The MCP server (`:8765/mcp`) and the agent see the same tool registry. Tools wit
 | `update_map` | `action` `add_furniture`/`move_furniture`/`remove_furniture`/`close_door`/`open_door`, `name`, `x`, `y`, `width_m`, `length_m`, `height_m` | `{"result":"done"}` |
 | `get_pose` | — | pose (below) |
 | `get_setting` / `set_setting` | `key`, `value` | Only fields marked `agent` in the schema. A safety limit returns `not writable by this source` |
-| connector tools | e.g. `weather`, `calendar_today`, `calendar_next`, `calendar_add` | Present only while the connector is enabled |
+| `scan`* | `range_deg` 10…90 (default 90), `step_deg` 10…45 (default 30) | `{"result":"done","points":[{"deg":-90,"distance_m":1.2}…],"clearest_deg":30,"clearest_m":2.0,"closest_deg":-60,"closest_m":0.4}`. Sweeps the head, reads the ToF at each stop, looks ahead again |
+| `navigate_to`* | `target`: room or furniture name from the plan | `{"result":"arrived"|"gave_up"|"manual_override"|"cancelled"|"error","steps":[{"action","by","confidence","result"}],"waypoint":{…},"seconds"}` (§ 2.5) |
+| connector tools | e.g. `weather`, `web_search`, `calendar_today`, `calendar_next`, `calendar_add`, `thermostat_status`, `thermostat_set` | Present only while the connector is enabled. `weather` and `web` start enabled. The calendar tools read every calendar shown in Google Calendar (selected, not hidden, not free/busy only) of every account of the speaker, merged by start; an event on two calendars counts once (same `iCalUID` and start); each event says its `calendar` when there are several. `calendar_add` takes an optional `calendar` (account e-mail or calendar name, loosely); default: the main calendar of the person's oldest account. Accounts signed in before the calendar-list scope read only their main calendar until signed in again |
+| Nest (`connectors.nest.project_id`) | `thermostat_status` {} · `thermostat_set` {temperature_c, mode?: heat\|cool\|heatcool\|off, name?} | Google Smart Device Management with the Google accounts' tokens (the first that reaches the project is kept). With a project set, a Google sign-in goes through `nestservices.google.com/partnerconnections/<project>/auth` and adds scope `sdm.service`. `thermostat_set` is known voices only, clamps 9–32 °C and turns eco off first; mode off without a new mode returns an error asking which |
+| account tools | `<name>_<tool>` from the connected accounts (§ 2.8) | Tools of Zapier, Notion, Home Assistant or any MCP server. Each call uses the speaker's own account, else a shared one. Tools that send, create or delete answer `needs_confirmation` first |
 
 Color names: `red, green, blue, white, orange, yellow, purple, cyan, off`. Brightness is capped at 0.3 (the ring draws ~1 A at full white).
 
@@ -231,7 +236,7 @@ Both are normalized to −180…180, with the turn since the sound (`turned_sinc
 | `GET /head` | — | head state: `connected`, `backend`, `camera`, `mic`, `config_rev`… |
 | `GET /audio/stream` | — | The head's voiced audio, as a stream (see below). Used by the voice front end (`BB8_MIC=cabeza`) |
 | `GET /agent` | — | `{"model":…, "ready": true}` |
-| `POST /agent/ask` | `{"text": "[Speaker: Erick] da una vuelta", "speaker_known": true}` | `{"reply":"…","tools_used":["turn"],"steps":2}` |
+| `POST /agent/ask` | `{"text": "[Speaker: Erick] da una vuelta", "speaker": "Erick", "speaker_known": true}` | `{"reply":"…","tools_used":["turn"],"steps":2}`. `speaker` (optional) is the registered voice: the body applies that person's profile (§ 2.7), and a `guest` cannot move it or use KnownOnly tools |
 
 `GET /audio/stream` is a long-lived response (`application/x-bb8-audio`).
 - Every message is `[u32 BE length][JSON]`. A message with `"type": "audio"` is followed by `[u32 BE length][PCM]`, as s16le mono 16 kHz.
@@ -244,17 +249,128 @@ Both are normalized to −180…180, with the turn since the sound (`turned_sinc
 
 ### 2.3 Config and agent API (`:8765`, token from the LAN)
 
+The robot serves no pages (they are in `bb8-web`, § 2.9): this API is what they call, through the relay.
+
 | Method and path | Body | Reply |
 | --- | --- | --- |
-| `GET /` | — | config page (HTML) |
 | `GET /api/config` | — | `{"rev": 7, "values": {"motion.pwm_cruise": 140, "agent.api_key": "set", …}, "live": {…}}`. Secrets show as `"set"` or `""` |
 | `GET /api/config/schema` | — | fields: `key`, `label`, `type` (`number`, `string`, `bool`, `enum`, `secret`), `default`, `min`, `max`, `options`, `agent`, `restart` |
 | `PATCH /api/config` | `{"baseRev": 7, "values": {"head.volume": 0.5}}` | 200 with the new config. **409** with the latest config if `baseRev` is stale. 400 on validation errors (the whole patch is rejected) |
 | `GET /api/config/events` | — | SSE. `hello` with the current rev, then one `change` event per applied write from **any** source (`web`, `agent`, `system`): `{"rev": 8, "source": "agent", "at": "…", "values": {"head.volume": 0.35}}` |
 | `GET /api/config/audit` | — | the last 50 changes |
 | `GET /api/connectors` | — | `[{"id": "weather", "state": "ok"}, {"id": "calendar", "state": "needs_auth", "detail": "…"}]` |
-| `GET /api/connectors/calendar/auth` | — | Starts Google OAuth. The callback stores the refresh token as a secret |
+| `GET /api/connections` | — | `{"connections":[{"connection":{"id","kind","label","name","url","owner","account","strangers","confirm","sign_in"},"live":{"state","error","tools"}}],"catalog":{…},"people":[…],"owner":"Erick"}`. No tokens |
+| `GET /api/connections/discover` | — | `{"home_assistant":[{"url","name"}]}` from mDNS |
+| `GET /api/home` | — | `{"connected","devices","brands":[{"handler","label","what","linked"}],"found":[{"flow_id","handler","label"}]}`: the house's Home Assistant (the connection whose URL ends in `/api/mcp`), brands to add and devices it discovered. `devices` counts entities Bebocho may use (light, switch, climate, fan, cover, media_player, vacuum, humidifier, water_heater; never lock or alarm) |
+| `POST /api/home/link` | `{"handler"}` or `{"flow_id"}` | a **step**: `{"flow_id","handler","type":"form"\|"external"\|"progress"\|"done"\|"abort","title","text","fields":[{"name","type":"text"\|"password"\|"number"\|"bool"\|"select","label","required","default","options":[{"value","label"}]}],"qr":"data:image/png;base64,…","url","error","devices"}`. The robot runs Home Assistant's config flow with its token; labels come from Home Assistant's Spanish translations. `done` exposes the new devices to Bebocho. 409 without Home Assistant |
+| `GET /api/home/link/{flow}` | — | the current step (after an `external` sign-in or a `progress` wait, it moves on by itself) |
+| `POST /api/home/link/{flow}` | the form's answers | the next step |
+| `DELETE /api/home/link/{flow}` | — | cancels it |
+| `POST /api/connections/start` | `{"kind","owner","url","token","origin","id"}` | `{"auth_url"}` (open it) or `{"connected": view}`. `origin` is the page's own address; `id` signs an account in again. `kind: "google"` is a Google account for the calendar (not MCP): it signs in with the OAuth client in `connectors.calendar.google_client_id`/`_secret` (built in from `google_client.env`; 400 until set), offline access, scopes `calendar.events` + `calendar.calendarlist.readonly`, through `/oauth/`. A person may have several Google accounts; the same account signing in again replaces itself |
+| `PATCH /api/connections/{id}` | `{"owner","confirm","strangers"}` | the view. Giving it an owner turns `strangers` off |
+| `DELETE /api/connections/{id}` | — | 204 |
+| `GET /api/connections/callback` | `?code&state` | Where sign-ins come back. **No page token**: the single-use state proves it. Answers a page that returns to `/#services` |
+| `POST /hooks/google` | Google's `X-Goog-Channel-*` headers, no body | Google Calendar change notice (relayed by bb8-web, no session). **No page token**: the channel token, random per account and renewed weekly, proves it. Always `200`; the robot then asks Google what changed |
 | `GET /api/agent`, `POST /api/agent/ask` | as in § 2.2 | the web chat box |
+| `GET /api/events` | `?types=pose,alert` (optional), `Last-Event-ID` or `?since=` to replay | SSE robot → page feed (§ 2.4) |
+| `GET /api/people` | — | `[{"name","role","notes":[{"text","at"}],"voice","created","last_seen"}]` |
+| `PUT /api/people/{name}` | `{"role": "family"}` | creates or changes the role (`owner`, `family`, `guest`) |
+| `POST /api/people/{name}/notes` | `{"text": "…"}` | adds a note (≤ 200 chars, 20 per person) |
+| `DELETE /api/people/{name}/notes?text=…` | — | `{"removed": 1}`: notes containing the text |
+| `DELETE /api/people/{name}` | — | 204 |
+
+### 2.4 Robot → page events
+
+`GET /api/events` is SSE: `id: <n>`, `event: <type>`, `data: {"id","type","at","data"}`. The last 100 events are kept, so a page that reconnects gets what it missed. A slow page drops events; the robot never waits for it.
+
+| Type | `data` | When |
+| --- | --- | --- |
+| `pose` | `x`, `y`, `heading_deg`, `head_deg`, `tilt_deg`, `battery_v`, `tof_m`, `plan: {x, y, heading_deg, room}` | ≤ 2 Hz, only after 1 cm, 1°, a head step or 0.1 V |
+| `alert` | `kind` (`obstacle`, `tilt`, `watchdog`, `battery_low`, `imu`), `on`, `distance_m` / `battery_v` | an Arduino flag turns on or off |
+| `control` | `who`: `llm`, `manual`, `idle` | on change |
+| `head` | `connected` | the head link comes up or drops |
+| `heard` | `text`, `speaker` | the agent gets a request |
+| `tool` | `name`, `result` or `error` | each tool the agent calls |
+| `reply` | `text` or `error`, `tools` | the agent answers |
+| `person` | `name`, `role`, `what` (`added`, `seen`, `note`, `role`, `removed`) | the people store changes |
+| `config` | `rev`, `source`, `keys` | every applied config write |
+| `nav` | `target`, `step`, `action`, `by`, `confidence`, `result`, `waypoint`, `distance_m`; last one `done` | each `navigate_to` step |
+
+### 2.5 Navigation (System 1)
+
+`navigate_to` runs a loop in `bb8-body` (`go/internal/navigate`), up to `navigation.max_steps` (30):
+1. `floorplan.Map.Waypoint`: the target if it is in this room, else the first open door of the route. It gives `turn_deg`, `distance_m`, `direct`, `arrive_m`, `final`.
+2. A state goes to the planner: waypoint, `ahead_m` (forward ToF), the last scan, the last 5 steps, `blocked_count`.
+3. The planner picks one action: `turn_to_waypoint`, `forward` (≤ 0.6 m), `forward_short` (0.25 m), `turn_to_clearest`, `turn_left`/`turn_right` (45°), `back_up` (0.2 m), `scan`, `arrived`, `give_up`.
+   - `navigation.planner` `auto`/`jev`: JEV (`POST https://api.typesafe.ai/v1/systemone`, one `choice` question `next_action` whose criteria are the actions) when `navigation.jev_api_key` is set. Below `navigation.min_confidence` (0.6), or on an error, the local rules decide that step.
+   - `local`: only the rules.
+4. The action runs through `motion.Service` like any order. `manual_override`, `cancelled`, `timeout` and `error` end the trip.
+
+Arriving is checked in code before asking: within `arrive_m`, or facing a piece of furniture that is right in front.
+
+### 2.6 Forward distance (ToF on the head)
+
+The VL53L0X is on the head, ~34 cm up, 10° down, 25° cone.
+- `D` is only forwarded while the head looks within ±15°. A forward `move` first turns the head ahead (`head_centered_from_deg` in the result).
+- With no reading (head link down, no sensor), a forward move is cut to `motion.blind_max_m` (0.3 m, ceiling 0.5) and returns `"blind": true`.
+- Low things (a shoe, a toy) are seen from ~0.6 m and then drop under the cone before 25 cm. Readings closer than `motion.obstacle_memory_m` (0.7 m; keep it under the ~0.9 m floor reading) are remembered and moved toward the robot with the wheels. The move brakes when one would be within 25 cm: `blocked` with `reason: obstacle_below_view`.
+
+### 2.7 People
+
+`<data>/people.json` keeps who BB-8 knows. Roles:
+- `owner` may do everything;
+- `family` (the default for a registered voice heard for the first time) may move it and use external tools;
+- `guest` (the default for someone BB-8 is told about) may only chat.
+
+The agent can add people and notes (`remember_about`, `forget_about`; known voices only). Only the web page changes roles. Every turn the agent gets the speaker's role and notes, plus one line with everyone's name and role.
+
+### 2.8 Accounts and sign-in
+
+`<data>/connections.json` (0600, it holds tokens) keeps the accounts BB-8 uses (`go/internal/connections`). Each one has a `kind` (`zapier`, `home`, `notion`, `linear`, `custom`), an MCP endpoint, an `owner` (a person, or `""` for the house) and how it signs in.
+
+Whose account a call uses (`mcpclient.pick`):
+- a known voice: their own account, else a shared one; nobody else's;
+- the page, an MCP client, or no voice ID: `home.owner`'s;
+- an unknown voice or a guest: only shared accounts with `strangers`, and only their read-only tools.
+
+The agent only lists the tools the speaker can use (`tools.Tool.For`). Two people can connect the same service: the tool is registered once and routed per call.
+
+Confirmation (`tools.Tool.Confirm`, on accounts with `confirm`, the default except Home Assistant): a tool that is not read-only (MCP `readOnlyHint`, or a name like `get_`/`list_`/`find_`/`search_`) answers `{"result":"needs_confirmation","confirm_id":"c…","say":…}`. The same call with that `confirm_id` runs only in a **later user turn by the same person** with the same arguments, within 5 min. Unknown voices are refused. MCP clients skip it.
+
+Sign-in:
+- **MCP OAuth** (Zapier, Notion, Linear, any server that supports it):
+  1. BB-8 probes the endpoint, gets 401, and reads its protected-resource metadata (RFC 9728), or the origin's authorization-server metadata (RFC 8414) when there is none, as with Zapier.
+  2. It registers as client "BB-8" (RFC 7591) with redirect `connectors.mcp.oauth_bridge`.
+  3. It sends the browser to sign in with PKCE S256, `resource`, and a scope from `WWW-Authenticate`, or `openid email` when the server offers it, to show the account.
+  4. The service returns to **bb8-web's `/oauth/`** (public, no session), which redirects to `/api/connections/callback` with the same query; that goes down the robot's link.
+  5. BB-8 exchanges the code, reads `userinfo` if there is one, and stores the tokens. They are refreshed a minute before they expire and once more on a 401.
+- **Home Assistant**: found over mDNS (`_home-assistant._tcp`, `internal_url` in TXT). Its IndieAuth flow takes `client_id` = the page's origin + `/` and a redirect on the same host, so it comes back directly, with no bridge. The access token lasts 30 min and is refreshed. Endpoint `<base>/api/mcp`. It needs the *Model Context Protocol Server* integration; Alexa comes through its *Alexa Devices* integration.
+- **Token**: `custom` with a pasted token is sent as `Authorization: Bearer`.
+- `.local` names resolve over mDNS in code (`go/internal/mdns`), because the static build cannot.
+
+### 2.9 Pages and the web relay
+
+The pages (`go/internal/webui`: `/`, `/control`, `/voice`, `/people`) are served by **`bb8-web`**, off the robot (for now the home PC, a user service: `sistema/bb8-web.service`; later a public host). The robot never accepts their connections: **`bb8-body --web ws://host:8780/robot` dials out** with `Authorization: Bearer <device token>` (`~/.bb8-web/device-token` on the web host, `/etc/bb8/web-token` on the Pi) and keeps one WebSocket (reconnects 1 s … 30 s; `.local` names via mDNS).
+
+`bb8-web`:
+- `GET /login`, `POST /login` (password in `~/.bb8-web/password`, made on the first run), `GET /logout`. A session is an HMAC-signed cookie, 30 days, `HttpOnly`, `SameSite=Lax`.
+- Pages without a session → `/login`; `/api/*` and `/mcp` without one → 401 `{"error":"sign in"}`.
+- With a session, `/api/*` and `/mcp` go down the link. `GET /api/connections/callback` and `POST /hooks/google` go down without a session (the robot checks the single-use state or the channel token).
+- Robot not linked → 503 `{"error":"BB-8 is not connected","offline":true}`. `GET /api/web` → `{"robot": true, "since": …}`.
+- `--no-login` only on a loopback address (the simulator: `127.0.0.1:8780`).
+
+The link (`go/internal/relay`), JSON frames over one WebSocket:
+
+| Frame | Direction | Meaning |
+| --- | --- | --- |
+| `{"id","method","path","header","body"}` | web → robot | a request (body ≤ 1 MB, base64) |
+| `{"id","status","header"}` | robot → web | reply head |
+| `{"id","body"}` | robot → web | a chunk, as the handler writes it: SSE flows live |
+| `{"id","end":true}` | robot → web | reply finished |
+| `{"id","cancel":true}` | web → robot | the page went away; the robot cancels that handler |
+| `{"ping":true}` | both | every 20 s; 60 s of silence drops the link |
+
+The robot runs each request through its own HTTP handler as a loopback request, so `/mcp` and the API need no token on that path; `Authorization`, `Cookie` and hop-by-hop headers never cross the link.
 
 Config storage:
 - `--data` (`/var/lib/bb8` on the Pi) holds `config.json` (`{"rev", "values"}`) and `secrets.json` (mode 0600). Writes are atomic.
@@ -287,7 +403,7 @@ The head gets `ca.crt`, `bb8-head.crt` and `bb8-head.key`. Each side only accept
 | --- | --- | --- | --- |
 | body → head | `photo` | `{"width": 640}` | `{"ok":true,"bytes":N}` + JPEG frame. `err: "no camera"` without a camera |
 | body → head | `eye` | `{"rgb":[0,220,255],"pattern":"breathe","brightness":0.3}` | `{"ok":true}` |
-| body → head | `say` | `{"text":"hola","sound":"happy"}` | `{"ok":true,"seconds":1.2}` when done |
+| body → head | `say` | `{"text":"hola","sound":"happy"}`, optionally `"pcm":"<base64>","rate":24000` | `{"ok":true,"seconds":1.2}` when done. With `pcm` (16-bit mono, made on the body by Gemini TTS) the head plays it, scaled by `volume`, instead of making speech from `text`. A reply longer than one sentence comes as two `say` requests: the first sentence (with its beep) as soon as it is synthesized, then the rest with `"no_beep":true`, synthesized meanwhile. Heads without `no_beep` support beep again before the rest |
 | body → head | `rest` | `{"active": false}` | `{"ok":true}` |
 | body → head | `config` (event) | `{"rev": 8, "values": {"eye_brightness": 0.3, "volume": 0.7}}` | The head applies it and answers with the `config_ack` event. The body sends it on every connect and on every change under `head.*` |
 | head → body | `tof` (event) | `{"mm": 812}` | every 100 ms while there is a sensor |
@@ -302,7 +418,7 @@ The head gets `ca.crt`, `bb8-head.crt` and `bb8-head.key`. Each side only accept
 Head hardware (Pi Zero W, armv6):
 - **Camera:** `rpicam-jpeg` runs on demand.
 - **Eye:** 16-LED WS2812 ring on GPIO12 (PWM0, the HAT's Grove digital port), driven by the `bb8-eye` C helper (rpi_ws281x, PWM + DMA, root). `bb8-head` sends it raw RGB frames (3 bytes per LED) on the unix socket `/run/bb8-eye.sock` (systemd `bb8-eye.socket`).
-- **Sound:** beeps synthesized in Go and played with `aplay`; speech with `espeak-ng`.
+- **Sound:** beeps synthesized in Go and played with `aplay`. Speech: the body's voice when `say` carries `pcm` (setting `voice.tts = gemini`), else Wyoming (`--tts`) or `espeak-ng`.
 - **ToF:** VL53L0X on I2C1.
 - **Microphone:** ReSpeaker 2-Mic HAT v1 (WM8960), ALSA card `wm8960soundcard`, captured with `arecord -c 2 -r 16000`.
   - An energy VAD runs with an adaptive noise floor (+10 dB to start, 600 ms hangover).

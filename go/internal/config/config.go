@@ -40,16 +40,17 @@ const (
 )
 
 type Field struct {
-	Key     string   `json:"key"`   // "motion.pwm_cruise"
-	Label   string   `json:"label"` // short, for the form
-	Help    string   `json:"help,omitempty"`
-	Type    Type     `json:"type"`
-	Default any      `json:"default,omitempty"`
-	Min     *float64 `json:"min,omitempty"`
-	Max     *float64 `json:"max,omitempty"`
-	Options []string `json:"options,omitempty"`
-	Agent   bool     `json:"agent"`   // the agent may write it with set_setting
-	Restart bool     `json:"restart"` // applies after a restart, not live
+	Key      string   `json:"key"`   // "motion.pwm_cruise"
+	Label    string   `json:"label"` // short, for the form
+	Help     string   `json:"help,omitempty"`
+	Type     Type     `json:"type"`
+	Default  any      `json:"default,omitempty"`
+	Min      *float64 `json:"min,omitempty"`
+	Max      *float64 `json:"max,omitempty"`
+	Options  []string `json:"options,omitempty"`
+	Agent    bool     `json:"agent"`              // the agent may write it with set_setting
+	Restart  bool     `json:"restart"`            // applies after a restart, not live
+	Advanced bool     `json:"advanced,omitempty"` // folded under "Advanced" in the form
 }
 
 func F(v float64) *float64 { return &v }

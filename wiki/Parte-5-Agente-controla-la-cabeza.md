@@ -66,6 +66,7 @@ con `alsamixer` y guárdalo con `sudo alsactl store`. Flags de `bb8-head`:
 - Sin la cámara (va en otro pedido) la cabeza funciona igual: ojo, voz y ToF responden, `take_photo` dice que no hay cámara y Claude avanza en tramos cortos. Pruébalo en el PC con `python simulador/lanzar_dummy.py --camara ninguna`.
 - La Zero no trae salida de audio: la da el códec del HAT (bocina en el JST, o jack → PAM8403). El MAX98357A ya no hace falta y chocaría con el I2S del HAT.
 - Piper no corre en armv6: la cabeza habla con `espeak-ng` (voz robótica, va bien con un droide). Para voz de Piper usa `BB8_VOZ_SALIDA=local` y la bocina de la Pi 3.
+- **Voz natural con Gemini (opcional):** en la página, Voz → `gemini` y pega una API key de [Google AI Studio](https://aistudio.google.com/apikey). El cuerpo pide el audio a `gemini-3.8-flash-tts` y la cabeza solo lo reproduce. Sin internet, sin key o si Gemini falla, la cabeza vuelve a `espeak-ng` sola. Cuesta unos US$0.0002 por frase de 1 s (US$9 por millón de tokens de audio, 25 tokens por segundo; el doble desde enero de 2027); la API tiene capa gratuita, con límite de peticiones. Código: [`tts/gemini.go`](https://github.com/erickdsama/bb8/blob/main/go/internal/tts/gemini.go).
 - El anillo a blanco pleno pide ~1 A: aliméntalo del power bank. El brillo se limita a 0.3 en el código.
 - Alimenta el PAM8403 a 5 V, nunca a 11.1 V.
 

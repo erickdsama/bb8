@@ -52,7 +52,8 @@ async def main() -> None:
         tools = [t.name for t in (await s.list_tools()).tools]
         check("herramientas", set(tools) >= {"move", "turn", "stop", "look_at", "take_photo",
                                              "set_eye_color", "say", "express", "get_pose", "listen",
-                                             "get_map", "set_position", "update_map"}, tools)
+                                             "get_map", "set_position", "update_map", "weather", "web_search",
+                                             "people", "remember_about", "forget_about", "scan", "navigate_to"}, tools)
 
         foto = await call("take_photo")
         img = next((c for c in foto if c.type == "image"), None) if isinstance(foto, list) else None
@@ -207,6 +208,56 @@ async def main() -> None:
               and cfg2["values"]["motion.pwm_cruise"] == 120, f"{viejo} {nuevo}")
         patch({"values": {"motion.pwm_cruise": 140}})
 
+        # Personas y eventos robot → página (/api/events).
+        robot: list[str] = []
+
+        def escuchar_robot() -> None:
+            with urllib.request.urlopen(web + "api/events?types=person,pose", timeout=10) as r:
+                for linea in r:
+                    if linea.startswith(b"event:"):
+                        robot.append(linea.decode().split(":", 1)[1].strip())
+                    if "person" in robot and "pose" in robot:
+                        return
+
+        hilo = threading.Thread(target=escuchar_robot, daemon=True)
+        hilo.start()
+        await asyncio.sleep(0.3)
+        res = await call("remember_about", name="Ana", note="le gustan los gatos")
+        await call("look_at", degrees=20)
+        await call("look_at", degrees=0)
+        hilo.join(4)
+        gente = await call("people")
+        ana = next((p for p in gente.get("people", []) if p["name"] == "Ana"), {})
+        check("remember_about → people (invitada)", res.get("result") == "done" and ana.get("role") == "guest"
+              and "le gustan los gatos" in ana.get("notes", []), ana)
+        check("eventos robot → página: person y pose", "person" in robot and "pose" in robot, robot)
+
+        # Las páginas viven en bb8-web (fuera del robot) y llegan al robot por su enlace.
+        web_ext = f"http://127.0.0.1:{os.environ.get('BB8_WEB_PORT', '8780')}/"
+        try:
+            with urllib.request.urlopen(web_ext + "api/config", timeout=5) as r:
+                via = json.load(r)
+            with urllib.request.urlopen(web_ext, timeout=5) as r:
+                pagina = r.read().decode()
+            ok_web = via.get("rev", 0) > 0
+        except Exception as e:  # noqa: BLE001
+            via, pagina, ok_web = {"error": str(e)}, "", False
+        try:
+            urllib.request.urlopen(web, timeout=5)
+            sin_pagina = False
+        except urllib.error.HTTPError as e:
+            sin_pagina = e.code == 404
+        check("bb8-web: páginas fuera del robot, API por el enlace; el robot no sirve páginas",
+              ok_web and "BB-8 Settings" in pagina and sin_pagina, via.get("rev", via))
+
+        # Cuentas: catálogo con login, y la página nunca ve tokens.
+        with urllib.request.urlopen(web + "api/connections") as r:
+            cuentas = json.load(r)
+        cat = cuentas.get("catalog", {})
+        check("cuentas: catálogo (Zapier OAuth, Home Assistant)", cat.get("zapier", {}).get("sign_in") == "oauth"
+              and cat.get("home", {}).get("sign_in") == "homeassistant" and "Ana" in cuentas.get("people", []),
+              list(cat))
+
         # El mando manda: una orden manual bloquea al LLM durante 1 s.
         post("http://127.0.0.1:8770/manual", {"left": 0, "right": 0})
         res = await call("move", meters=0.2)
@@ -228,6 +279,17 @@ async def main() -> None:
         res = (await call("get_map"))["position"]
         check("inclinado → posición incierta en el plano", res["uncertain"] is True, res)
         await asyncio.sleep(1.5)
+
+        # ToF: barrido de la cabeza y navegación por pasos (System 1, reglas locales sin clave de JEV).
+        res = await call("scan", range_deg=90, step_deg=30)
+        check("scan: 7 direcciones y la más libre", res.get("result") == "done" and len(res.get("points", [])) == 7
+              and "clearest_deg" in res, {k: res.get(k) for k in ("result", "clearest_deg", "clearest_m", "closest_m")})
+        res = await call("navigate_to", target="silla")
+        check("navigate_to silla → arrived", res.get("result") == "arrived",
+              f"{res.get('result')} {res.get('reason', '')} · {[s['action'] for s in res.get('steps') or []]}")
+        res = await call("navigate_to", target="cocina")
+        check("navigate_to a algo que no está en el plano → error con los nombres",
+              res.get("result") == "error" and "silla" in res.get("reason", ""), res.get("reason"))
 
     print(f"\n{'Todo bien' if not fallos else f'{fallos} fallo(s)'}")
     sys.exit(1 if fallos else 0)
