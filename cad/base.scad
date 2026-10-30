@@ -169,6 +169,7 @@ module soporte_bt(s = 1) {
         }
         translate(bt_atras) apuntar(bt_u) {
             cylinder(d = 2 * bt_brida[0], h = 60);              // todo lo que va delante de la brida
+            translate([0, 0, -8]) cylinder(d = 22, h = 9);           // alivio por si la copa de la bola sale por atrás
             // Ranuras: la brida entra con cualquier separación de bt_ranura[0] a bt_ranura[1].
             // La tuerca M4 corre en su canal plano contra plano y no gira.
             for (y = [-1, 1]) {

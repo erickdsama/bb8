@@ -73,16 +73,16 @@ lipo_z_sup  = z_motor_inf - 2;          // la LiPo va justo debajo de los motore
 lipo_z_inf  = lipo_z_sup - lipo[2];
 
 // ───────────────────────── Ruedas locas RL4 (Electrozone) ─────────────────────────
-// Domo de acero sobre una brida de 2 agujeros (medidas de Erick, 20 oct).
+// Domo de acero sobre una brida de 2 agujeros (medidas de Erick con la pieza en mano, 30 oct).
 bola_d       = 25.4;   // 1″: se ven 18 mm por la boca del domo y sale ~3 mm
 bt_y         = 110;    // a 90° de las ruedas, adelante y atrás
-bt_brida     = [50, 22];   // largo × ancho de la brida
+bt_brida     = [50, 32];   // punta a punta × ancho al centro (rombo: el domo de 30 + orilla)
 bt_brida_e   = 1.5;
 bt_agujero_d = 5;
-bt_agujero_sep = 35;   // entre centros (5 mm de orilla + 2.5 de radio, en cada lado)
-bt_ranura    = [30, 42];   // el soporte acepta bridas con agujeros de 30 a 42 mm entre centros
-bt_domo_d    = 32;     // domo (del escaneo)
-bt_bola_fuera = 25.4;  // cara de la brida → punta de la bola (la bola sale ~3 mm del domo)
+bt_agujero_sep = 38;   // entre centros: 43 de orilla a orilla de los agujeros − 5
+bt_ranura    = [35, 41];   // ranuras de ±3 mm alrededor de bt_agujero_sep
+bt_domo_d    = 30;     // base del domo sobre la brida
+bt_bola_fuera = 20 - bt_brida_e;  // cara de la brida → punta de la bola (20 desde la espalda)
 // centro de la bola: toca el casco por dentro
 bt_c_r = Ri - bola_d / 2;
 bt_c_z = -sqrt(bt_c_r * bt_c_r - bt_y * bt_y);
