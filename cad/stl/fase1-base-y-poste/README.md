@@ -50,8 +50,8 @@ La primera tanda se imprimió con estos defectos. Todos se arreglan sobre la pie
 | --- | --- | --- |
 | `base_charola` | El hueco de la LiPo se comía las pestañas: de cada pared solo quedaban tiras de 1 mm | Corta las tiras y cuelga la charola con 2 escuadras de 20 × 20 mm por dentro de las paredes altas (M3 × 12). El STL de ahora ya trae pestañas con chaflán de 45° |
 | `base_soporte_motor_izq` | Tapa los 4 agujeros del L298N | Taladra 3 mm usando el MDF de guía; el L298N va con M3 × 16 que se roscan en el soporte, con 2 tuercas de separador |
-| `base_soporte_bt` (adelante) | Tapa la orilla de un agujero de la Raspberry Pi | Taladra 2.5 mm, o atornilla la Pi con 3 tornillos |
-| `base_soporte_bt` | Los agujeros no coinciden con la brida de la RL4 | Marca a través de la brida y taladra pilotos (2.5 mm para M3, 3.3 mm para M4) |
+| `base_soporte_bt` (adelante) | Tapa la orilla de un agujero de la Raspberry Pi | Taladra 1.7 mm y rosca ahí el M2 × 16 de la Pi. El STL de ahora ya trae ese agujero |
+| `base_soporte_bt` | Los agujeros no coinciden con la brida de la RL4 | Marca a través de la brida y taladra pilotos (2.5 mm para M3, 3.3 mm para M4). El STL de ahora trae ranuras: acepta bridas de 30 a 42 mm entre agujeros, con M4 y tuerca por detrás |
 | `poste_soporte_servo` | El cable del servo no tiene salida hacia el tubo | Sácalo por la ventana del costado y bájalo por fuera del tubo con cinchos |
 
 Cómo se arma el poste: [`cad/png/soporte_servo_armado.png`](../../png/soporte_servo_armado.png).

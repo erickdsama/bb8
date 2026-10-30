@@ -155,7 +155,7 @@ module charola() {
 
 // ───────────── Soporte de rueda loca RL4 (s = 1 adelante, −1 atrás) ─────────────
 // Bloque bajo la plataforma con la cara inclinada hacia el centro de la esfera. La brida
-// de la RL4 se atornilla a esa cara con 2 M4 y tuerca por detrás.
+// de la RL4 se atornilla a esa cara con 2 M4 y tuerca por detrás, en ranuras.
 bt_c = [0, bt_y, bt_c_z];
 bt_u = unitario(bt_c);
 bt_cara = bt_c - (bt_bola_fuera - bola_d / 2) * bt_u;   // cara de la brida
@@ -169,12 +169,17 @@ module soporte_bt(s = 1) {
         }
         translate(bt_atras) apuntar(bt_u) {
             cylinder(d = 2 * bt_brida[0], h = 60);              // todo lo que va delante de la brida
-            for (y = [-1, 1]) translate([0, y * bt_agujero_sep / 2, 0]) {
-                translate([0, 0, -12]) cylinder(d = 4.5, h = 13, $fn = 16);
-                translate([0, 0, -6.5]) rotate([0, 0, 30]) cylinder(d = tuerca_m4, h = 3.4, $fn = 6);   // tuerca M4
-                translate([0, 0, -60 - 6.5]) cylinder(d = 10, h = 60, $fn = 24);                  // llave por detrás
+            // Ranuras: la brida entra con cualquier separación de bt_ranura[0] a bt_ranura[1].
+            // La tuerca M4 corre en su canal plano contra plano y no gira.
+            for (y = [-1, 1]) {
+                hull() for (c = bt_ranura / 2) translate([0, y * c, -12]) cylinder(d = 4.5, h = 13, $fn = 16);
+                hull() for (c = bt_ranura / 2) translate([0, y * c, -6.5]) rotate([0, 0, 30]) cylinder(d = tuerca_m4, h = 3.4, $fn = 6);   // tuerca M4
+                hull() for (c = bt_ranura / 2) translate([0, y * c, -60 - 6.5]) cylinder(d = 8.6, h = 60, $fn = 24);   // meter la tuerca por detrás
             }
         }
+        // Agujero de la Pi que cae sobre el soporte de adelante: el M2 × 16 de la Pi se rosca aquí.
+        for (p = PI4_AG) let(q = POS_PI4 + p) if (abs(q[0]) < 24 && q[1] > 80 && q[1] < 104)
+            translate([q[0], q[1], plat_z_inf - 8]) cylinder(d = 1.7, h = 9, $fn = 12);
         for (p = agujeros_bt(1)) translate([p[0], p[1], plat_z_inf - 20]) {
             cylinder(d = 3.4, h = 21, $fn = 16);
             translate([0, 0, -46]) cylinder(d = 7, h = 60, $fn = 24);   // cabeza del tornillo por abajo

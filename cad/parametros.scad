@@ -80,6 +80,7 @@ bt_brida     = [50, 22];   // largo × ancho de la brida
 bt_brida_e   = 1.5;
 bt_agujero_d = 5;
 bt_agujero_sep = 35;   // entre centros (5 mm de orilla + 2.5 de radio, en cada lado)
+bt_ranura    = [30, 42];   // el soporte acepta bridas con agujeros de 30 a 42 mm entre centros
 bt_domo_d    = 32;     // domo (del escaneo)
 bt_bola_fuera = 25.4;  // cara de la brida → punta de la bola (la bola sale ~3 mm del domo)
 // centro de la bola: toca el casco por dentro
