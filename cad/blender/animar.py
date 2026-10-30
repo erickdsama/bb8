@@ -364,7 +364,7 @@ def base(padre):
             q2 = apuntar(u) @ Vector((0, k * 17.5, 0))
             prim("cil", f"RL4 {nombre} tornillo {k}", "Negro", padre, cara + q2 + u * 1.0, rot, dim=(7, 7, 2.5), vertices=6)
     stl("fase1-base-y-poste/base_panel_interruptor.stl", "Panel del interruptor", "Impreso", padre)
-    # bobina receptora, pegada en el portabobina de la charola a 4 mm de la pared
+    # bobina receptora, pegada en el portabobina de la charola a BOBINA_AIRE (7 mm) de la pared
     prim("cil", "Bobina receptora", "Negro", padre, (0, 0, -(RI - BOBINA_AIRE) + BOBINA_E / 2), dim=(BOBINA_D, BOBINA_D, BOBINA_E), vertices=64)
 
     z = PLAT_SUP + SEPARADOR
@@ -804,7 +804,7 @@ def cableado_base(padre):
         cable(f"Cable bobina {k + 1}", [(BOBINA_D / 2 - 1, -1 + 2 * k, -(RI - BOBINA_AIRE) + 2), (28, -1 + 2 * k, -(RI - BOBINA_AIRE) + 6),
                                        (28, -1 + 2 * k, LIPO_INF - 1), (30, -20 + k, LIPO_INF + 10), (36, -44 + 4 * k, PLAT_INF - 14),
                                        Vector(r.pin[q][0]) + Vector((0, 0, -4)), r.pin[q][0]], "naranja", 0.45, padre)
-    etiqueta("Bobina receptora (4 mm de la pared)", (0, 0, -(RI - BOBINA_AIRE) - 8), padre, 2.2)
+    etiqueta(f"Bobina receptora ({BOBINA_AIRE:g} mm de la pared)", (0, 0, -(RI - BOBINA_AIRE) - 8), padre, 2.2)
     r.c("receptor cargador +", "rx OUT+", "cc IN+", "rojo", R22, largo=3)
     r.c("receptor cargador -", "rx OUT-", "cc IN-", "negro", R22, largo=3)
     r.c("cargador BMS P-", "cc OUT-", "bms P-", "negro", R22, via=[(-38, -36, zb - 7), (8, -46, zb - 8), (6, -56, zm - 12)])
