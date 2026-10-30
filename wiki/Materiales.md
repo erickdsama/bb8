@@ -51,7 +51,7 @@ Tienda física (sucursales Tecnológico y Torres). Buscador: `uv run tools/elect
 
 **Comprado también:** cautín 40 W, soldadura 60/40 con flux, base y multímetro (Home Depot, 15 oct).
 
-**Sigue faltando para la Parte 1:** el cable de los motores. El kit "PH 2.0 Connector Pre-Crimped Cable Kit" (Amazon, B08T89ZK2Q) trae varios conectores hembra de 6P y 90 cables con terminal; alcanza para los dos motores.
+**~~Sigue faltando para la Parte 1:~~ ya resuelto:** el cable de los motores. El kit "PH 2.0 Connector Pre-Crimped Cable Kit" (Amazon, B08T89ZK2Q) trae varios conectores hembra de 6P y 90 cables con terminal; alcanza para los dos motores.
 
 ## Ya tienes (no se compran)
 
@@ -84,7 +84,7 @@ consultada (tienda física o sin precio visible). Nada de esto se ha comprado.
 
 | Pieza | Cant. | Tienda | MXN | Nota |
 | --- | --- | --- | --- | --- |
-| Cable JST PH 2.0 mm de 6 pines a Dupont hembra, 20 cm | 2 | Mercado Libre / UNIT | 50–80 | El motor trae el conector (M1, GND, C2, C1, VCC, M2) pero no el cable |
+| ~~Cable JST PH 2.0 mm de 6 pines a Dupont hembra, 20 cm~~ | 2 | Mercado Libre / UNIT | 50–80 | El motor trae el conector (M1, GND, C2, C1, VCC, M2) pero no el cable. **Ya resuelto** |
 | ~~Cautín 60 W con control de temperatura + estaño con flux + base~~ | 1 | Mercado Libre / Amazon | 250–350 | El MPU6050 y el VL53L0X vienen con los pines sueltos; sin soldar el escáner I2C no los ve. **Comprado (Home Depot, 15 oct): cautín 40 W, soldadura 60/40 con flux, base** |
 | ~~Multímetro básico~~ | 1 | Mercado Libre / Steren | ~200 | Para ajustar el LM2596 a 5.1 V antes de conectar el servo. **Comprado (Home Depot, 15 oct)** |
 
